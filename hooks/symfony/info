@@ -1,0 +1,2 @@
+DEPENDENCIES=php,js,css
+DESCRIPTION="Hooks for the Symfony PHP framework"

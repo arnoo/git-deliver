@@ -1,0 +1,1 @@
+drush cc && drush cron

@@ -1,0 +1,1 @@
+$EXEC_REMOTE cd $REMOTE_PATH && ./symfony doctrine:build-all
