@@ -11,6 +11,7 @@ oneTimeSetUp()
 	echo "blah blah" > a
 	git add a
 	git commit -m "test commit"
+	cd $ROOT_DIR
 	}
 
 oneTimeTearDown()
@@ -21,21 +22,29 @@ oneTimeTearDown()
 
 tearDown()
 	{
-	rm -rf "$ROOT_DIR/.deliver"
+	rm -rf "$ROOT_DIR/test_repo/.deliver"
+	cd $ROOT_DIR
 	}
 
 testHelp1()
 	{
 	cd "$ROOT_DIR/test_repo"
-	$ROOT_DIR/deliver.sh
+	$ROOT_DIR/deliver.sh | grep "git deliver <REMOTE> <VERSION>" > /dev/null
+	assertEquals 0 $?
 	}
 
 testInit()
 	{
 	cd "$ROOT_DIR/test_repo"
 	$ROOT_DIR/deliver.sh --init
-	assertTrue [[ -d .deliver ]]
-	assertTrue [[ -d .deliver/hooks ]]
+	assertTrue "[ -d .deliver ]"
+	assertTrue "[ -d .deliver/hooks ]"
+	assertTrue "[ -d .deliver/hooks/check ]"
+	assertTrue "[ -d .deliver/hooks/init-remote ]"
+	assertTrue "[ -d .deliver/hooks/post-checkout ]"
+	assertTrue "[ -d .deliver/hooks/post-symlink ]"
+	assertTrue "[ -d .deliver/hooks/rollback ]"
+	ls -l .deliver/hooks
 	}
 
 testInitHook()

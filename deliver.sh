@@ -113,11 +113,24 @@ function check_hook
 	fi
 	}
 
+
+# Copies the files for hook $1 to the repo's .deliver/hooks directory
 function init_hook
 	{
 	local HOOK=$1
-	cp -i "$GIT_DELIVER_PATH/$HOOK"/* "$REPO_ROOT"/.deliver/hooks/*
-        source "$GIT_DELIVER_PATH/$HOOK"/info
+	local HOOK_SCRIPT
+	#TODO: interdire init si deja init sauf flag specifique (et dans ce cas cp -i)
+	for HOOK_STAGE_DIR in "$GIT_DELIVER_PATH/hooks/$HOOK"/*; do
+		[ -d $HOOK_STAGE_DIR ] || continue
+		local HOOK_STAGE=`basename $HOOK_STAGE_DIR`
+		for HOOK_SCRIPT_FILE in "$HOOK_STAGE_DIR"/*; do
+			local HOOK_SCRIPT_NAME=`basename $HOOK_SCRIPT_FILE`
+			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'`
+			local HOOK_LABEL=${HOOK_SCRIPT_NAME:${#HOOK_SEQNUM}}
+			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/$HOOK_SEQNUM-$HOOK_LABEL.sh
+		done
+	done
+        source "$GIT_DELIVER_PATH/hooks/$HOOK"/info
         #TODO: init_hook de chaque DEPENDENCIES
 	}
 
@@ -130,11 +143,11 @@ function init
 		check_hook $HOOK
         done
 	mkdir -p "$REPO_ROOT/.deliver/hooks"
-	for HOOK in init-remote post-checkout post-commit rollback; do
+	for HOOK in init-remote check post-checkout post-symlink rollback; do
 		mkdir "$REPO_ROOT/.deliver/hooks/$HOOK"
 	done
 	echo "Setting up core hooks" >&2
-	cp -i "$GIT_DELIVER_PATH"/hooks/core/*/*.sh "$REPO_ROOT"/.deliver/hooks/
+	init_hook core
 	for HOOK_DIR in "${HOOKS[@]}"; do
 		local HOOK=`basename $HOOK_DIR`
 		echo "Setting up $HOOK hooks" >&2
@@ -167,7 +180,7 @@ function remote_info
 	local INIT=$2
 	local INIT_URL=$3
 	local REMOTE_INFO
-	REMOTE_INFO=`git remote -v | grep '^'$REMOTE'$' | grep '(push)'`
+	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'$' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
 		confirm_or_exit "Remote $REMOTE not found. Create it ?"
 		echo ""
