@@ -50,8 +50,8 @@ testInit()
 	assertTrue "[ -d .deliver ]"
 	assertTrue "[ -d .deliver/hooks ]"
 	assertTrue "[ -d .deliver/hooks/check ]"
-	assertTrue "[ -f .deliver/hooks/check/001-disk-space.sh ]"
-	assertTrue "[ -f .deliver/hooks/check/001-mem-free.sh ]"
+	assertTrue "[ -f .deliver/hooks/check/01-core-disk-space.sh ]"
+	assertTrue "[ -f .deliver/hooks/check/01-core-mem-free.sh ]"
 	assertTrue "[ -d .deliver/hooks/init-remote ]"
 	assertTrue "[ -d .deliver/hooks/post-checkout ]"
 	assertTrue "[ -d .deliver/hooks/post-symlink ]"
@@ -60,9 +60,34 @@ testInit()
 
 testInitHook()
 	{
-	cd test_repo
-	$ROOT_DIR/deliver.sh --init php
+	cd "$ROOT_DIR/test_repo"
+	"$ROOT_DIR/deliver.sh" --init php
 	assertTrue "[ -f .deliver/hooks/php/01TODO ]"
+
+	}
+
+testUnknownRemote()
+	{
+	cd "$ROOT_DIR/test_repo"
+	RESULT=`"$ROOT_DIR/deliver.sh" --batch non_existent_remote master 2>&1`
+	assertEquals "Remote non_existent_remote not found." "$RESULT"
+	}
+
+testUnknownRef()
+	{
+	cd "$ROOT_DIR/test_repo"
+	RESULT=`"$ROOT_DIR/deliver.sh" --batch origin non_existent_ref 2>&1`
+	assertEquals "Ref non_existent_ref not found." "$RESULT"
+	}
+
+testBasicDeliver1()
+	{
+	cd "$ROOT_DIR/test_repo"
+	mv "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote"
+	git clone --bare "$ROOT_DIR/test_remote" "$ROOT_DIR/test_repo" 
+	"$ROOT_DIR/deliver.sh" origin master 
+	assertTrue [ -d "$ROOT_DIR/test_remote/delivered" ]
+	assertTrue [ -d "$ROOT_DIR/test_remote/delivered/master" ]
 
 	}
 

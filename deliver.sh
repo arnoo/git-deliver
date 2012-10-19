@@ -34,16 +34,19 @@ source "$GIT_DELIVER_PATH/lib/shflags"
 
 #TODO: gaffe a bien >&2 ce qui doit l'être
 #TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
-#TODO: deliver version identique ecrase rep... que faire ?
+#TODO: deliver version identique ecrase rep... que faire ? idem pour nom tag
 
 function confirm_or_exit
 	{
+	if [[ $FLAGS_batch -eq $FLAGS_TRUE ]]; then
+		exit 2
+	fi
 	if [[ "$1" = "" ]]; then
 	    local MSG="Continue ?"
 	else
 	    local MSG=$1
 	fi
-	read -p "$MSG (y/n) " -n 1 REPLY
+	read -p "$MSG (y/n) " -n 1 REPLY >&2
 	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 		exit 1
 	fi
@@ -194,16 +197,17 @@ function run_hooks
 	local STAGE=$1
 	echo "Running hooks for stage $STAGE" >&2
 	for HOOK in hooks/$STAGE/*.sh; do
-		echo -n "$STAGE/$HOOK" >&2
-		source $HOOK;
+		echo "  Running hook $STAGE/$HOOK" >&2
+		bash <<EOS
+export GIT_DELIVER_PATH=$GIT_DELIVER_PATH
+source $HOOK;
+EOS
 		local HOOK_RESULT=$?
 		if [[ $HOOK_RESULT -gt 0 ]]; then
 			echo "" >&2
-			echo "Hook returned with status $HOOK_RESULT" >&2
+			echo "  Hook returned with status $HOOK_RESULT" >&2
 			rollback $STAGE
 			exit
-		else
-			echo "	[OK]"
 		fi
 	done
 	}
@@ -216,7 +220,8 @@ function remote_info
 	local REMOTE_INFO
 	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'$' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
-		confirm_or_exit "Remote $REMOTE not found. Create it ?"
+		echo "Remote $REMOTE not found" >&2
+		confirm_or_exit "Create it ?"
 		echo ""
 		if [[ $INIT_URL = "" ]]; then
 			read -p "URL for remote :" INIT_URL
@@ -290,7 +295,8 @@ function deliver
 	fi
 
 	if [[ ! $VERSION_EXISTS ]]; then
-		confirm_or_exit "Ref $VERSION not found. Tag current HEAD ?" >&2
+		echo "Ref $VERSION not found." >&2
+		confirm_or_exit "Tag current HEAD ?"
 		VERSION_SHA=`git rev-parse HEAD`
 		echo "Tagging current HEAD" >&2
 		git tag $VERSION
@@ -322,9 +328,9 @@ function deliver
 
 	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
 
-	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER
+	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
-	$EXEC_REMOTE ln -sf "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
+	$EXEC_REMOTE ln -sfn "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
 
 	run_hooks "post-symlink"
 
@@ -341,6 +347,7 @@ function rollback
 	local STAGE=$1
 	}
 
+DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
 DEFINE_boolean 'init' false 'Initialize this repository'
 DEFINE_boolean 'init-remote' false 'Initialize a remote'
 DEFINE_boolean 'list-hooks' false 'List hooks available for init'
