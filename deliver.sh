@@ -175,7 +175,7 @@ function init
 		check_hook $HOOK
         done
 	mkdir -p "$REPO_ROOT/.deliver/hooks"
-	for HOOK in init-remote check post-checkout post-symlink rollback; do
+	for HOOK in init-remote pre-delivery post-checkout post-symlink rollback; do
 		mkdir "$REPO_ROOT/.deliver/hooks/$HOOK"
 	done
 	echo "Setting up core hooks" >&2
@@ -275,7 +275,7 @@ function deliver
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
-	run_hooks "check"
+	run_hooks "pre-delivery"
 
 	local VERSION_SHA=`git rev-parse $VERSION 2> /dev/null`
 	local VERSION_EXISTS= [[ $? -gt 0 ]];
@@ -317,6 +317,8 @@ function deliver
 	#TODO: sign commit if user has a GPG key
 
 	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
+
+	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER
 
 	$EXEC_REMOTE ln -sf $REMOTE_PATH/$VERSION $REMOTE_PATH/current
 
