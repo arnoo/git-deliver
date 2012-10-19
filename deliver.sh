@@ -115,7 +115,7 @@ function list_hooks
 	{
 	for HOOK_PATH in $GIT_DELIVER_PATH/hooks/*; do
 		HOOK=`basename "$HOOK_PATH"`
-		if [[ "$HOOK" != "core" ]] && [[ -f "$HOOK_PATH/info" ]]; then
+		if [[ -f "$HOOK_PATH/info" ]]; then
 			source "$HOOK_PATH/info"
 			echo "$HOOK : $DESCRIPTION [$DEPENDENCIES]"
 		fi
@@ -163,7 +163,7 @@ function init_hook
 			local HOOK_SCRIPT_NAME=`basename $HOOK_SCRIPT_FILE`
 			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'`
 			local HOOK_LABEL=${HOOK_SCRIPT_NAME:$((${#HOOK_SEQNUM}+1))}
-			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/"$HOOK_SEQNUM-$HOOK_LABEL"
+			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/"$HOOK_SEQNUM-$HOOK-$HOOK_LABEL"
 		done
 	done
         source "$GIT_DELIVER_PATH/hooks/$HOOK"/info

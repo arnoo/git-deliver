@@ -37,9 +37,7 @@ testListHooks()
 	{
 	cd "$ROOT_DIR/test_repo"
 	local RESULT=`$ROOT_DIR/deliver.sh --list-hooks`
-	local ERRLINES=`echo "$RESULT" 2| wc -l`
-	assertEquals "0" "$ERRLINES"
-	echo "$RESULT" | grep "Generic git-deliver hooksI" > /dev/null 2>&1
+	echo "$RESULT" | grep "Core git deliver hooks" > /dev/null
 	assertEquals 0 $?
 	}
 
@@ -47,11 +45,12 @@ testInit()
 	{
 	cd "$ROOT_DIR/test_repo"
 	$ROOT_DIR/deliver.sh --init
+	ls -l .deliver/hooks/*
 	assertTrue "[ -d .deliver ]"
 	assertTrue "[ -d .deliver/hooks ]"
-	assertTrue "[ -d .deliver/hooks/check ]"
-	assertTrue "[ -f .deliver/hooks/check/01-core-disk-space.sh ]"
-	assertTrue "[ -f .deliver/hooks/check/01-core-mem-free.sh ]"
+	assertTrue "[ -d .deliver/hooks/pre-delivery ]"
+	assertTrue "[ -f .deliver/hooks/pre-delivery/01-core-disk-space.sh ]"
+	assertTrue "[ -f .deliver/hooks/pre-delivery/01-core-mem-free.sh ]"
 	assertTrue "[ -d .deliver/hooks/init-remote ]"
 	assertTrue "[ -d .deliver/hooks/post-checkout ]"
 	assertTrue "[ -d .deliver/hooks/post-symlink ]"
@@ -88,7 +87,6 @@ testBasicDeliver1()
 	"$ROOT_DIR/deliver.sh" origin master 
 	assertTrue [ -d "$ROOT_DIR/test_remote/delivered" ]
 	assertTrue [ -d "$ROOT_DIR/test_remote/delivered/master" ]
-
 	}
 
 . lib/shunit2
