@@ -1,2 +1,2 @@
 DEPENDENCIES=
-DESCRIPTION="Generic git-deliver hooks for PHP projects"
+DESCRIPTION="Generic git-deliver hooks for Javascript projects"

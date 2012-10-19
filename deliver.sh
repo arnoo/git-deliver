@@ -55,7 +55,39 @@ function print_help
 	echo "git deliver --init-remote <REMOTE>"
 	echo "git deliver --list-hooks"
 	echo "git deliver --status"
+	echo "git deliver --fetch-log [REMOTE]"
+	echo "git deliver --log [REMOTE]"
 	exit 1
+	}
+
+function log
+	{
+	local REMOTE="$1"
+	if [[ "$REMOTE" = "" ]]; then
+		for R in `git remote`; do
+			log $R
+		done
+	else
+		LOG="$REPO_ROOT/.deliver/logs/$REMOTE"
+		if [[ -f "$LOG" ]]; then
+			cat "$REPO_ROOT/.deliver/logs/$REMOTE"
+		else
+			echo "No delivery log for remote $REMOTE"
+		fi
+	fi
+	}
+
+function fetch_log
+	{
+	local REMOTE="$1"
+	if [[ "$REMOTE" = "" ]]; then
+		for R in `git remote`; do
+			fetch_log "$R"
+		done
+	else
+		remote_info "$REMOTE"
+		rsync "$REMOTE_URL/deliver_log" "$REPO_ROOT/.deliver/logs/$REMOTE"
+	fi
 	}
 
 function repo_status
@@ -126,8 +158,8 @@ function init_hook
 		for HOOK_SCRIPT_FILE in "$HOOK_STAGE_DIR"/*; do
 			local HOOK_SCRIPT_NAME=`basename $HOOK_SCRIPT_FILE`
 			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'`
-			local HOOK_LABEL=${HOOK_SCRIPT_NAME:${#HOOK_SEQNUM}}
-			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/$HOOK_SEQNUM-$HOOK_LABEL.sh
+			local HOOK_LABEL=${HOOK_SCRIPT_NAME:$((${#HOOK_SEQNUM}+1))}
+			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/$HOOK_SEQNUM-$HOOK_LABEL
 		done
 	done
         source "$GIT_DELIVER_PATH/hooks/$HOOK"/info
@@ -153,6 +185,7 @@ function init
 		echo "Setting up $HOOK hooks" >&2
 		init_hook $HOOK
 	done
+	#TODO: git hook sur fetch pour maj log livraison depuis log remote
 	}
 
 function run_hooks

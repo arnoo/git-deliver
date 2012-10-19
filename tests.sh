@@ -33,6 +33,16 @@ testHelp1()
 	assertEquals 0 $?
 	}
 
+testListHooks()
+	{
+	cd "$ROOT_DIR/test_repo"
+	local RESULT=`$ROOT_DIR/deliver.sh --list-hooks`
+	local ERRLINES=`echo "$RESULT" 2| wc -l`
+	assertEquals "0" "$ERRLINES"
+	echo "$RESULT" | grep "Generic git-deliver hooksI" > /dev/null 2>&1
+	assertEquals 0 $?
+	}
+
 testInit()
 	{
 	cd "$ROOT_DIR/test_repo"
@@ -40,19 +50,20 @@ testInit()
 	assertTrue "[ -d .deliver ]"
 	assertTrue "[ -d .deliver/hooks ]"
 	assertTrue "[ -d .deliver/hooks/check ]"
+	assertTrue "[ -f .deliver/hooks/check/001-disk-space.sh ]"
+	assertTrue "[ -f .deliver/hooks/check/001-mem-free.sh ]"
 	assertTrue "[ -d .deliver/hooks/init-remote ]"
 	assertTrue "[ -d .deliver/hooks/post-checkout ]"
 	assertTrue "[ -d .deliver/hooks/post-symlink ]"
 	assertTrue "[ -d .deliver/hooks/rollback ]"
-	ls -l .deliver/hooks
 	}
 
 testInitHook()
 	{
 	cd test_repo
 	$ROOT_DIR/deliver.sh --init php
-	assertTrue [[ -d .deliver ]]
-	assertTrue [[ -d .deliver/hooks ]]
+	assertTrue "[ -f .deliver/hooks/php/01TODO ]"
+
 	}
 
 . lib/shunit2
