@@ -34,6 +34,7 @@ source "$GIT_DELIVER_PATH/lib/shflags"
 
 #TODO: gaffe a bien >&2 ce qui doit l'être
 #TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
+#TODO: deliver version identique ecrase rep... que faire ?
 
 function confirm_or_exit
 	{
@@ -340,13 +341,13 @@ function rollback
 	local STAGE=$1
 	}
 
-DEFINE_boolean 'init' false 'Initialize this repository' 'i'
-DEFINE_boolean 'init-remote' false 'Initialize a remote' 'r'
-DEFINE_boolean 'list-hooks' false 'List hooks available for init' 'h'
-DEFINE_boolean 'status' false 'Query repository and remotes status' 's'
-DEFINE_boolean 'rollback' false 'TODO' 'b'
-DEFINE_boolean 'log' false 'TODO' 'l'
-DEFINE_boolean 'fetch-log' false 'TODO' 'f'
+DEFINE_boolean 'init' false 'Initialize this repository'
+DEFINE_boolean 'init-remote' false 'Initialize a remote'
+DEFINE_boolean 'list-hooks' false 'List hooks available for init'
+DEFINE_boolean 'status' false 'Query repository and remotes status'
+DEFINE_boolean 'rollback' false 'TODO'
+DEFINE_boolean 'log' false 'TODO'
+DEFINE_boolean 'fetch-log' false 'TODO'
 
 # parse the command-line
 FLAGS "$@" || exit 1
