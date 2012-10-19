@@ -159,7 +159,7 @@ function init_hook
 			local HOOK_SCRIPT_NAME=`basename $HOOK_SCRIPT_FILE`
 			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'`
 			local HOOK_LABEL=${HOOK_SCRIPT_NAME:$((${#HOOK_SEQNUM}+1))}
-			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/$HOOK_SEQNUM-$HOOK_LABEL
+			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/"$HOOK_SEQNUM-$HOOK_LABEL"
 		done
 	done
         source "$GIT_DELIVER_PATH/hooks/$HOOK"/info
@@ -171,7 +171,7 @@ function init
 	local HOOKS=$1
 	IFS=',' read -ra HOOKS <<< "$HOOKS"
 	for HOOK_DIR in "${HOOKS[@]}"; do
-		local HOOK=`basename $HOOK_DIR`
+		local HOOK=`basename "$HOOK_DIR"`
 		check_hook $HOOK
         done
 	mkdir -p "$REPO_ROOT/.deliver/hooks"
@@ -220,7 +220,7 @@ function remote_info
 		if [[ $INIT_URL = "" ]]; then
 			read -p "URL for remote :" INIT_URL
 		fi
-		git remote add $REMOTE $INIT_URL
+		git remote add "$REMOTE" "$INIT_URL"
 		if [[ ! $IN_INIT ]]; then
 			init_remote
 		fi
@@ -230,8 +230,8 @@ function remote_info
 	REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
 	REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
 
-	if [[ $REMOTE_PATH -eq "" ]]; then
-		REMOTE_PATH=$REMOTE_SERVER;
+	if [[ "$REMOTE_PATH" -eq "" ]]; then
+		REMOTE_PATH="$REMOTE_SERVER";
 		REMOTE_SERVER=""
 		EXEC_REMOTE=""
 	else
@@ -266,12 +266,12 @@ function deliver
 	fi
 	local REMOTE=$1
 	local VERSION=$2
-	if [[ ! -d "$REPO_ROOT"/.deliver ]]; then
+	if [[ ! -d "$REPO_ROOT/.deliver" ]]; then
 		confirm_or_exit ".deliver not found in git directory. Run init ?"
 		init
 	fi
 
-	if [[ `$EXEC_REMOTE ls $REMOTE_PATH/hooks $REMOTE_PATH/refs 2> /dev/null | wc -l` -lt 2 ]]; then
+	if [[ `$EXEC_REMOTE ls "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l` -lt 2 ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
@@ -280,7 +280,7 @@ function deliver
 	local VERSION_SHA=`git rev-parse $VERSION 2> /dev/null`
 	local VERSION_EXISTS= [[ $? -gt 0 ]];
 
-	local PREVIOUS_VERSION_SHA=`git rev-parse delivered-$REMOTE`
+	local PREVIOUS_VERSION_SHA=`git rev-parse "delivered-$REMOTE"`
 	if [[ $? -gt 0 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
@@ -299,17 +299,35 @@ function deliver
 		confirm_or_exit "Tag or branch delivered-$REMOTE found. This would indicate that this version ($VERSION) has already been delivered to $REMOTE. Proceed anyway ?"
 	fi
 
-	# make sure the remote has all the commits leading to the version to be delivered
+	# Make sure the remote has all the commits leading to the version to be delivered
 	git push $REMOTE $VERSION
 
-	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default).
+	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH $REMOTE_PATH/delivered/$VERSION
+	$EXEC_REMOTE git checkout -b "delivered" #TODO: what if there's a 'delivered' branch already on that repo ?
 
 	run_hooks "post-checkout"
+
+	# Commit after the post-checkouts have run and might have changed a few thins (added production database passwords for instance).
+	# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
+
+	$DELIVERED_BY_NAME=`git config --get user.name`
+	$DELIVERED_BY_EMAIL=`git config --get user.email`
+	$EXEC_REMOTE git commit --author "$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>" -a -m ""
+	#TODO: sign commit if user has a GPG key
+
+	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
+
 	$EXEC_REMOTE ln -sf $REMOTE_PATH/$VERSION $REMOTE_PATH/current
+
 	run_hooks "post-symlink"
+
+	# TAG the delivered version here and on the origin remote
+
 	$MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
-	git tag -m "$MSG" delivered-$REMOTE-`date +'%F_%R'` $VERSION
+	TAG_NAME="delivered-$REMOTE-`date +'%F_%R'`"
+	git tag -m "$MSG" $TAG_NAME $VERSION
+	git push origin $TAG_NAME
 	}
 
 function rollback
@@ -319,9 +337,11 @@ function rollback
 
 DEFINE_boolean 'init' false 'Initialize this repository' 'i'
 DEFINE_boolean 'init-remote' false 'Initialize a remote' 'r'
-DEFINE_boolean 'list-hooks' false 'List hooks available for init' 'l'
+DEFINE_boolean 'list-hooks' false 'List hooks available for init' 'h'
 DEFINE_boolean 'status' false 'Query repository and remotes status' 's'
 DEFINE_boolean 'rollback' false 'TODO' 'b'
+DEFINE_boolean 'log' false 'TODO' 'l'
+DEFINE_boolean 'fetch-log' false 'TODO' 'f'
 
 # parse the command-line
 FLAGS "$@" || exit 1
@@ -333,6 +353,10 @@ elif [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
 	init_remote $*
 elif [[ $FLAGS_list_hooks -eq $FLAGS_TRUE ]]; then
 	list_hooks $*
+elif [[ $FLAGS_fetch_log -eq $FLAGS_TRUE ]]; then
+	fetch_log $*
+elif [[ $FLAGS_log -eq $FLAGS_TRUE ]]; then
+	log $*
 elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
 	repo_status $*
 else
