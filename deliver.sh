@@ -95,7 +95,7 @@ function repo_status
 	local REMOTE=$1
 	if [[ "$REMOTE" = "." ]]; then
 		if [[ -d "$REPO_ROOT/.deliver" ]]; then
-		echo "Repository initialized"
+			echo "Repository initialized"
 		fi
 	elif [[ $REMOTE -eq '' ]]; then
 		for R in `git remote`; do
@@ -103,7 +103,7 @@ function repo_status
 		done
 	else
 		remote_info $REMOTE
-		$EXEC_REMOTE #TODO
+		$EXEC_REMOTE git status --git-dir "$REMOTE_PATH/delivered/current"
 	fi
 	}
 
@@ -303,30 +303,33 @@ function deliver
 	git push $REMOTE $VERSION
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
-	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH $REMOTE_PATH/delivered/$VERSION
-	$EXEC_REMOTE git checkout -b "delivered" #TODO: what if there's a 'delivered' branch already on that repo ?
+
+	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"
+
+	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH "$DELIVERY_PATH"
+	$EXEC_REMOTE git checkout --git-dir "$DELIVERY_PATH" -b "delivered" #TODO: what if there's a 'delivered' branch already on that repo ?
 
 	run_hooks "post-checkout"
 
 	# Commit after the post-checkouts have run and might have changed a few thins (added production database passwords for instance).
 	# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
 
-	$DELIVERED_BY_NAME=`git config --get user.name`
-	$DELIVERED_BY_EMAIL=`git config --get user.email`
-	$EXEC_REMOTE git commit --author "$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>" -a -m ""
+	DELIVERED_BY_NAME=`git config --get user.name`
+	DELIVERED_BY_EMAIL=`git config --get user.email`
+	$EXEC_REMOTE git commit --git-dir "$DELIVERY_PATH" --author "$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>" -a -m ""
 	#TODO: sign commit if user has a GPG key
 
 	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER
 
-	$EXEC_REMOTE ln -sf $REMOTE_PATH/$VERSION $REMOTE_PATH/current
+	$EXEC_REMOTE ln -sf "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
 
 	run_hooks "post-symlink"
 
 	# TAG the delivered version here and on the origin remote
 
-	$MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
+	MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
 	TAG_NAME="delivered-$REMOTE-`date +'%F_%R'`"
 	git tag -m "$MSG" $TAG_NAME $VERSION
 	git push origin $TAG_NAME
