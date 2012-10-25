@@ -218,7 +218,7 @@ function remote_info
 	local INIT=$2
 	local INIT_URL=$3
 	local REMOTE_INFO
-	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'$' | grep '(push)'`
+	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'	' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
 		echo "Remote $REMOTE not found" >&2
 		confirm_or_exit "Create it ?"
@@ -236,7 +236,11 @@ function remote_info
 	REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
 	REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
 
-	if [[ "$REMOTE_PATH" -eq "" ]]; then
+	echo "URL" $REMOTE_URL
+	echo "SERVER" $REMOTE_SERVER
+	echo "PATH" $REMOTE_PATH
+
+	if [[ "$REMOTE_PATH" = "" ]]; then
 		REMOTE_PATH="$REMOTE_SERVER";
 		REMOTE_SERVER=""
 		EXEC_REMOTE=""
@@ -277,7 +281,9 @@ function deliver
 		init
 	fi
 
-	if [[ `$EXEC_REMOTE ls "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l` -lt 2 ]]; then
+	remote_info $REMOTE
+	echo "$EXEC_REMOTE ls -1d "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l"
+	if [[ `$EXEC_REMOTE ls -1d "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l` -lt "2" ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi

@@ -17,6 +17,7 @@ oneTimeSetUp()
 oneTimeTearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo"
+	rm -rf "$ROOT_DIR/test_remote"
 	cd $OLD_PWD
 	}
 
@@ -45,15 +46,23 @@ testInit()
 	{
 	cd "$ROOT_DIR/test_repo"
 	$ROOT_DIR/deliver.sh --init
-	ls -l .deliver/hooks/*
+	echo "[ -d .deliver ]"
 	assertTrue "[ -d .deliver ]"
+	echo "[ -d .deliver/hooks ]"
 	assertTrue "[ -d .deliver/hooks ]"
+	echo "[ -d .deliver/hooks/pre-delivery ]"
 	assertTrue "[ -d .deliver/hooks/pre-delivery ]"
+	echo "[ -f .deliver/hooks/pre-delivery/001-core-disk-space.sh ]"
 	assertTrue "[ -f .deliver/hooks/pre-delivery/01-core-disk-space.sh ]"
+	echo "[ -f .deliver/hooks/pre-delivery/001-core-mem-free.sh ]"
 	assertTrue "[ -f .deliver/hooks/pre-delivery/01-core-mem-free.sh ]"
+	echo "[ -d .deliver/hooks/init-remote ]"
 	assertTrue "[ -d .deliver/hooks/init-remote ]"
+	echo "[ -d .deliver/hooks/post-checkout ]"
 	assertTrue "[ -d .deliver/hooks/post-checkout ]"
+	echo "[ -d .deliver/hooks/post-symlink ]"
 	assertTrue "[ -d .deliver/hooks/post-symlink ]"
+	echo "[ -d .deliver/hooks/rollback ]"
 	assertTrue "[ -d .deliver/hooks/rollback ]"
 	}
 
@@ -81,9 +90,9 @@ testUnknownRef()
 
 testBasicDeliver1()
 	{
+	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
 	cd "$ROOT_DIR/test_repo"
-	mv "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote"
-	git clone --bare "$ROOT_DIR/test_remote" "$ROOT_DIR/test_repo" 
+	git remote add origin "$ROOT_DIR/test_remote"
 	"$ROOT_DIR/deliver.sh" origin master 
 	assertTrue [ -d "$ROOT_DIR/test_remote/delivered" ]
 	assertTrue [ -d "$ROOT_DIR/test_remote/delivered/master" ]
