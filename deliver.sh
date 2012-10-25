@@ -195,21 +195,26 @@ function init
 function run_hooks
 	{
 	local STAGE=$1
-	echo "Running hooks for stage $STAGE" >&2
-	for HOOK in hooks/$STAGE/*.sh; do
-		echo "  Running hook $STAGE/$HOOK" >&2
-		bash <<EOS
+	if test -n "$(find . -maxdepth 1 -name 'glob*' -print -quit)"
+		then
+		echo "Running hooks for stage $STAGE" >&2
+		for HOOK in "hooks/$STAGE/*.sh"; do
+			echo "  Running hook $STAGE/$HOOK" >&2
+			bash <<EOS
 export GIT_DELIVER_PATH=$GIT_DELIVER_PATH
 source $HOOK;
 EOS
-		local HOOK_RESULT=$?
-		if [[ $HOOK_RESULT -gt 0 ]]; then
-			echo "" >&2
-			echo "  Hook returned with status $HOOK_RESULT" >&2
-			rollback $STAGE
-			exit
-		fi
-	done
+			local HOOK_RESULT=$?
+			if [[ $HOOK_RESULT -gt 0 ]]; then
+				echo "" >&2
+				echo "  Hook returned with status $HOOK_RESULT" >&2
+				rollback $STAGE
+				exit
+			fi
+		done
+	else
+		echo "No hooks for stage $STAGE" >&2
+	fi
 	}
 
 function remote_info
@@ -232,15 +237,11 @@ function remote_info
 		fi
 	fi
 
-	REMOTE_URL=`echo "$REMOTE_INFO" | cut -f 2 | cut -d\  -f 1`
+	REMOTE_URL=`git config --get "remote.$REMOTE.url"`
 	REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
 	REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
 
-	echo "URL" $REMOTE_URL
-	echo "SERVER" $REMOTE_SERVER
-	echo "PATH" $REMOTE_PATH
-
-	if [[ "$REMOTE_PATH" = "" ]]; then
+	if [[ "$REMOTE_PATH" = "$REMOTE_URL" ]]; then
 		REMOTE_PATH="$REMOTE_SERVER";
 		REMOTE_SERVER=""
 		EXEC_REMOTE=""
