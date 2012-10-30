@@ -35,6 +35,8 @@ source "$GIT_DELIVER_PATH/lib/shflags"
 #TODO: gaffe a bien >&2 ce qui doit l'être
 #TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
 #TODO: deliver version identique ecrase rep... que faire ? idem pour nom tag
+#TODO: git rev-parse --parseopt to process command line flags ?
+#TODO: supporter git config remotes.mygroup 'remote1 remote2' [ group multiple remotes ]
 
 function confirm_or_exit
 	{
@@ -283,17 +285,16 @@ function deliver
 	fi
 
 	remote_info $REMOTE
-	echo "$EXEC_REMOTE ls -1d "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l"
 	if [[ `$EXEC_REMOTE ls -1d "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l` -lt "2" ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
 	run_hooks "pre-delivery"
 
-	local VERSION_SHA=`git rev-parse $VERSION 2> /dev/null`
-	local VERSION_EXISTS= [[ $? -gt 0 ]];
+	local VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
+	local VERSION_EXISTS=[ $? -gt 0 ]
 
-	local PREVIOUS_VERSION_SHA=`git rev-parse "delivered-$REMOTE"`
+	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
 	if [[ $? -gt 0 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
@@ -309,7 +310,7 @@ function deliver
 		git tag $VERSION
 		echo "Pushing tag to origin" >&2
 		git push origin $VERSION
-	elif [[ $PREVIOUS_VERSION_SHA -eq $VERSION_SHA ]]; then
+	elif [[ "$PREVIOUS_VERSION_SHA" -eq "$VERSION_SHA" ]]; then
 		confirm_or_exit "Tag or branch delivered-$REMOTE found. This would indicate that this version ($VERSION) has already been delivered to $REMOTE. Proceed anyway ?"
 	fi
 
@@ -321,7 +322,7 @@ function deliver
 	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"
 
 	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH "$DELIVERY_PATH"
-	$EXEC_REMOTE git checkout --git-dir "$DELIVERY_PATH" -b "delivered" #TODO: what if there's a 'delivered' branch already on that repo ?
+	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git checkout -b \"delivered\"" #TODO: what if there's a 'delivered' branch already on that repo ?
 
 	run_hooks "post-checkout"
 
@@ -330,7 +331,7 @@ function deliver
 
 	DELIVERED_BY_NAME=`git config --get user.name`
 	DELIVERED_BY_EMAIL=`git config --get user.email`
-	$EXEC_REMOTE git commit --git-dir "$DELIVERY_PATH" --author "$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>" -a -m ""
+	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
 	#TODO: sign commit if user has a GPG key
 
 	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
