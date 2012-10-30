@@ -293,8 +293,6 @@ function deliver
 	local VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 	local VERSION_EXISTS=`[ $? -gt 0 ]`
 
-	run_hooks "pre-delivery"
-
 	if [[ ! $VERSION_EXISTS ]]; then
 		echo "Ref $VERSION not found." >&2
 		confirm_or_exit "Tag current HEAD ?"
@@ -304,6 +302,8 @@ function deliver
 		echo "Pushing tag to origin" >&2
 		git push origin $VERSION
 	fi
+
+	run_hooks "pre-delivery"
 
 	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
 	if [[ $? -gt 0 ]]; then
