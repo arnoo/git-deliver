@@ -1,5 +1,10 @@
 #!/bin/bash
 
+assertTrueEcho()
+	{
+	$1 || ( echo "$1" && assertTrue false )
+	}
+
 oneTimeSetUp()
 	{
 	ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -46,38 +51,28 @@ testInit()
 	{
 	cd "$ROOT_DIR/test_repo"
 	$ROOT_DIR/deliver.sh --init
-	echo "[ -d .deliver ]"
-	assertTrue "[ -d .deliver ]"
-	echo "[ -d .deliver/hooks ]"
-	assertTrue "[ -d .deliver/hooks ]"
-	echo "[ -d .deliver/hooks/pre-delivery ]"
-	assertTrue "[ -d .deliver/hooks/pre-delivery ]"
-	echo "[ -f .deliver/hooks/pre-delivery/01-core-disk-space.sh ]"
-	assertTrue "[ -f .deliver/hooks/pre-delivery/01-core-disk-space.sh ]"
-	echo "[ -f .deliver/hooks/pre-delivery/01-core-mem-free.sh ]"
-	assertTrue "[ -f .deliver/hooks/pre-delivery/01-core-mem-free.sh ]"
-	echo "[ -d .deliver/hooks/init-remote ]"
-	assertTrue "[ -d .deliver/hooks/init-remote ]"
-	echo "[ -d .deliver/hooks/post-checkout ]"
-	assertTrue "[ -d .deliver/hooks/post-checkout ]"
-	echo "[ -d .deliver/hooks/post-symlink ]"
-	assertTrue "[ -d .deliver/hooks/post-symlink ]"
-	echo "[ -d .deliver/hooks/rollback ]"
-	assertTrue "[ -d .deliver/hooks/rollback ]"
+	assertTrueEcho "[ -d .deliver ]"
+	assertTrueEcho "[ -d .deliver/hooks ]"
+	assertTrueEcho "[ -d .deliver/hooks/pre-delivery ]"
+	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-core-disk-space.sh ]"
+	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-core-mem-free.sh ]"
+	assertTrueEcho "[ -d .deliver/hooks/init-remote ]"
+	assertTrueEcho "[ -d .deliver/hooks/post-checkout ]"
+	assertTrueEcho "[ -d .deliver/hooks/post-symlink ]"
+	assertTrueEcho "[ -d .deliver/hooks/rollback ]"
 	}
 
 testInitHook()
 	{
 	cd "$ROOT_DIR/test_repo"
 	"$ROOT_DIR/deliver.sh" --init php
-	assertTrue "[ -f .deliver/hooks/php/01TODO ]"
-
+	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-php-syntax-check.sh ]"
 	}
 
 testUnknownRemote()
 	{
 	cd "$ROOT_DIR/test_repo"
-	local RESULT=`"$ROOT_DIR/deliver.sh" --batch non_existent_remote master 2>&1`
+	local RESULT=`$ROOT_DIR/deliver.sh --batch non_existent_remote master 2>&1`
 	echo "RESULT:  $RESULT"
 	assertEquals "Remote non_existent_remote not found." "$RESULT"
 	}
