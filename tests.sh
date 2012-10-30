@@ -5,6 +5,21 @@ assertTrueEcho()
 	$1 || ( echo "$1" && assertTrue false )
 	}
 
+initDeliver()
+	{
+	cd "$ROOT_DIR/test_repo"
+	"$ROOT_DIR"/deliver.sh --batch --init $* 2>&1
+	}
+
+initWithOrigin()
+	{
+	cd "$ROOT_DIR"
+	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
+	cd "$ROOT_DIR/test_repo"
+	git remote add origin "$ROOT_DIR/test_remote"
+	initDeliver $*
+	}
+
 oneTimeSetUp()
 	{
 	ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -29,6 +44,7 @@ oneTimeTearDown()
 tearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
+	rm -rf "$ROOT_DIR/test_remote"
 	cd $ROOT_DIR
 	}
 
@@ -49,8 +65,7 @@ testListHooks()
 
 testInit()
 	{
-	cd "$ROOT_DIR/test_repo"
-	$ROOT_DIR/deliver.sh --init
+	initDeliver
 	assertTrueEcho "[ -d .deliver ]"
 	assertTrueEcho "[ -d .deliver/hooks ]"
 	assertTrueEcho "[ -d .deliver/hooks/pre-delivery ]"
@@ -64,34 +79,37 @@ testInit()
 
 testInitHook()
 	{
-	cd "$ROOT_DIR/test_repo"
-	"$ROOT_DIR/deliver.sh" --init php
+	initDeliver php
 	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-php-syntax-check.sh ]"
+	}
+
+testUninitedDir()
+	{
+	cd "$ROOT_DIR/test_repo"
+	local RESULT=`"$ROOT_DIR"/deliver.sh --batch non_existent_remote master 2>&1`
+	assertEquals ".deliver not found." "$RESULT"
 	}
 
 testUnknownRemote()
 	{
-	cd "$ROOT_DIR/test_repo"
-	local RESULT=`$ROOT_DIR/deliver.sh --batch non_existent_remote master 2>&1`
-	echo "RESULT:  $RESULT"
+	initDeliver
+	local RESULT=`"$ROOT_DIR"/deliver.sh --batch non_existent_remote master 2>&1`
 	assertEquals "Remote non_existent_remote not found." "$RESULT"
 	}
 
-#testUnknownRef()
-#	{
-#	cd "$ROOT_DIR/test_repo"
-#	RESULT=`"$ROOT_DIR/deliver.sh" --batch origin non_existent_ref 2>&1`
-#	assertEquals "Ref non_existent_ref not found." "$RESULT"
-#	}
-#
-#testBasicDeliver1()
-#	{
-#	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
-#	cd "$ROOT_DIR/test_repo"
-#	git remote add origin "$ROOT_DIR/test_remote"
-#	"$ROOT_DIR/deliver.sh" origin master 
-#	assertTrue [ -d "$ROOT_DIR/test_remote/delivered" ]
-#	assertTrue [ -d "$ROOT_DIR/test_remote/delivered/master" ]
-#	}
+testUnknownRef()
+	{
+	initWithOrigin
+	local RESULT=`"$ROOT_DIR"/deliver.sh --batch origin non_existent_ref 2>&1`
+	assertEquals "Ref non_existent_ref not found." "$RESULT"
+	}
+
+testBasicDeliver1()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch origin master 
+	assertTrue [ -d "$ROOT_DIR/test_remote/delivered" ]
+	assertTrue [ -d "$ROOT_DIR/test_remote/delivered/master" ]
+	}
 
 . lib/shunit2

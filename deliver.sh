@@ -132,7 +132,7 @@ function check_hook
 		local DESCRIPTION="ERROR"
 		local INFO_PATH="$GIT_DELIVER_PATH/hooks/$HOOK/info"
 		if [[ ! -f "$INFO_PATH" ]]; then
-			echo "ERROR : Info file for hook $HOOK not found" >&2
+			echo "ERROR : Info file for hook $HOOK not found." >&2
 			exit 1
 		fi
 		source "$INFO_PATH"
@@ -227,7 +227,7 @@ function remote_info
 	local REMOTE_INFO
 	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'	' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
-		echo "Remote $REMOTE not found" >&2
+		echo "Remote $REMOTE not found." >&2
 		confirm_or_exit "Create it ?"
 		echo ""
 		if [[ $INIT_URL = "" ]]; then
@@ -280,7 +280,8 @@ function deliver
 	local REMOTE=$1
 	local VERSION=$2
 	if [[ ! -d "$REPO_ROOT/.deliver" ]]; then
-		confirm_or_exit ".deliver not found in git directory. Run init ?"
+		echo ".deliver not found."
+		confirm_or_exit "Run init ?"
 		init
 	fi
 
@@ -292,7 +293,7 @@ function deliver
 	run_hooks "pre-delivery"
 
 	local VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
-	local VERSION_EXISTS=[ $? -gt 0 ]
+	local VERSION_EXISTS=`[ $? -gt 0 ]`
 
 	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
 	if [[ $? -gt 0 ]]; then
@@ -311,7 +312,8 @@ function deliver
 		echo "Pushing tag to origin" >&2
 		git push origin $VERSION
 	elif [[ "$PREVIOUS_VERSION_SHA" -eq "$VERSION_SHA" ]]; then
-		confirm_or_exit "Tag or branch delivered-$REMOTE found. This would indicate that this version ($VERSION) has already been delivered to $REMOTE. Proceed anyway ?"
+		echo "Tag or branch delivered-$REMOTE found. This would indicate that this version ($VERSION) has already been delivered to $REMOTE."
+		confirm_or_exit "Proceed anyway ?"
 	fi
 
 	# Make sure the remote has all the commits leading to the version to be delivered
