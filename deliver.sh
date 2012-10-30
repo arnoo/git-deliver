@@ -290,18 +290,10 @@ function deliver
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
-	run_hooks "pre-delivery"
-
 	local VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 	local VERSION_EXISTS=`[ $? -gt 0 ]`
 
-	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
-	if [[ $? -gt 0 ]]; then
-		echo "No version delivered yet on $REMOTE" >&2
-	else
-		echo -n "Current version on $REMOTE is " >&2
-		git name-rev $REMOTE >&2
-	fi
+	run_hooks "pre-delivery"
 
 	if [[ ! $VERSION_EXISTS ]]; then
 		echo "Ref $VERSION not found." >&2
@@ -311,7 +303,17 @@ function deliver
 		git tag $VERSION
 		echo "Pushing tag to origin" >&2
 		git push origin $VERSION
-	elif [[ "$PREVIOUS_VERSION_SHA" -eq "$VERSION_SHA" ]]; then
+	fi
+
+	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
+	if [[ $? -gt 0 ]]; then
+		echo "No version delivered yet on $REMOTE" >&2
+	else
+		echo -n "Current version on $REMOTE is " >&2
+		git name-rev $REMOTE >&2
+	fi
+
+	if [[ "$PREVIOUS_VERSION_SHA" -eq "$VERSION_SHA" ]]; then
 		echo "Tag or branch delivered-$REMOTE found. This would indicate that this version ($VERSION) has already been delivered to $REMOTE."
 		confirm_or_exit "Proceed anyway ?"
 	fi
