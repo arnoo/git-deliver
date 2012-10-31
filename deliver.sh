@@ -325,23 +325,24 @@ function deliver
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
-	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"
+	local DELIVERY_DATE=`date +'%F_%H-%M'`
+	local DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
 
 	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH "$DELIVERY_PATH"
 
 	exit_if_error 5
 
-	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git checkout -b \"delivered\"" #TODO: what if there's a 'delivered' branch already on that repo ?
+	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git checkout -b \"_delivered\""
 
 	exit_if_error 6
 
 	run_hooks "post-checkout"
 
-	# Commit after the post-checkouts have run and might have changed a few thins (added production database passwords for instance).
+	# Commit after the post-checkouts have run and might have changed a few things (added production database passwords for instance).
 	# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
 
-	DELIVERED_BY_NAME=`git config --get user.name`
-	DELIVERED_BY_EMAIL=`git config --get user.email`
+	local DELIVERED_BY_NAME=`git config --get user.name`
+	local DELIVERED_BY_EMAIL=`git config --get user.email`
 	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
 	#TODO: sign commit if user has a GPG key
 
@@ -349,18 +350,19 @@ function deliver
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
-	$EXEC_REMOTE cp -P "$REMOTE_PATH/delivered/previous"  "$REMOTE_PATH/delivered/preprevious"
-	$EXEC_REMOTE cp -P "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
+	$EXEC_REMOTE [[ -L "$REMOTE_PATH/delivered/previous"]] && cp -P "$REMOTE_PATH/delivered/previous" "$REMOTE_PATH/delivered/preprevious"
+	$EXEC_REMOTE [[ -L "$REMOTE_PATH/delivered/current"]]  && cp -P "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
 	$EXEC_REMOTE ln -sfn "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
+	#TODO: check for each link that everything went well and be able to rollback
 
 	run_hooks "post-symlink"
 
 	# TAG the delivered version here and on the origin remote
 
-	MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
-	TAG_NAME="delivered-$REMOTE-`date +'%F_%H-%M'`"
-	git tag -m "$MSG" $TAG_NAME $VERSION
-	git push origin $TAG_NAME
+	local MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
+	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
+	git tag -m "$MSG" "$TAG_NAME" "$VERSION"
+	git push origin "$TAG_NAME"
 	}
 
 function rollback
