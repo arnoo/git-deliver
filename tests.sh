@@ -36,7 +36,7 @@ oneTimeSetUp()
 
 oneTimeTearDown()
 	{
-	rm -rf "$ROOT_DIR/test_repo"
+	#rm -rf "$ROOT_DIR/test_repo"
 	rm -rf "$ROOT_DIR/test_remote"
 	cd $OLD_PWD
 	}

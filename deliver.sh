@@ -54,6 +54,13 @@ function confirm_or_exit
 	fi
 	}
 
+function exit_if_error
+	{
+	if [[ $? -gt 0 ]]; then
+		exit $1
+	fi
+	}
+
 function print_help
 	{
 	echo "git deliver <REMOTE> <VERSION>"
@@ -290,10 +297,10 @@ function deliver
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
-	local VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
-	local VERSION_EXISTS=`[ $? -gt 0 ]`
+	local VERSION_SHA
+	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
-	if [[ ! $VERSION_EXISTS ]]; then
+	if [[ "$VERSION_SHA" = "" ]]; then
 		echo "Ref $VERSION not found." >&2
 		confirm_or_exit "Tag current HEAD ?"
 		VERSION_SHA=`git rev-parse HEAD`
@@ -303,30 +310,30 @@ function deliver
 		git push origin $VERSION
 	fi
 
-	run_hooks "pre-delivery"
-
 	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
-	if [[ $? -gt 0 ]]; then
+	if [[ "$PREVIOUS_VERSION_SHA" = "" ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
 		echo -n "Current version on $REMOTE is " >&2
 		git name-rev $REMOTE >&2
 	fi
 
-	if [[ "$PREVIOUS_VERSION_SHA" -eq "$VERSION_SHA" ]]; then
-		echo "Tag or branch delivered-$REMOTE found. This would indicate that this version ($VERSION) has already been delivered to $REMOTE."
-		confirm_or_exit "Proceed anyway ?"
-	fi
+	run_hooks "pre-delivery"
 
 	# Make sure the remote has all the commits leading to the version to be delivered
 	git push $REMOTE $VERSION
 
-	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
+	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
 	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"
 
 	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH "$DELIVERY_PATH"
+
+	exit_if_error 5
+
 	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git checkout -b \"delivered\"" #TODO: what if there's a 'delivered' branch already on that repo ?
+
+	exit_if_error 6
 
 	run_hooks "post-checkout"
 
@@ -342,6 +349,8 @@ function deliver
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
+	$EXEC_REMOTE cp -P "$REMOTE_PATH/delivered/previous"  "$REMOTE_PATH/delivered/preprevious"
+	$EXEC_REMOTE cp -P "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
 	$EXEC_REMOTE ln -sfn "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
 
 	run_hooks "post-symlink"
@@ -349,7 +358,7 @@ function deliver
 	# TAG the delivered version here and on the origin remote
 
 	MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
-	TAG_NAME="delivered-$REMOTE-`date +'%F_%R'`"
+	TAG_NAME="delivered-$REMOTE-`date +'%F_%H-%M'`"
 	git tag -m "$MSG" $TAG_NAME $VERSION
 	git push origin $TAG_NAME
 	}
