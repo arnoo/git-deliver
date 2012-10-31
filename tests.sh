@@ -37,14 +37,14 @@ oneTimeSetUp()
 oneTimeTearDown()
 	{
 	#rm -rf "$ROOT_DIR/test_repo"
-	rm -rf "$ROOT_DIR/test_remote"
+#	rm -rf "$ROOT_DIR/test_remote"
 	cd $OLD_PWD
 	}
 
 tearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
-	rm -rf "$ROOT_DIR/test_remote"
+#	rm -rf "$ROOT_DIR/test_remote"
 	cd $ROOT_DIR
 	}
 
@@ -108,8 +108,30 @@ testBasicDeliver1()
 	{
 	initWithOrigin
 	"$ROOT_DIR"/deliver.sh --batch origin master 
-	assertTrue [ -d "$ROOT_DIR/test_remote/delivered" ]
-	assertTrue [ -d "$ROOT_DIR/test_remote/delivered/master" ]
+	assertTrueEcho "[ -d \"$ROOT_DIR\"/test_remote/delivered ]"
+	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
 	}
+
+#test3DeliveriesSameVersion()
+#	{
+#	initWithOrigin
+#	"$ROOT_DIR"/deliver.sh --batch origin master 
+#	"$ROOT_DIR"/deliver.sh --batch origin master 
+#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
+#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/previous ]"
+#	assertFalse "[ -L \"$ROOT_DIR\"/test_remote/delivered/preprevious ]"
+#	"$ROOT_DIR"/deliver.sh --batch origin master 
+#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
+#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
+#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/previous ]"
+#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/previous`"\" ]"
+#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/preprevious ]"
+#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/preprevious`"\" ]"
+#
+#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/previous`"
+#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/previous`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
+#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
+#	}
 
 . lib/shunit2

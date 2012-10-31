@@ -323,10 +323,20 @@ function deliver
 	# Make sure the remote has all the commits leading to the version to be delivered
 	git push $REMOTE $VERSION
 
-	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
-
-	local DELIVERY_DATE=`date +'%F_%H-%M'`
+	local DELIVERY_DATE=`date +'%F_%H-%M-%S'`
 	local DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
+
+	while $EXEC_REMOTE test -d "$DELIVERY_PATH"; do
+		if [[ "$DELIVERY_DATE" =~ ^(.*)_([0-9]+)$ ]]; then
+			DELIVERY_DATE=${BASH_REMATCH[1]}$(( ${BASH_REMATCH[2]} + 1 ))
+			DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
+		else
+			DELIVERY_DATE="$DELIVERY_DATE"_2
+			DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
+		fi
+	done
+
+	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
 	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH "$DELIVERY_PATH"
 
@@ -350,9 +360,10 @@ function deliver
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
-	$EXEC_REMOTE [[ -L "$REMOTE_PATH/delivered/previous"]] && cp -P "$REMOTE_PATH/delivered/previous" "$REMOTE_PATH/delivered/preprevious"
-	$EXEC_REMOTE [[ -L "$REMOTE_PATH/delivered/current"]]  && cp -P "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
+	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/previous" && cp -P "$REMOTE_PATH/delivered/previous" "$REMOTE_PATH/delivered/preprevious"
+	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/current"  && cp -P "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
 	$EXEC_REMOTE ln -sfn "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
+	#TODO: make symlinks relative
 	#TODO: check for each link that everything went well and be able to rollback
 
 	run_hooks "post-symlink"
