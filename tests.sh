@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#TODO: test with chmod that gives us no permissions on some files : symlink, repo...
+
 assertTrueEcho()
 	{
 	$1 || ( echo "$1" && assertTrue false )

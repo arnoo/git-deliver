@@ -37,6 +37,8 @@ source "$GIT_DELIVER_PATH/lib/shflags"
 #TODO: deliver version identique ecrase rep... que faire ? idem pour nom tag
 #TODO: git rev-parse --parseopt to process command line flags ?
 #TODO: supporter git config remotes.mygroup 'remote1 remote2' [ group multiple remotes ]
+#TODO: fonction run qui logge toutes les commandes !
+#TODO: version GPL ? cf GIT
 
 function confirm_or_exit
 	{
@@ -85,7 +87,7 @@ function log
 		if [[ -f "$LOG" ]]; then
 			cat "$REPO_ROOT/.deliver/logs/$REMOTE"
 		else
-			echo "No delivery log for remote $REMOTE"
+			echo "No delivery log for remote $REMOTE" #TODO: NO, we'll use the tags and their messages as our log (therefore git fetch fetches logs from origin !)
 		fi
 	fi
 	}
@@ -170,7 +172,7 @@ function init_hook
 		local HOOK_STAGE=`basename $HOOK_STAGE_DIR`
 		for HOOK_SCRIPT_FILE in "$HOOK_STAGE_DIR"/*; do
 			local HOOK_SCRIPT_NAME=`basename $HOOK_SCRIPT_FILE`
-			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'`
+			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'` #TODO: refaire avec =~ et ${BASH_REMATCH[4]}
 			local HOOK_LABEL=${HOOK_SCRIPT_NAME:$((${#HOOK_SEQNUM}+1))}
 			cp -f $HOOK_SCRIPT_FILE "$REPO_ROOT"/.deliver/hooks/$HOOK_STAGE/"$HOOK_SEQNUM-$HOOK-$HOOK_LABEL"
 		done
@@ -204,14 +206,15 @@ function init
 function run_hooks
 	{
 	local STAGE=$1
-	if test -n "$(find . -maxdepth 1 -name 'glob*' -print -quit)"
+	if test -n "$(find "$REPO_ROOT/.deliver/hooks/$STAGE" -maxdepth 1 -name '*.sh' -print -quit)"
 		then
 		echo "Running hooks for stage $STAGE" >&2
-		for HOOK in "hooks/$STAGE/*.sh"; do
+		for HOOK_PATH in "$REPO_ROOT/.deliver/hooks/$STAGE/*.sh"; do
+			HOOK=`basename "$HOOT_PATH"`
 			echo "  Running hook $STAGE/$HOOK" >&2
 			bash <<EOS
 export GIT_DELIVER_PATH=$GIT_DELIVER_PATH
-source $HOOK;
+source $HOOK_PATH;
 EOS
 			local HOOK_RESULT=$?
 			if [[ $HOOK_RESULT -gt 0 ]]; then
@@ -242,7 +245,7 @@ function remote_info
 		fi
 		git remote add "$REMOTE" "$INIT_URL"
 		if [[ ! $IN_INIT ]]; then
-			init_remote
+			init_remote $REMOTE $INIT_URL
 		fi
 	fi
 
@@ -266,8 +269,9 @@ function init_remote
 		exit 1
 	fi
 	IN_INIT=true
+	INIT_URL=$2
 	local REMOTE=$1
-	remote_info $REMOTE true $2
+	remote_info $REMOTE true $INIT_URL
 	#TODO: check that remote URL does not already exist
 	echo "$REPO_ROOT"
 	scp -r "$REPO_ROOT/.git" "$REMOTE_URL"
@@ -360,10 +364,10 @@ function deliver
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
-	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/previous" && cp -P "$REMOTE_PATH/delivered/previous" "$REMOTE_PATH/delivered/preprevious"
-	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/current"  && cp -P "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
-	$EXEC_REMOTE ln -sfn "$DELIVERY_PATH" "$REMOTE_PATH/delivered/current"
-	#TODO: make symlinks relative
+	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/preprevious" && rm "$REMOTE_PATH/delivered/preprevious"
+	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/previous" && mv "$REMOTE_PATH/delivered/previous" "$REMOTE_PATH/delivered/preprevious"
+	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/current"  && mv "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
+	$EXEC_REMOTE cd $REMOTE_PATH/delivered && ln -sfn "`basename \"$DELIVERY_PATH\"`" "current"
 	#TODO: check for each link that everything went well and be able to rollback
 
 	run_hooks "post-symlink"
