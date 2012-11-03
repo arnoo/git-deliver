@@ -34,11 +34,11 @@ source "$GIT_DELIVER_PATH/lib/shflags"
 
 #TODO: gaffe a bien >&2 ce qui doit l'être
 #TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
-#TODO: deliver version identique ecrase rep... que faire ? idem pour nom tag
 #TODO: git rev-parse --parseopt to process command line flags ?
 #TODO: supporter git config remotes.mygroup 'remote1 remote2' [ group multiple remotes ]
 #TODO: fonction run qui logge toutes les commandes !
 #TODO: version GPL ? cf GIT
+#TODO: option ou remote n'est pas bare ? et dans ce cas on livre par simple push ?
 
 function confirm_or_exit
 	{
@@ -165,11 +165,13 @@ function check_hook
 function init_hook
 	{
 	local HOOK=$1
+	[ -d "$GIT_DELIVER_PATH/hooks/$HOOK/dependencies" ] && cp -r "$GIT_DELIVER_PATH/hooks/$HOOK/dependencies" "$REPO_ROOT/.deliver/hooks/dependencies/$HOOK"
 	local HOOK_SCRIPT
 	#TODO: interdire init si deja init sauf flag specifique (et dans ce cas cp -i)
 	for HOOK_STAGE_DIR in "$GIT_DELIVER_PATH/hooks/$HOOK"/*; do
 		[ -d $HOOK_STAGE_DIR ] || continue
 		local HOOK_STAGE=`basename $HOOK_STAGE_DIR`
+		[ "$HOOK_STAGE" = "dependencies" ] && continue
 		for HOOK_SCRIPT_FILE in "$HOOK_STAGE_DIR"/*; do
 			local HOOK_SCRIPT_NAME=`basename $HOOK_SCRIPT_FILE`
 			local HOOK_SEQNUM=`echo $HOOK_SCRIPT_NAME | grep -o '^[0-9]\+'` #TODO: refaire avec =~ et ${BASH_REMATCH[4]}
@@ -190,7 +192,7 @@ function init
 		check_hook $HOOK
         done
 	mkdir -p "$REPO_ROOT/.deliver/hooks"
-	for HOOK in init-remote pre-delivery post-checkout post-symlink rollback; do
+	for HOOK in dependencies init-remote pre-delivery post-checkout post-symlink rollback; do
 		mkdir "$REPO_ROOT/.deliver/hooks/$HOOK"
 	done
 	echo "Setting up core hooks" >&2
@@ -200,7 +202,6 @@ function init
 		echo "Setting up $HOOK hooks" >&2
 		init_hook $HOOK
 	done
-	#TODO: git hook sur fetch pour maj log livraison depuis log remote
 	}
 
 function run_hooks
@@ -209,12 +210,19 @@ function run_hooks
 	if test -n "$(find "$REPO_ROOT/.deliver/hooks/$STAGE" -maxdepth 1 -name '*.sh' -print -quit)"
 		then
 		echo "Running hooks for stage $STAGE" >&2
-		for HOOK_PATH in "$REPO_ROOT/.deliver/hooks/$STAGE/*.sh"; do
-			HOOK=`basename "$HOOT_PATH"`
+		for HOOK_PATH in "$REPO_ROOT/.deliver/hooks/$STAGE"/*.sh; do
+			HOOK=`basename "$HOOK_PATH"`
 			echo "  Running hook $STAGE/$HOOK" >&2
 			bash <<EOS
-export GIT_DELIVER_PATH=$GIT_DELIVER_PATH
-source $HOOK_PATH;
+export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
+export REPO_ROOT="$REPO_ROOT"
+export DELIVERY_DATE="$DELIVERY_DATE"
+export DELIVERY_PATH="$DELIVERY_PATH"
+export VERSION="$VERSION"
+export VERSION_SHA="$VERSION_SHA"
+export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
+export REMOTE="$REMOTE"
+source "$HOOK_PATH";
 EOS
 			local HOOK_RESULT=$?
 			if [[ $HOOK_RESULT -gt 0 ]]; then
@@ -258,7 +266,7 @@ function remote_info
 		REMOTE_SERVER=""
 		EXEC_REMOTE=""
 	else
-		EXEC_REMOTE="ssh $REMOTE_SERVER"
+		EXEC_REMOTE="ssh $REMOTE_SERVER" #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
 	fi
 	}
 
@@ -301,7 +309,6 @@ function deliver
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
-	local VERSION_SHA
 	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
 	if [[ "$VERSION_SHA" = "" ]]; then
@@ -314,7 +321,7 @@ function deliver
 		git push origin $VERSION
 	fi
 
-	local PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
+	PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
 	if [[ "$PREVIOUS_VERSION_SHA" = "" ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
@@ -327,8 +334,8 @@ function deliver
 	# Make sure the remote has all the commits leading to the version to be delivered
 	git push $REMOTE $VERSION
 
-	local DELIVERY_DATE=`date +'%F_%H-%M-%S'`
-	local DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
+	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
+	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
 
 	while $EXEC_REMOTE test -d "$DELIVERY_PATH"; do
 		if [[ "$DELIVERY_DATE" =~ ^(.*)_([0-9]+)$ ]]; then
