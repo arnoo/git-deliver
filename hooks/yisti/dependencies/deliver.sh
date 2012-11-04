@@ -22,6 +22,8 @@ if [[ `ps -C varnishd | wc -l` == 1 ]]; then
 	exit 4
 fi
 
+NAME=`basename "$REPO_ROOT"`
+
 if [[ ! -f $NAME.vcl ]]; then
 	echo "$NAME.vcl not found"
 	exit 5

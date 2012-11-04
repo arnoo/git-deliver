@@ -7,4 +7,8 @@ echo "You'll have to apply them manually, either now or when the new Lisp is rea
 read -p "Press any key to continue"
 fi
 
+cat $REPO_ROOT/.deliver/hooks/dependencies/yisti/deliver.sh | $EXEC_REMOTE bash -c "cat > /tmp/yisti_deliver.sh"
+
+$EXEC_REMOTE bash /tmp/yisti_deliver.sh
+
 "$REPO_ROOT/pushstatic.sh"

@@ -32,6 +32,7 @@ GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$GIT_DELIVER_PATH/lib/shflags"
 
+#TODO: plus de core hooks (les intégrer ?)
 #TODO: gaffe a bien >&2 ce qui doit l'être
 #TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
 #TODO: git rev-parse --parseopt to process command line flags ?
@@ -222,6 +223,7 @@ export VERSION="$VERSION"
 export VERSION_SHA="$VERSION_SHA"
 export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
 export REMOTE="$REMOTE"
+export EXEC_REMOTE="$EXEC_REMOTE"
 source "$HOOK_PATH";
 EOS
 			local HOOK_RESULT=$?
@@ -329,11 +331,6 @@ function deliver
 		git name-rev $REMOTE >&2
 	fi
 
-	run_hooks "pre-delivery"
-
-	# Make sure the remote has all the commits leading to the version to be delivered
-	git push $REMOTE $VERSION
-
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
 	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
 
@@ -346,6 +343,11 @@ function deliver
 			DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
 		fi
 	done
+
+	run_hooks "pre-delivery"
+
+	# Make sure the remote has all the commits leading to the version to be delivered
+	git push $REMOTE $VERSION
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
