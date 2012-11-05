@@ -1,8 +1,9 @@
 SAFETY_MARGIN=$(( 10 * 1024 * 1024 )) # in bytes
 
 DELIVERED_DIR=`dirname "$DELIVERY_PATH"`
+MAIN_DIR=`dirname "$DELIVERED_DIR"`
 
-FREE_BYTES=`$EXEC_REMOTE df -k "$DELIVERED_DIR" | awk '/[0-9]%/{print $(NF-2)*1024}'`
+FREE_BYTES=`$EXEC_REMOTE df -k "$MAIN_DIR" | awk '/[0-9]%/{print $(NF-2)*1024}'`
 NECESSARY_BYTES=$(( `git archive $VERSION | wc -c` + $SAFETY_MARGIN ))
 
 AWK_FORMAT='{x = $0

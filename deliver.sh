@@ -355,7 +355,7 @@ function deliver
 
 	exit_if_error 5
 
-	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git checkout -b \"_delivered\""
+	$EXEC_REMOTE "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered'"
 
 	exit_if_error 6
 
@@ -366,7 +366,7 @@ function deliver
 
 	local DELIVERED_BY_NAME=`git config --get user.name`
 	local DELIVERED_BY_EMAIL=`git config --get user.email`
-	$EXEC_REMOTE bash -c "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
+	$EXEC_REMOTE "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
 	#TODO: sign commit if user has a GPG key
 
 	# Switch the symlink to the newly delivered version. This makes our delivery atomic.

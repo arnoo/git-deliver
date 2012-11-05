@@ -1,6 +1,9 @@
 #!/bin/bash
 
 cd "$1"
+DELIVERED=`dirname "$1"`
+REMOTE=`dirname "$DELIVERED"`
+NAME=`basename "$REMOTE"`
 
 if [[ ! -f `which lessc 2> /dev/null` ]]; then
 	echo "ERROR : lessc not found."
@@ -22,7 +25,6 @@ if [[ `ps -C varnishd | wc -l` == 1 ]]; then
 	exit 4
 fi
 
-NAME=`basename "$REPO_ROOT"`
 
 if [[ ! -f $NAME.vcl ]]; then
 	echo "$NAME.vcl not found"
@@ -140,6 +142,4 @@ if [[ $NB_SCREENS -gt 0 ]]; then
 	kill $RUNNING_SCREEN_PID
 fi
 
-echo ""
-echo "Delivery complete"
 exit 0
