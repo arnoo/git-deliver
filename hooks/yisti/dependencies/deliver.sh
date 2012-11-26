@@ -1,9 +1,8 @@
 #!/bin/bash
 
 cd "$1"
-DELIVERED=`dirname "$1"`
-REMOTE=`dirname "$DELIVERED"`
-NAME=`basename "$REMOTE"`
+DELIVERY_PATH="$1"
+source "$DELIVERY_PATH/yisti.conf"
 
 if [[ ! -f `which lessc 2> /dev/null` ]]; then
 	echo "ERROR : lessc not found."
@@ -25,11 +24,16 @@ if [[ `ps -C varnishd | wc -l` == 1 ]]; then
 	exit 4
 fi
 
-
 if [[ ! -f $NAME.vcl ]]; then
 	echo "$NAME.vcl not found"
 	exit 5
 fi
+
+if [[ ! -f ../yisti/start.sh ]]; then
+	echo "../yisti/start.sh not found"
+	exit 6
+fi
+
 
 mkdir log
 
@@ -109,37 +113,9 @@ if [[ $? != 0 ]]; then
 fi
 
 echo "New Lisp is online"
-
-echo "Setting new Lisp as active Varnish backend"
-
-sed "s/port [0-9]+$/port $NEW_PORT/" $NAME.vcl > /tmp/$NAME.vcl
-mv $NAME.vcl{,.bak}
-cp /tmp/$NAME.vcl $NAME.vcl
-
-if (varnishadm -T localhost:6082 vcl.list | grep yisti2 | grep -q active); then
-	NEWCONF="yisti"
-	OLDCONF="yisti2"
-else
-	NEWCONF="yisti2"
-	OLDCONF="yisti"
-fi
-varnishadm -T localhost:6082 vcl.load $NEWCONF /etc/varnish/yisti.vcl
-varnishadm -T localhost:6082 vcl.use $NEWCONF
-varnishadm -T localhost:6082 vcl.discard $OLDCONF
-mv $NAME.vcl{.bak,}
-
-echo "Purging cache"
-varnishadm -T localhost:6082 ban obj.http.X-vhost == '$NAME'
-
-if [[ $NB_SCREENS -gt 0 ]]; then
-	echo -n "Waiting for last connections to obsolete Lisp to close"
-	while [[ `netstat --tcpip -pn 2>/dev/null | grep \:$OLD_PORT | grep \ $RUNNING_SERVER_PID\/ | wc -l` -gt 0 ]]; do
-		echo -n "."
-		sleep 2
-	done
-	echo ""
-	echo "No connections remaining, killing obsolete Lisp"
-	kill $RUNNING_SCREEN_PID
-fi
-
-exit 0
+echo "NEW_PORT=\"$NEW_PORT\" \
+      OLD_PORT=\"$OLD_PORT\" \
+      NAME=\"$NAME\" \
+      NB_SCREENS=\"$NB_SCREENS\" \
+      RUNNING_SERVER_PID=\"$RUNNING_SERVER_PID\" \
+      RUNNING_SCREEN_PID=\"$RUNNING_SCREEN_PID\"" > /tmp/delivery_vars.sh

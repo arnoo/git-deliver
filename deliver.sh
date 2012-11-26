@@ -32,7 +32,7 @@ GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$GIT_DELIVER_PATH/lib/shflags"
 
-#TODO: plus de core hooks (les intégrer ?)
+#TODO: modeline vim
 #TODO: gaffe a bien >&2 ce qui doit l'être
 #TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
 #TODO: git rev-parse --parseopt to process command line flags ?
@@ -59,9 +59,7 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	if [[ $? -gt 0 ]]; then
-		exit $1
-	fi
+	[[ $? -eq 0 ]] || exit $1
 	}
 
 function print_help
@@ -119,7 +117,7 @@ function repo_status
 		done
 	else
 		remote_info $REMOTE
-		$EXEC_REMOTE git status --git-dir "$REMOTE_PATH/delivered/current"
+		run_remote "git status --git-dir \"$REMOTE_PATH/delivered/current\""
 	fi
 	}
 
@@ -160,7 +158,6 @@ function check_hook
 		exit
 	fi
 	}
-
 
 # Copies the files for hook $1 to the repo's .deliver/hooks directory
 function init_hook
@@ -214,6 +211,7 @@ function run_hooks
 		for HOOK_PATH in "$REPO_ROOT/.deliver/hooks/$STAGE"/*.sh; do
 			HOOK=`basename "$HOOK_PATH"`
 			echo "  Running hook $STAGE/$HOOK" >&2
+			export -f run_remote
 			bash <<EOS
 export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 export REPO_ROOT="$REPO_ROOT"
@@ -223,7 +221,6 @@ export VERSION="$VERSION"
 export VERSION_SHA="$VERSION_SHA"
 export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
 export REMOTE="$REMOTE"
-export EXEC_REMOTE="$EXEC_REMOTE"
 source "$HOOK_PATH";
 EOS
 			local HOOK_RESULT=$?
@@ -266,9 +263,23 @@ function remote_info
 	if [[ "$REMOTE_PATH" = "$REMOTE_URL" ]]; then
 		REMOTE_PATH="$REMOTE_SERVER";
 		REMOTE_SERVER=""
-		EXEC_REMOTE=""
+	fi
+	}
+
+function run
+	{
+	COMMAND="$*"
+	LOG="$LOG\nrunning $COMMAND"
+	$COMMAND
+	}
+
+function run_remote
+	{
+	COMMAND="$*"
+	if [[ "$REMOTE_SERVER" = "" ]]; then
+		bash -c "$COMMAND"
 	else
-		EXEC_REMOTE="ssh $REMOTE_SERVER" #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
+		ssh "$REMOTE_SERVER" "$COMMAND"  #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
 	fi
 	}
 
@@ -286,8 +297,9 @@ function init_remote
 	echo "$REPO_ROOT"
 	scp -r "$REPO_ROOT/.git" "$REMOTE_URL"
 	exit
-	$EXEC_REMOTE git config --bool core.bare true
-	$EXEC_REMOTE mkdir delivered
+	run_remote "git config --bool core.bare true && \
+		    git config --bool receive.autogc false && \
+		    mkdir delivered"
 	run_hooks "init-remote"
 	IN_INIT=""
 	}
@@ -307,7 +319,7 @@ function deliver
 	fi
 
 	remote_info $REMOTE
-	if [[ `$EXEC_REMOTE ls -1d "$REMOTE_PATH/hooks" "$REMOTE_PATH/refs" 2> /dev/null | wc -l` -lt "2" ]]; then
+	if [[ `run_remote "ls -1d \"$REMOTE_PATH/hooks\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
@@ -334,7 +346,7 @@ function deliver
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
 	DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
 
-	while $EXEC_REMOTE test -d "$DELIVERY_PATH"; do
+	while run_remote "test -d \"$DELIVERY_PATH\""; do
 		if [[ "$DELIVERY_DATE" =~ ^(.*)_([0-9]+)$ ]]; then
 			DELIVERY_DATE=${BASH_REMATCH[1]}$(( ${BASH_REMATCH[2]} + 1 ))
 			DELIVERY_PATH="$REMOTE_PATH/delivered/$VERSION"_"$DELIVERY_DATE"
@@ -347,15 +359,15 @@ function deliver
 	run_hooks "pre-delivery"
 
 	# Make sure the remote has all the commits leading to the version to be delivered
-	git push $REMOTE $VERSION
+	run "git push $REMOTE $VERSION"
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
-	$EXEC_REMOTE git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH "$DELIVERY_PATH"
+	run_remote "git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH \"$DELIVERY_PATH\""
 
 	exit_if_error 5
 
-	$EXEC_REMOTE "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered'"
+	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered'"
 
 	exit_if_error 6
 
@@ -366,17 +378,17 @@ function deliver
 
 	local DELIVERED_BY_NAME=`git config --get user.name`
 	local DELIVERED_BY_EMAIL=`git config --get user.email`
-	$EXEC_REMOTE "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
+	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
 	#TODO: sign commit if user has a GPG key
 
 	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
-	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/preprevious" && rm "$REMOTE_PATH/delivered/preprevious"
-	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/previous" && mv "$REMOTE_PATH/delivered/previous" "$REMOTE_PATH/delivered/preprevious"
-	$EXEC_REMOTE test -L "$REMOTE_PATH/delivered/current"  && mv "$REMOTE_PATH/delivered/current"  "$REMOTE_PATH/delivered/previous"
-	$EXEC_REMOTE cd $REMOTE_PATH/delivered && ln -sfn "`basename \"$DELIVERY_PATH\"`" "current"
+	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && rm \"$REMOTE_PATH/delivered/preprevious\" && \
+		    test -L \"$REMOTE_PATH/delivered/previous\"    && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" && \
+		    test -L \"$REMOTE_PATH/delivered/current\"     && mv \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" && \
+		    cd $REMOTE_PATH/delivered && ln -sfn \""`basename "$DELIVERY_PATH"`"\" \"current\""
 	#TODO: check for each link that everything went well and be able to rollback
 
 	run_hooks "post-symlink"
@@ -385,8 +397,8 @@ function deliver
 
 	local MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
-	git tag -m "$MSG" "$TAG_NAME" "$VERSION"
-	git push origin "$TAG_NAME"
+	run "git tag -m \"$MSG\" \"$TAG_NAME\" \"$VERSION\""
+	run "git push origin \"$TAG_NAME\""
 	}
 
 function rollback
