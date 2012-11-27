@@ -270,7 +270,7 @@ function run
 	{
 	COMMAND="$*"
 	LOG="$LOG\nrunning $COMMAND"
-	$COMMAND
+	bash -c "$COMMAND"
 	}
 
 function run_remote
