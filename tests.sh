@@ -10,22 +10,24 @@ assertTrueEcho()
 initDeliver()
 	{
 	cd "$ROOT_DIR/test_repo"
-	"$ROOT_DIR"/deliver.sh --batch --init $* 2>&1
+	"$ROOT_DIR"/deliver.sh --batch --init $* > /dev/null 2>&1 
 	}
 
 initWithOrigin()
 	{
 	cd "$ROOT_DIR"
-	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
+	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" > /dev/null 2>&1
 	cd "$ROOT_DIR/test_repo"
+	git remote add origin "$ROOT_DIR/test_remote" 
 	initDeliver $*
 	}
 
 initWithSshOrigin()
 	{
 	cd "$ROOT_DIR"
-	git clone --bare "localhost:$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
+	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote"  > /dev/null 2>&1
 	cd "$ROOT_DIR/test_repo"
+	git remote add origin "localhost:$ROOT_DIR/test_remote" 
 	initDeliver $*
 	}
 
@@ -53,6 +55,7 @@ oneTimeTearDown()
 tearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
+	git remote remove origin 2> /dev/null
 	rm -rf "$ROOT_DIR/test_remote"
 	cd $ROOT_DIR
 	}
@@ -60,28 +63,37 @@ tearDown()
 testRunRemoteLocal()
 	{
 	cd $ROOT_DIR
-	A=`echo "source deliver.sh --source > /dev/null 2>&1 && REMOTE_PATH=\"$ROOT_DIR\" run_remote \"ls deliver.sh\"" | bash`
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_PATH="'$ROOT_DIR'" run_remote "ls deliver.sh"' | bash`
 	assertEquals "deliver.sh" "$A"
 	}
 
 testRunRemoteSsh()
 	{
 	cd $ROOT_DIR
-	A=`echo "source deliver.sh --source > /dev/null 2>&1 && REMOTE_SERVER=\"localhost\" run_remote ls \"$ROOT_DIR/deliver.sh\"" | bash`
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="localhost" run_remote ls "'$ROOT_DIR'/deliver.sh"' | bash`
 	assertEquals "$ROOT_DIR/deliver.sh" "$A"
+	}
+
+testRemoteInfoNonExistentRemote()
+	{
+	cd $ROOT_DIR/test_repo
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info nonexistentremote 2>&1' | bash`
+	assertEquals "Remote nonexistentremote not found." "$A"
 	}
 
 testRemoteInfo()
 	{
 	initWithOrigin
-	A=`echo "source deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo \""'$'"REMOTE_SERVER+++"'$'"REMOTE_PATH\"" | bash`
+	cd $ROOT_DIR/test_repo
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info origin ; echo "$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "+++$ROOT_DIR/test_remote" "$A"
 	}
 
 testRemoteInfoSsh()
 	{
 	initWithSshOrigin
-	A=`echo "source deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo \"\$REMOTE_SERVER+++\$REMOTE_PATH\"" | bash`
+	cd $ROOT_DIR/test_repo
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo "$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "localhost+++$ROOT_DIR/test_remote" "$A"
 	}
 
@@ -148,6 +160,7 @@ testBasicDeliver1()
 	assertTrueEcho "[ -d \"$ROOT_DIR\"/test_remote/delivered ]"
 	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
 	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
+	exit
 	}
 
 testSshDeliver1()

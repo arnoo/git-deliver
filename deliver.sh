@@ -192,7 +192,6 @@ function run_hooks
 	{
 	local STAGE=$1
 	local ROLLBACK_LAST_STAGE=$2
-	echo "REMOTE_SERVER : $REMOTE_SERVER"
 
 	if test -n "$(find "$REPO_ROOT/.deliver/hooks/$STAGE" -maxdepth 1 -name '*.sh' -print -quit)"
 		then
@@ -209,18 +208,17 @@ export DELIVERY_PATH="$DELIVERY_PATH"
 export VERSION="$VERSION"
 export VERSION_SHA="$VERSION_SHA"
 export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
+export REMOTE_SERVER="$REMOTE_SERVER"
+export REMOTE_PATH="$REMOTE_PATH"
 export REMOTE="$REMOTE"
 
 function run_remote
 	{
-	COMMAND="$*"
-	echo "REMOTE_SERVER : $REMOTE_SERVER"
+	COMMAND="\$*"
 	if [[ "$REMOTE_SERVER" = "" ]]; then
-		echo "bash -c \"$COMMAND\""
-		bash -c "$COMMAND"
+		bash -c "\$COMMAND"
 	else
-		echo "ssh \"$REMOTE_SERVER\" \"$COMMAND\""
-		ssh "$REMOTE_SERVER" "$COMMAND"  #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
+		ssh "$REMOTE_SERVER" "\$COMMAND"
 	fi
 	}
 
@@ -273,7 +271,6 @@ function remote_info
 		REMOTE_PATH="$REMOTE_SERVER";
 		REMOTE_SERVER=""
 	fi
-	echo "REMOTE_INFO : $REMOTE_SERVER + $REMOTE_PATH"
 	}
 
 function run
@@ -287,8 +284,10 @@ function run_remote
 	{
 	COMMAND="$*"
 	if [[ "$REMOTE_SERVER" = "" ]]; then
+		LOG="$LOG\nbash -c \"$COMMAND\""
 		bash -c "$COMMAND"
 	else
+		LOG="$LOG\nssh \"$REMOTE_SERVER\" \"$COMMAND\""
 		ssh "$REMOTE_SERVER" "$COMMAND"  #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
 	fi
 	}
@@ -406,10 +405,10 @@ function deliver
 
 	# TAG the delivered version here and on the origin remote
 
-	local MSG="" #TODO: possibilité de message de livraison. Par défaut, log livraison
+	local MSG="Delivery log:\n\n$LOG" #TODO: launch $EDITOR to allow custom message
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
-	run "git tag -m \"$MSG\" \"$TAG_NAME\" \"$VERSION\""
-	run "git push origin \"$TAG_NAME\""
+	git tag -m "$MSG" "$TAG_NAME" "$VERSION"
+	git push origin "$TAG_NAME"
 	}
 
 function rollback
