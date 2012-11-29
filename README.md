@@ -26,6 +26,7 @@ POST-CHECKOUT:
 POST-SYMLINK:
 
 ROLLBACK:
+$LAST_STAGE_REACHED : the last stage the delivery reached before rollback had to be called
 
 $LAST_STAGE : what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
 $FAILED_HOOK : name of the hook that failed, triggering the rollback. Empty if the rollback was caused by human intervention (CTRL+C ... TODO)

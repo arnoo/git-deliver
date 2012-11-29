@@ -18,7 +18,14 @@ initWithOrigin()
 	cd "$ROOT_DIR"
 	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
 	cd "$ROOT_DIR/test_repo"
-	git remote add origin "$ROOT_DIR/test_remote"
+	initDeliver $*
+	}
+
+initWithSshOrigin()
+	{
+	cd "$ROOT_DIR"
+	git clone --bare "localhost:$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote" 
+	cd "$ROOT_DIR/test_repo"
 	initDeliver $*
 	}
 
@@ -38,16 +45,44 @@ oneTimeSetUp()
 
 oneTimeTearDown()
 	{
-	#rm -rf "$ROOT_DIR/test_repo"
-#	rm -rf "$ROOT_DIR/test_remote"
+	rm -rf "$ROOT_DIR/test_repo"
+	rm -rf "$ROOT_DIR/test_remote"
 	cd $OLD_PWD
 	}
 
 tearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
-#	rm -rf "$ROOT_DIR/test_remote"
+	rm -rf "$ROOT_DIR/test_remote"
 	cd $ROOT_DIR
+	}
+
+testRunRemoteLocal()
+	{
+	cd $ROOT_DIR
+	A=`echo "source deliver.sh --source > /dev/null 2>&1 && REMOTE_PATH=\"$ROOT_DIR\" run_remote \"ls deliver.sh\"" | bash`
+	assertEquals "deliver.sh" "$A"
+	}
+
+testRunRemoteSsh()
+	{
+	cd $ROOT_DIR
+	A=`echo "source deliver.sh --source > /dev/null 2>&1 && REMOTE_SERVER=\"localhost\" run_remote ls \"$ROOT_DIR/deliver.sh\"" | bash`
+	assertEquals "$ROOT_DIR/deliver.sh" "$A"
+	}
+
+testRemoteInfo()
+	{
+	initWithOrigin
+	A=`echo "source deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo \""'$'"REMOTE_SERVER+++"'$'"REMOTE_PATH\"" | bash`
+	assertEquals "+++$ROOT_DIR/test_remote" "$A"
+	}
+
+testRemoteInfoSsh()
+	{
+	initWithSshOrigin
+	A=`echo "source deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo \"\$REMOTE_SERVER+++\$REMOTE_PATH\"" | bash`
+	assertEquals "localhost+++$ROOT_DIR/test_remote" "$A"
 	}
 
 testHelp1()
@@ -109,6 +144,15 @@ testUnknownRef()
 testBasicDeliver1()
 	{
 	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch origin master 
+	assertTrueEcho "[ -d \"$ROOT_DIR\"/test_remote/delivered ]"
+	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
+	}
+
+testSshDeliver1()
+	{
+	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch origin master 
 	assertTrueEcho "[ -d \"$ROOT_DIR\"/test_remote/delivered ]"
 	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"

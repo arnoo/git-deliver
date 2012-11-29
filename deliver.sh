@@ -69,7 +69,6 @@ function print_help
 	echo "git deliver --init-remote <REMOTE>"
 	echo "git deliver --list-hooks"
 	echo "git deliver --status"
-	echo "git deliver --fetch-log [REMOTE]"
 	echo "git deliver --log [REMOTE]"
 	exit 1
 	}
@@ -88,19 +87,6 @@ function log
 		else
 			echo "No delivery log for remote $REMOTE" #TODO: NO, we'll use the tags and their messages as our log (therefore git fetch fetches logs from origin !)
 		fi
-	fi
-	}
-
-function fetch_log
-	{
-	local REMOTE="$1"
-	if [[ "$REMOTE" = "" ]]; then
-		for R in `git remote`; do
-			fetch_log "$R"
-		done
-	else
-		remote_info "$REMOTE"
-		rsync "$REMOTE_URL/deliver_log" "$REPO_ROOT/.deliver/logs/$REMOTE"
 	fi
 	}
 
@@ -205,13 +191,16 @@ function init
 function run_hooks
 	{
 	local STAGE=$1
+	local ROLLBACK_LAST_STAGE=$2
+	echo "REMOTE_SERVER : $REMOTE_SERVER"
+
 	if test -n "$(find "$REPO_ROOT/.deliver/hooks/$STAGE" -maxdepth 1 -name '*.sh' -print -quit)"
 		then
 		echo "Running hooks for stage $STAGE" >&2
 		for HOOK_PATH in "$REPO_ROOT/.deliver/hooks/$STAGE"/*.sh; do
 			HOOK=`basename "$HOOK_PATH"`
 			echo "  Running hook $STAGE/$HOOK" >&2
-			export -f run_remote
+			[[ $ROLLBACK_LAST_STAGE = "" ]] || LAST_STAGE_REACHED=$ROLLBACK_LAST_STAGE
 			bash <<EOS
 export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 export REPO_ROOT="$REPO_ROOT"
@@ -221,13 +210,33 @@ export VERSION="$VERSION"
 export VERSION_SHA="$VERSION_SHA"
 export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
 export REMOTE="$REMOTE"
+
+function run_remote
+	{
+	COMMAND="$*"
+	echo "REMOTE_SERVER : $REMOTE_SERVER"
+	if [[ "$REMOTE_SERVER" = "" ]]; then
+		echo "bash -c \"$COMMAND\""
+		bash -c "$COMMAND"
+	else
+		echo "ssh \"$REMOTE_SERVER\" \"$COMMAND\""
+		ssh "$REMOTE_SERVER" "$COMMAND"  #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
+	fi
+	}
+
+export -f run_remote
+
 source "$HOOK_PATH";
 EOS
 			local HOOK_RESULT=$?
 			if [[ $HOOK_RESULT -gt 0 ]]; then
 				echo "" >&2
 				echo "  Hook returned with status $HOOK_RESULT" >&2
-				rollback $STAGE
+				if [[ $ROLLBACK_LAST_STAGE = "" ]]; then
+					rollback $STAGE
+				else
+					echo "A hook failed during rollback, manual intervention is likely necessary"
+				fi
 				exit
 			fi
 		done
@@ -264,6 +273,7 @@ function remote_info
 		REMOTE_PATH="$REMOTE_SERVER";
 		REMOTE_SERVER=""
 	fi
+	echo "REMOTE_INFO : $REMOTE_SERVER + $REMOTE_PATH"
 	}
 
 function run
@@ -381,7 +391,8 @@ function deliver
 	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
 	#TODO: sign commit if user has a GPG key
 
-	# Switch the symlink to the newly delivered version. This makes our delivery atomic.
+	echo "Switching the 'current' symlink to the newly delivered version."
+	# Using a symlink makes our delivery atomic.
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
@@ -403,9 +414,18 @@ function deliver
 
 function rollback
 	{
-	local STAGE=$1
+	local LAST_STAGE=$1
+	echo "Rolling back"
+	run_hooks "rollback-pre-symlink" "$LAST_STAGE"
+	
+	if [[ $LAST_STAGE = "post-symlink" ]]; then
+		run_remote "rm \"$REMOTE_PATH/delivered/current\" && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" &&  mv \"$REMOTE_PATH/delivered/preprevious\" \"$REMOTE_PATH/delivered/previous\""
+	fi
+
+	run_hooks "rollback-post-symlink" "$LAST_STAGE"
 	}
 
+DEFINE_boolean 'source' false 'Used for tests : define functions but don''t do anything.'
 DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
 DEFINE_boolean 'init' false 'Initialize this repository'
 DEFINE_boolean 'init-remote' false 'Initialize a remote'
@@ -413,7 +433,6 @@ DEFINE_boolean 'list-hooks' false 'List hooks available for init'
 DEFINE_boolean 'status' false 'Query repository and remotes status'
 DEFINE_boolean 'rollback' false 'TODO'
 DEFINE_boolean 'log' false 'TODO'
-DEFINE_boolean 'fetch-log' false 'TODO'
 
 # parse the command-line
 FLAGS "$@" || exit 1
@@ -425,12 +444,10 @@ elif [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
 	init_remote $*
 elif [[ $FLAGS_list_hooks -eq $FLAGS_TRUE ]]; then
 	list_hooks $*
-elif [[ $FLAGS_fetch_log -eq $FLAGS_TRUE ]]; then
-	fetch_log $*
 elif [[ $FLAGS_log -eq $FLAGS_TRUE ]]; then
 	log $*
 elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
 	repo_status $*
-else
+elif [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
 	deliver $*
 fi
