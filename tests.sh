@@ -157,19 +157,18 @@ testBasicDeliver1()
 	{
 	initWithOrigin
 	"$ROOT_DIR"/deliver.sh --batch origin master 
-	assertTrueEcho "[ -d \"$ROOT_DIR\"/test_remote/delivered ]"
-	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
-	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
-	exit
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
 	}
 
 testSshDeliver1()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch origin master 
-	assertTrueEcho "[ -d \"$ROOT_DIR\"/test_remote/delivered ]"
-	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
-	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
 	}
 
 #test3DeliveriesSameVersion()

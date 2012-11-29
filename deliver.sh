@@ -395,9 +395,9 @@ function deliver
 
 	#TODO: demande confirmation avant switch, avec possibilité de voir le diff complet depuis dernière livraison via $PAGER + possibilité de checker ce diff avec le diff entre les mêmes versions sur un autre environnement
 
-	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && rm \"$REMOTE_PATH/delivered/preprevious\" && \
-		    test -L \"$REMOTE_PATH/delivered/previous\"    && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" && \
-		    test -L \"$REMOTE_PATH/delivered/current\"     && mv \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" && \
+	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && rm \"$REMOTE_PATH/delivered/preprevious\" ; \
+		    test -L \"$REMOTE_PATH/delivered/previous\"    && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" ; \
+		    test -L \"$REMOTE_PATH/delivered/current\"     && mv \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" ; \
 		    cd $REMOTE_PATH/delivered && ln -sfn \""`basename "$DELIVERY_PATH"`"\" \"current\""
 	#TODO: check for each link that everything went well and be able to rollback
 
