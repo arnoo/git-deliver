@@ -34,11 +34,9 @@ source "$GIT_DELIVER_PATH/lib/shflags"
 
 #TODO: modeline vim
 #TODO: gaffe a bien >&2 ce qui doit l'être
-#TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
-#TODO: git rev-parse --parseopt to process command line flags ?
 #TODO: supporter git config remotes.mygroup 'remote1 remote2' [ group multiple remotes ]
-#TODO: fonction run qui logge toutes les commandes !
 #TODO: version GPL ? cf GIT
+#TODO: option deliver juste en rsync ? pour shared hosting / FTP ?
 #TODO: option ou remote n'est pas bare ? et dans ce cas on livre par simple push ?
 
 function confirm_or_exit
@@ -69,25 +67,7 @@ function print_help
 	echo "git deliver --init-remote <REMOTE>"
 	echo "git deliver --list-hooks"
 	echo "git deliver --status"
-	echo "git deliver --log [REMOTE]"
 	exit 1
-	}
-
-function log
-	{
-	local REMOTE="$1"
-	if [[ "$REMOTE" = "" ]]; then
-		for R in `git remote`; do
-			log $R
-		done
-	else
-		LOG="$REPO_ROOT/.deliver/logs/$REMOTE"
-		if [[ -f "$LOG" ]]; then
-			cat "$REPO_ROOT/.deliver/logs/$REMOTE"
-		else
-			echo "No delivery log for remote $REMOTE" #TODO: NO, we'll use the tags and their messages as our log (therefore git fetch fetches logs from origin !)
-		fi
-	fi
 	}
 
 function repo_status
@@ -176,7 +156,7 @@ function init
 		check_hook $HOOK
         done
 	mkdir -p "$REPO_ROOT/.deliver/hooks"
-	for HOOK in dependencies init-remote pre-delivery post-checkout post-symlink rollback; do
+	for HOOK in dependencies init-remote pre-delivery post-checkout post-symlink rollback-pre-symlink rollback-post-symlink; do
 		mkdir "$REPO_ROOT/.deliver/hooks/$HOOK"
 	done
 	echo "Setting up core hooks" >&2
@@ -276,7 +256,7 @@ function remote_info
 function run
 	{
 	COMMAND="$*"
-	LOG="$LOG\nrunning $COMMAND"
+	echo "running $COMMAND" >> "$LOG_TEMPFILE"
 	bash -c "$COMMAND"
 	}
 
@@ -284,10 +264,10 @@ function run_remote
 	{
 	COMMAND="$*"
 	if [[ "$REMOTE_SERVER" = "" ]]; then
-		LOG="$LOG\nbash -c \"$COMMAND\""
+		echo "running bash -c \"$COMMAND\"" >> "$LOG_TEMPFILE"
 		bash -c "$COMMAND"
 	else
-		LOG="$LOG\nssh \"$REMOTE_SERVER\" \"$COMMAND\""
+		echo "running ssh \"$REMOTE_SERVER\" \"$COMMAND\"" >> "$LOG_TEMPFILE"
 		ssh "$REMOTE_SERVER" "$COMMAND"  #TODO: cd $DELIVERY_PATH && (ne marche pas pour avant checkout... ajouter un test et dans ce cas quel rep sinon ? )
 	fi
 	}
@@ -321,6 +301,11 @@ function deliver
 	fi
 	local REMOTE=$1
 	local VERSION=$2
+
+	LOG_TEMPFILE=`mktemp`
+	echo -e "Delivery of ref \"$VERSION\" to remote \"$REMOTE\"\n\n" > "$LOG_TEMPFILE"
+	echo -e "Delivery log:\n" >> "$LOG_TEMPFILE"
+
 	if [[ ! -d "$REPO_ROOT/.deliver" ]]; then
 		echo ".deliver not found."
 		confirm_or_exit "Run init ?"
@@ -388,7 +373,6 @@ function deliver
 	local DELIVERED_BY_NAME=`git config --get user.name`
 	local DELIVERED_BY_EMAIL=`git config --get user.email`
 	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
-	#TODO: sign commit if user has a GPG key
 
 	echo "Switching the 'current' symlink to the newly delivered version."
 	# Using a symlink makes our delivery atomic.
@@ -405,10 +389,18 @@ function deliver
 
 	# TAG the delivered version here and on the origin remote
 
-	local MSG="Delivery log:\n\n$LOG" #TODO: launch $EDITOR to allow custom message
+	if [[ $FLAGS_batch -ne $FLAGS_TRUE ]]; then
+		$EDITOR "$LOG_TEMPFILE"
+	fi
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
-	git tag -m "$MSG" "$TAG_NAME" "$VERSION"
-	git push origin "$TAG_NAME"
+	local GPG_OPT
+	if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
+		GPG_OPT=" -s"
+		#TODO: Signer aussi le commit post-livraision (encore plus important que le tag)
+	fi
+	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION"
+	rm -f "$LOG_TEMPFILE"
+	run git push origin "$TAG_NAME"
 	}
 
 function rollback
@@ -431,7 +423,6 @@ DEFINE_boolean 'init-remote' false 'Initialize a remote'
 DEFINE_boolean 'list-hooks' false 'List hooks available for init'
 DEFINE_boolean 'status' false 'Query repository and remotes status'
 DEFINE_boolean 'rollback' false 'TODO'
-DEFINE_boolean 'log' false 'TODO'
 
 # parse the command-line
 FLAGS "$@" || exit 1
@@ -443,8 +434,6 @@ elif [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
 	init_remote $*
 elif [[ $FLAGS_list_hooks -eq $FLAGS_TRUE ]]; then
 	list_hooks $*
-elif [[ $FLAGS_log -eq $FLAGS_TRUE ]]; then
-	log $*
 elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
 	repo_status $*
 elif [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then

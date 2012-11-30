@@ -55,6 +55,7 @@ oneTimeTearDown()
 tearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
+	cd "$ROOT_DIR/test_repo"
 	git remote remove origin 2> /dev/null
 	rm -rf "$ROOT_DIR/test_remote"
 	cd $ROOT_DIR
