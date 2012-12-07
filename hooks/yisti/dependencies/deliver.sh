@@ -2,7 +2,8 @@
 
 cd "$1"
 DELIVERY_PATH="$1"
-source "$DELIVERY_PATH/yisti.conf"
+cd $DELIVERY_PATH
+source yisti.conf
 
 if [[ ! -f `which lessc 2> /dev/null` ]]; then
 	echo "    ERROR : lessc not found."
@@ -29,8 +30,8 @@ if [[ ! -f $NAME.vcl ]]; then
 	exit 5
 fi
 
-if [[ ! -f ../yisti/start.sh ]]; then
-	echo "    ../yisti/start.sh not found"
+if [[ ! -f ../../../yisti/start.sh ]]; then
+	echo "    ../../../yisti/start.sh not found"
 	exit 6
 fi
 
@@ -62,7 +63,7 @@ fi
 echo ""
 
 echo -n "    Starting new Lisp"
-NEW_SCREEN_PID=`../yisti/start.sh | awk -F\. '/[0-9]\./ {print $1}'`
+NEW_SCREEN_PID=`../../../yisti/start.sh | awk -F\. '/[0-9]\./ {print $1}'`
 echo -n "     (screen : $NAME.$NEW_SCREEN_PID) "
 
 NEW_SCREEN_LOG="log/screen_$NEW_SCREEN_PID"
@@ -80,7 +81,7 @@ elif (grep -q "ENOMEM" $NEW_SCREEN_LOG) || (grep -q "Heap exhausted" $NEW_SCREEN
 	echo ""
 	echo -n "    Memory error, restarting compilation"
 	kill $NEW_SCREEN_PID
-	NEW_SCREEN_PID=`../yisti/start.sh | awk -F\. '/[0-9]\./ {print $1}'`
+	NEW_SCREEN_PID=`../../../yisti/start.sh | awk -F\. '/[0-9]\./ {print $1}'`
 	NEW_SCREEN_LOG="log/screen_$NEW_SCREEN_PID"
 	truncate -s 0 $NEW_SCREEN_LOG
 	screen -rd $NEW_SCREEN_PID -p 0 -X log off

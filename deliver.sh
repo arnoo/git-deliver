@@ -63,6 +63,7 @@ function exit_if_error
 function print_help
 	{
 	echo "git deliver <REMOTE> <VERSION>"
+	echo "git deliver --gc <REMOTE>"
 	echo "git deliver --init [hooks]"
 	echo "git deliver --init-remote <REMOTE>"
 	echo "git deliver --list-hooks"
@@ -274,7 +275,7 @@ function run_remote
 
 function init_remote
 	{
-	if [[ $3 != "" ]] || [[ $1 = "" ]]; then
+	if [[ $3 != "" ]] || [[ $2 = "" ]]; then
 		print_help
 		exit 1
 	fi
@@ -291,6 +292,33 @@ function init_remote
 		    mkdir delivered"
 	run_hooks "init-remote"
 	IN_INIT=""
+	}
+
+function remote_gc
+	{
+	if [[ $2 != "" ]] || [[ $1 = "" ]]; then
+		print_help
+		exit 1
+	fi
+	local REMOTE=$1
+	remote_info $REMOTE
+	LOG_TEMPFILE=`mktemp`
+	local GC_SCRIPT="
+		CURVER=\`readlink \"$REMOTE_PATH/delivered/current\"\`;
+		PREVER=\`readlink \"$REMOTE_PATH/delivered/previous\"\`;
+		PREPREVER=\`readlink \"$REMOTE_PATH/delivered/preprevious\"\`;
+		for rep in \"$REMOTE_PATH/delivered/\"*; do
+			if [ ! -L \"\$rep\" ] &&
+			   [ \"\$rep\" != \"$REMOTE_PATH/delivered/\$CURVER\" ] &&
+			   [ \"\$rep\" != \"$REMOTE_PATH/delivered/\$PREVER\" ] &&
+			   [ \"\$rep\" != \"$REMOTE_PATH/delivered/\$PREPREVER\" ]; then
+				echo \"Removing \$rep\"
+				rm -rf \"\$rep\"
+			fi;
+		done"
+	#TODO : Indiquer combien de rep supprimés et combien de place libérée
+	run_remote "$GC_SCRIPT"
+	rm -f "$LOG_TEMPFILE"
 	}
 
 function deliver
@@ -329,6 +357,7 @@ function deliver
 		git push origin $VERSION
 	fi
 
+	#TODO: gaffe, ligne ci-dessous part du principe que la personne est à jour des tags de tous les livreurs
 	PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
 	if [[ "$PREVIOUS_VERSION_SHA" = "" ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
@@ -358,12 +387,16 @@ function deliver
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
 	run_remote "git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH \"$DELIVERY_PATH\""
-
+	
 	exit_if_error 5
+
+	run_remote "cd \"$DELIVERY_PATH\" && git submodule init && git submodule update"
+
+	exit_if_error 6
 
 	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered'"
 
-	exit_if_error 6
+	exit_if_error 7
 
 	run_hooks "post-checkout"
 
@@ -381,8 +414,8 @@ function deliver
 
 	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && rm \"$REMOTE_PATH/delivered/preprevious\" ; \
 		    test -L \"$REMOTE_PATH/delivered/previous\"    && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" ; \
-		    test -L \"$REMOTE_PATH/delivered/current\"     && mv \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" ; \
-		    cd $REMOTE_PATH/delivered && ln -sfn \""`basename "$DELIVERY_PATH"`"\" \"current\""
+		    test -L \"$REMOTE_PATH/delivered/current\"     && cp -d \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" ; \
+		    cd $REMOTE_PATH/delivered && ln -sfn \""`basename "$DELIVERY_PATH"`"\" \"new\" && mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\""
 	#TODO: check for each link that everything went well and be able to rollback
 
 	run_hooks "post-symlink"
@@ -422,7 +455,8 @@ DEFINE_boolean 'init' false 'Initialize this repository'
 DEFINE_boolean 'init-remote' false 'Initialize a remote'
 DEFINE_boolean 'list-hooks' false 'List hooks available for init'
 DEFINE_boolean 'status' false 'Query repository and remotes status'
-DEFINE_boolean 'rollback' false 'TODO'
+DEFINE_boolean 'gc' false 'Garbage collection : remove all delivered version on remote except last 3'
+DEFINE_boolean 'rollback' false 'Initiate a rollback'
 
 # parse the command-line
 FLAGS "$@" || exit 1
@@ -436,6 +470,8 @@ elif [[ $FLAGS_list_hooks -eq $FLAGS_TRUE ]]; then
 	list_hooks $*
 elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
 	repo_status $*
+elif [[ $FLAGS_gc -eq $FLAGS_TRUE ]]; then
+	remote_gc $*
 elif [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
 	deliver $*
 fi
