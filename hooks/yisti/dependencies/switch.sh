@@ -13,6 +13,7 @@ source "/tmp/delivery_vars.sh"
 
 echo "    Setting new Lisp as active Varnish backend"
 
+echo "Setting Varnish backend port to $NEW_PORT"
 sed "s/port [0-9]+$/port $NEW_PORT/" "$DELIVERY_PATH/$NAME.vcl" > /tmp/$NAME.vcl
 mv "$DELIVERY_PATH/$NAME.vcl"{,.bak}
 cp /tmp/$NAME.vcl "$DELIVERY_PATH/$NAME.vcl"
@@ -48,6 +49,6 @@ if [[ $NB_SCREENS -gt 0 ]]; then
 	kill $RUNNING_SCREEN_PID
 fi
 
-rm /tmp/delivery_vars.sh
+#rm /tmp/delivery_vars.sh
 
 exit 0

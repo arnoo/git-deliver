@@ -62,6 +62,11 @@ fi
 
 echo ""
 
+MAINCACHEDIR=`ls -1dr ~/.cache/common-lisp/sbcl* | head -n 1`
+echo "MAINCACHEDIR : $MAINCACHEDIR"
+echo "TENTATIVE FASL DIR : $MAINCACHEDIR$DELIVERY_PATH/$PREVIOUS_VERSION"
+[ -d "$MAINCACHEDIR$DELIVERY_PATH/$PREVIOUS_VERSION" ] && echo "Copying FASL cache from previous version" && cp -r --preserve=all "$MAINCACHEDIR$DELIVERY_PATH/$PREVIOUS_VERSION" "$MAINCACHEDIR$DELIVERY_PATH/$CURRENT_VERSION"
+
 echo -n "    Starting new Lisp"
 NEW_SCREEN_PID=`../../../yisti/start.sh | awk -F\. '/[0-9]\./ {print $1}'`
 echo -n "     (screen : $NAME.$NEW_SCREEN_PID) "
