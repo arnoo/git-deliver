@@ -14,7 +14,7 @@ source "/tmp/delivery_vars.sh"
 echo "    Setting new Lisp as active Varnish backend"
 
 echo "Setting Varnish backend port to $NEW_PORT"
-sed "s/port [0-9]+$/port $NEW_PORT/" "$DELIVERY_PATH/$NAME.vcl" > /tmp/$NAME.vcl
+sed 's/port = "[0-9]\+"/port = "'$NEW_PORT'"/' "$DELIVERY_PATH/$NAME.vcl" > /tmp/$NAME.vcl
 mv "$DELIVERY_PATH/$NAME.vcl"{,.bak}
 cp /tmp/$NAME.vcl "$DELIVERY_PATH/$NAME.vcl"
 exit_if_error 2
