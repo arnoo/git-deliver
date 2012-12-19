@@ -358,12 +358,14 @@ function deliver
 	fi
 
 	#TODO: gaffe, ligne ci-dessous part du principe que la personne est à jour des tags de tous les livreurs
-	PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "delivered-$REMOTE"`
-	if [[ "$PREVIOUS_VERSION_SHA" = "" ]]; then
+	local CURRENT_LINK=`run_remote "readlink $REMOTE_PATH/delivered/current"`
+	if [[ "$CURRENT_LINK" = "" ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
+		PREVIOUS_VERSION=`echo "$CURRENT_LINK" | sed 's/_[0-9]\{4\}\-[0-9]\{2\}\-[0-9]\{2\}_[0-9]\{2\}\-[0-9]\{2\}\-[0-9]\{2\}$//'`
+		PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "$PREVIOUS_VERSION"`
 		echo -n "Current version on $REMOTE is " >&2
-		git name-rev $REMOTE >&2
+		git name-rev "$PREVIOUS_VERSION_SHA" >&2
 	fi
 
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
