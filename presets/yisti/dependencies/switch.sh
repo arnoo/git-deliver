@@ -36,7 +36,7 @@ varnishadm -T localhost:6082 vcl.discard $OLDCONF 2>&1 > /dev/null
 mv "$DELIVERY_PATH/$NAME".vcl{.bak,}
 
 echo "    Purging cache"
-varnishadm -T localhost:6082 ban obj.http.X-vhost == '$NAME'
+varnishadm -T localhost:6082 ban obj.http.X-vhost == "'"$NAME"'"
 
 if [[ $NB_SCREENS -gt 0 ]]; then
 	echo -n "    Waiting for last connections to obsolete Lisp to close"

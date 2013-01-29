@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#TODO: test with chmod that gives us no permissions on some files : symlink, repo...
-
 assertTrueEcho()
 	{
 	$1 || ( echo "$1" && assertTrue false )
@@ -105,11 +103,11 @@ testHelp1()
 	assertEquals 0 $?
 	}
 
-testListHooks()
+testListPresets()
 	{
 	cd "$ROOT_DIR/test_repo"
-	local RESULT=`$ROOT_DIR/deliver.sh --list-hooks`
-	echo "$RESULT" | grep "Core git deliver hooks" > /dev/null
+	local RESULT=`$ROOT_DIR/deliver.sh --list-presets`
+	echo "$RESULT" | grep "Core git deliver scripts" > /dev/null
 	assertEquals 0 $?
 	}
 
@@ -117,20 +115,21 @@ testInit()
 	{
 	initDeliver
 	assertTrueEcho "[ -d .deliver ]"
-	assertTrueEcho "[ -d .deliver/hooks ]"
-	assertTrueEcho "[ -d .deliver/hooks/pre-delivery ]"
-	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-core-disk-space.sh ]"
-	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-core-mem-free.sh ]"
-	assertTrueEcho "[ -d .deliver/hooks/init-remote ]"
-	assertTrueEcho "[ -d .deliver/hooks/post-checkout ]"
-	assertTrueEcho "[ -d .deliver/hooks/post-symlink ]"
-	assertTrueEcho "[ -d .deliver/hooks/rollback ]"
+	assertTrueEcho "[ -d .deliver/scripts ]"
+	assertTrueEcho "[ -d .deliver/scripts/pre-delivery ]"
+	assertTrueEcho "[ -f .deliver/scripts/pre-delivery/01-core-disk-space.sh ]"
+	assertTrueEcho "[ -f .deliver/scripts/pre-delivery/01-core-mem-free.sh ]"
+	assertTrueEcho "[ -d .deliver/scripts/init-remote ]"
+	assertTrueEcho "[ -d .deliver/scripts/post-checkout ]"
+	assertTrueEcho "[ -d .deliver/scripts/post-symlink ]"
+	assertTrueEcho "[ -d .deliver/scripts/rollback-pre-symlink ]"
+	assertTrueEcho "[ -d .deliver/scripts/rollback-post-symlink ]"
 	}
 
-testInitHook()
+testInitPreset()
 	{
 	initDeliver php
-	assertTrueEcho "[ -f .deliver/hooks/pre-delivery/01-php-syntax-check.sh ]"
+	assertTrueEcho "[ -f .deliver/scripts/pre-delivery/01-php-syntax-check.sh ]"
 	}
 
 testUninitedDir()
@@ -150,6 +149,7 @@ testUnknownRemote()
 testUnknownRef()
 	{
 	initWithOrigin
+	ls -l "$ROOT_DIR/test_remote"
 	local RESULT=`"$ROOT_DIR"/deliver.sh --batch origin non_existent_ref 2>&1`
 	assertEquals "Ref non_existent_ref not found." "$RESULT"
 	}
