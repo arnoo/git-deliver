@@ -40,14 +40,14 @@ oneTimeSetUp()
 	echo "blah blah" > a
 	git add a
 	git commit -m "test commit"
-	cd $ROOT_DIR
+	cd "$ROOT_DIR"
 	}
 
 oneTimeTearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo"
 	rm -rf "$ROOT_DIR/test_remote"
-	cd $OLD_PWD
+	cd "$OLD_PWD"
 	}
 
 tearDown()
@@ -56,26 +56,26 @@ tearDown()
 	cd "$ROOT_DIR/test_repo"
 	git remote remove origin 2> /dev/null
 	rm -rf "$ROOT_DIR/test_remote"
-	cd $ROOT_DIR
+	cd "$ROOT_DIR"
 	}
 
 testRunRemoteLocal()
 	{
-	cd $ROOT_DIR
+	cd "$ROOT_DIR"
 	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_PATH="'$ROOT_DIR'" run_remote "ls deliver.sh"' | bash`
 	assertEquals "deliver.sh" "$A"
 	}
 
 testRunRemoteSsh()
 	{
-	cd $ROOT_DIR
+	cd "$ROOT_DIR"
 	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="localhost" run_remote ls "'$ROOT_DIR'/deliver.sh"' | bash`
 	assertEquals "$ROOT_DIR/deliver.sh" "$A"
 	}
 
 testRemoteInfoNonExistentRemote()
 	{
-	cd $ROOT_DIR/test_repo
+	cd "$ROOT_DIR"/test_repo
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info nonexistentremote 2>&1' | bash`
 	assertEquals "Remote nonexistentremote not found." "$A"
 	}
@@ -83,7 +83,7 @@ testRemoteInfoNonExistentRemote()
 testRemoteInfo()
 	{
 	initWithOrigin
-	cd $ROOT_DIR/test_repo
+	cd "$ROOT_DIR"/test_repo
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info origin ; echo "$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "+++$ROOT_DIR/test_remote" "$A"
 	}
@@ -91,7 +91,7 @@ testRemoteInfo()
 testRemoteInfoSsh()
 	{
 	initWithSshOrigin
-	cd $ROOT_DIR/test_repo
+	cd "$ROOT_DIR"/test_repo
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo "$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "localhost+++$ROOT_DIR/test_remote" "$A"
 	}
@@ -149,27 +149,72 @@ testUnknownRemote()
 testUnknownRef()
 	{
 	initWithOrigin
-	ls -l "$ROOT_DIR/test_remote"
 	local RESULT=`"$ROOT_DIR"/deliver.sh --batch origin non_existent_ref 2>&1`
 	assertEquals "Ref non_existent_ref not found." "$RESULT"
+	}
+
+testInitNonExistingRemote()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	}
+
+testInitNonExistingRemoteDirExisting()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	mkdir "$ROOT_DIR/test_new_remote_dir"
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	}
+
+testInitNonExistingRemoteDirFileExisting()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	touch "$ROOT_DIR/test_new_remote_dir"
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertEquals 10 $?
+	assertFalse "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	}
+
+testInitNonExistingRemoteDirExistingNonEmpty()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	mkdir "$ROOT_DIR/test_new_remote_dir"
+	touch "$ROOT_DIR/test_new_remote_dir/file1"
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertEquals 9 $?
+	assertFalse "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
 	}
 
 testBasicDeliver1()
 	{
 	initWithOrigin
-	"$ROOT_DIR"/deliver.sh --batch origin master 
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
 	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_remote/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
 	}
 
 testSshDeliver1()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch origin master 
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
 	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_remote/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
 	}
 
 #test3DeliveriesSameVersion()

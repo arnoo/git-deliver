@@ -282,7 +282,7 @@ function run_remote
 
 function init_remote
 	{
-	if [[ $4 != "" ]] || [[ $3 = "" ]]; then
+	if [[ $4 != "" ]]; then
 		print_help
 		exit 1
 	fi
@@ -291,19 +291,30 @@ function init_remote
 	local REMOTE=$1
 	remote_info $REMOTE true $INIT_URL
 	NEED_GIT_FILES=true
-	if [[ `run_remote "mkdir \"$REMOTE_URL\" || echo \"ALREADY\""` = "ALREADY" ]]; then
-		if [[ `run_remote "ls -1 \"$REMOTE_URL\" | wc -l"` != "0" ]]; then
-			git fetch $REMOTE 2>&1 > /dev/null
-			if [[ $? -gt 0 ]]; then
-				echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
-				exit 9
-			else
-				NEED_GIT_FILES=false
+	run_remote "test -e \"$REMOTE_URL\" 2>&1 > /dev/null"
+	if [[ $? = 0 ]]; then
+		run_remote "test -d \"$REMOTE_URL\" 2>&1 > /dev/null"
+		if [[ $? -gt 0 ]]; then
+			echo "ERROR: Remote path points to a file"
+			exit 10
+		else
+			if [[ `run_remote "ls -1 \"$REMOTE_URL\" | wc -l"` != "0" ]]; then
+				git fetch $REMOTE 2>&1 > /dev/null
+				if [[ $? -gt 0 ]]; then
+					echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
+					exit 9
+				else
+					NEED_GIT_FILES=false
+				fi
 			fi
 		fi
+	else
+		run_remote "mkdir \"$REMOTE_URL\" 2>&1 > /dev/null"
+		exit_if_error "Error creating root directory for new remote"
 	fi
 	if [[ $NEED_GIT_FILES ]]; then
-		scp -r "$REPO_ROOT/.git/*" "$REMOTE_URL/"
+		echo "scp -r \"$REPO_ROOT\"/.git/* \"$REMOTE_URL/\""
+		scp -r "$REPO_ROOT"/.git/* "$REMOTE_URL/"
 		exit_if_error 10
 		run_remote "cd \"$REMOTE_URL\" && \
 			    git config --bool core.bare true && \
