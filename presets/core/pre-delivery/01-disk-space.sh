@@ -15,11 +15,11 @@ AWK_FORMAT='{x = $0
 HUMAN_FREE_BYTES=`echo "$FREE_BYTES" | awk "$AWK_FORMAT"`
 HUMAN_NECESSARY_BYTES=`echo "$NECESSARY_BYTES" | awk "$AWK_FORMAT"`
 
-echo "		Delivery will require $HUMAN_NECESSARY_BYTES on remote, $HUMAN_FREE_BYTES available"
+echo "    Delivery will require $HUMAN_NECESSARY_BYTES on remote, $HUMAN_FREE_BYTES available"
 
 if [[ $FREE_BYTES -gt $NECESSARY_BYTES ]]; then
 	exit 0
 else
-       echo "		Not enough disk space abvailable on remote"
+       echo "    Not enough disk space abvailable on remote"
        exit 1
 fi

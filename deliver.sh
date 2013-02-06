@@ -22,8 +22,6 @@
 #TODO: version GPL ? cf GIT
 #TODO: rsync deliveries ? for shared hosting / FTP ?
 #TODO: option for non-bare remotes ? delivery by push only ?
-#TODO: init exisiting remote if remote URL is not set
-#TODO: fix init if dircetory exists and is empty, we end up copying .git inside it
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
@@ -234,13 +232,16 @@ function remote_info
 	local REMOTE_INFO
 	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'	' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
-		echo "Remote $REMOTE not found." >&2
-		confirm_or_exit "Create it ?"
-		echo ""
 		if [[ $INIT_URL = "" ]]; then
+			echo "Remote $REMOTE not found." >&2
+		fi
+		if [[ $INIT_URL = "" ]]; then
+			confirm_or_exit "Create it ?"
+			echo ""
 			read -p "URL for remote :" INIT_URL
 		fi
 		git remote add "$REMOTE" "$INIT_URL"
+		exit_if_error 8
 		if [[ ! $IN_INIT ]]; then
 			init_remote $REMOTE $INIT_URL
 		fi
@@ -275,13 +276,13 @@ function run_remote
 		if [[ "$LOG_TEMPFILE" != "" ]]; then
 			echo "running ssh \"$REMOTE_SERVER\" \"$COMMAND\"" >> "$LOG_TEMPFILE"
 		fi
-		ssh "$REMOTE_SERVER" "$COMMAND"  #TODO: cd $DELIVERY_PATH && (could simplify scripts, but does not work before checkout... add a test ? )
+		ssh "$REMOTE_SERVER" "cd /tmp && $COMMAND"
 	fi
 	}
 
 function init_remote
 	{
-	if [[ $3 != "" ]] || [[ $2 = "" ]]; then
+	if [[ $4 != "" ]] || [[ $3 = "" ]]; then
 		print_help
 		exit 1
 	fi
@@ -289,12 +290,27 @@ function init_remote
 	INIT_URL=$2
 	local REMOTE=$1
 	remote_info $REMOTE true $INIT_URL
-	#TODO: check that remote URL does not already exist
-	scp -r "$REPO_ROOT/.git" "$REMOTE_URL"
-	exit
-	run_remote "git config --bool core.bare true && \
-		    git config --bool receive.autogc false && \
-		    mkdir delivered"
+	NEED_GIT_FILES=true
+	if [[ `run_remote "mkdir \"$REMOTE_URL\" || echo \"ALREADY\""` = "ALREADY" ]]; then
+		if [[ `run_remote "ls -1 \"$REMOTE_URL\" | wc -l"` != "0" ]]; then
+			git fetch $REMOTE 2>&1 > /dev/null
+			if [[ $? -gt 0 ]]; then
+				echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
+				exit 9
+			else
+				NEED_GIT_FILES=false
+			fi
+		fi
+	fi
+	if [[ $NEED_GIT_FILES ]]; then
+		scp -r "$REPO_ROOT/.git/*" "$REMOTE_URL/"
+		exit_if_error 10
+		run_remote "cd \"$REMOTE_URL\" && \
+			    git config --bool core.bare true && \
+			    git config --bool receive.autogc false"
+	fi
+	run_remote "mkdir \"$REMOTE_URL\"/delivered"
+	exit_if_error 11
 	run_scripts "init-remote"
 	IN_INIT=""
 	}
