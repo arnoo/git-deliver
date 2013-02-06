@@ -22,6 +22,9 @@
 #TODO: version GPL ? cf GIT
 #TODO: rsync deliveries ? for shared hosting / FTP ?
 #TODO: option for non-bare remotes ? delivery by push only ?
+#TODO: init exisiting remote if remote URL is not set
+#TODO: fix init if dircetory exists and is empty, we end up copying .git inside it
+#TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -64,7 +67,7 @@ function print_help
 	echo "git deliver <REMOTE> <VERSION>"
 	echo "git deliver --gc <REMOTE>"
 	echo "git deliver --init [presets]"
-	echo "git deliver --init-remote <REMOTE>"
+	echo "git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
 	echo "git deliver --list-presets"
 	echo "git deliver --status"
 	exit 1
@@ -143,7 +146,7 @@ function init_preset
 			cp -f $SCRIPT_FILE "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
 		done
 	done
-        source "$GIT_DELIVER_PATH/preses/$PRESET"/info
+        source "$GIT_DELIVER_PATH/presets/$PRESET"/info
         #TODO: init_preset for all DEPENDENCIES
 	}
 
@@ -287,7 +290,6 @@ function init_remote
 	local REMOTE=$1
 	remote_info $REMOTE true $INIT_URL
 	#TODO: check that remote URL does not already exist
-	echo "$REPO_ROOT"
 	scp -r "$REPO_ROOT/.git" "$REMOTE_URL"
 	exit
 	run_remote "git config --bool core.bare true && \

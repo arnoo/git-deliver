@@ -19,9 +19,9 @@ A delivery is done in stages. Between each stage, Bash scripts can be run to ada
 
 
 
-To get started, you'd run "git deliver --init" in your git working folder. This would create an empty .deliver folder next to the ".git" one. You'd then be able to create scripts in this folder to customize the delivery process should you want to. You could keep the .deliver folder under version control.
+To get started, you'd run "git deliver --init" in your Git working folder. This would create an empty ".deliver" folder next to the ".git" one. You'd then be able to create scripts in this folder to customize the delivery process should you want to. You could keep the .deliver folder under version control and share it with your team that way.
 
-If you want to start with presets for a given environment, you'd give init a list of preset names: something like "git deliver --init rails rails-pgsql" would copy both the "rails" scripts and the "rails-pgsql" scripts, both of which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running "git deliver --list-presets".
+If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like "git deliver --init rails rails-pgsql" would copy both the "rails" scripts and the "rails-pgsql" scripts, both of which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running "git deliver --list-presets".
 
 Note that there are nearly no presets right now; I very much welcome contributions in this area. The "yisti" preset, which is build for a custom Common-Lisp environement shows how scripts can get delivery information, how dependencies are defined, how to execute scripts on the remote, and how to signal errors.
 
@@ -41,19 +41,24 @@ A delivery is then initiated by running "git deliver <remote> <ref>". Here's the
 
 Stage scripts can read a few envrionment variables to gather information about the delivery process.
 
-ALL STAGES:
+All stages have a access to :
+
+ $VERSION (the vers
+ $GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
+ $REPO_ROOT="$REPO_ROOT"
+ $DELIVERY_DATE="$DELIVERY_DATE"
+ $DELIVERY_PATH="$DELIVERY_PATH"
+ $VERSION="$VERSION"
+ $VERSION_SHA="$VERSION_SHA"
+ $PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
+ $REMOTE_SERVER="$REMOTE_SERVER"
+ $REMOTE_PATH="$REMOTE_PATH"
+ $REMOTE="$REMOTE"
 
 $VERSION
 $DELIVERY_PATH : path where the version will be delivered on the remote
 
-
-PRE-DELIVERY:
-
-POST-CHECKOUT:
-
-POST-SYMLINK:
-
-ROLLBACK:
+rollback-pre-symlink and rollback-post-symlink:
 $LAST_STAGE_REACHED : the last stage the delivery reached before rollback had to be called
 
 $LAST_STAGE : what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
@@ -65,5 +70,6 @@ Although I have started using it often, git-deliver is still in it's early stage
 
 Roadmap / TODO:
 
+See the output of "grep -r TODO"
 
 I welcome all suggestions and code contributions.
