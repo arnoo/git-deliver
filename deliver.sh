@@ -23,6 +23,7 @@
 #TODO: rsync deliveries ? for shared hosting / FTP ?
 #TODO: option for non-bare remotes ? delivery by push only ?
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
+#TODO: check that git is installed on remote before we do anything
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -57,7 +58,7 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || exit $1
+	[[ $? -eq 0 ]] || (echo $2 && exit $1)
 	}
 
 function print_help
@@ -234,14 +235,12 @@ function remote_info
 	if [[ $? -gt 0 ]] && $INIT; then
 		if [[ $INIT_URL = "" ]]; then
 			echo "Remote $REMOTE not found." >&2
-		fi
-		if [[ $INIT_URL = "" ]]; then
 			confirm_or_exit "Create it ?"
 			echo ""
 			read -p "URL for remote :" INIT_URL
 		fi
 		git remote add "$REMOTE" "$INIT_URL"
-		exit_if_error 8
+		exit_if_error 8 "Error adding remote in local Git config"
 		if [[ ! $IN_INIT ]]; then
 			init_remote $REMOTE $INIT_URL
 		fi
@@ -291,14 +290,14 @@ function init_remote
 	local REMOTE=$1
 	remote_info $REMOTE true $INIT_URL
 	NEED_GIT_FILES=true
-	run_remote "test -e \"$REMOTE_URL\" 2>&1 > /dev/null"
+	run_remote "test -e \"$REMOTE_PATH\" 2>&1 > /dev/null"
 	if [[ $? = 0 ]]; then
-		run_remote "test -d \"$REMOTE_URL\" 2>&1 > /dev/null"
+		run_remote "test -d \"$REMOTE_PATH\" 2>&1 > /dev/null"
 		if [[ $? -gt 0 ]]; then
 			echo "ERROR: Remote path points to a file"
 			exit 10
 		else
-			if [[ `run_remote "ls -1 \"$REMOTE_URL\" | wc -l"` != "0" ]]; then
+			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l"` != "0" ]]; then
 				git fetch $REMOTE 2>&1 > /dev/null
 				if [[ $? -gt 0 ]]; then
 					echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
@@ -309,19 +308,18 @@ function init_remote
 			fi
 		fi
 	else
-		run_remote "mkdir \"$REMOTE_URL\" 2>&1 > /dev/null"
-		exit_if_error "Error creating root directory for new remote"
+		run_remote "mkdir \"$REMOTE_PATH\" 2>&1 > /dev/null"
+		exit_if_error 12 "Error creating root directory on remote"
 	fi
 	if [[ $NEED_GIT_FILES ]]; then
-		echo "scp -r \"$REPO_ROOT\"/.git/* \"$REMOTE_URL/\""
 		scp -r "$REPO_ROOT"/.git/* "$REMOTE_URL/"
-		exit_if_error 10
-		run_remote "cd \"$REMOTE_URL\" && \
+		exit_if_error 10 "Error copying Git files"
+		run_remote "cd \"$REMOTE_PATH\" && \
 			    git config --bool core.bare true && \
 			    git config --bool receive.autogc false"
 	fi
-	run_remote "mkdir \"$REMOTE_URL\"/delivered"
-	exit_if_error 11
+	run_remote "mkdir \"$REMOTE_PATH\"/delivered"
+	exit_if_error 11 "Error creating 'delivered' directory in remote root"
 	run_scripts "init-remote"
 	IN_INIT=""
 	}
@@ -422,15 +420,15 @@ function deliver
 
 	run_remote "git clone --reference $REMOTE_PATH -b $VERSION $REMOTE_PATH \"$DELIVERY_PATH\""
 	
-	exit_if_error 5
+	exit_if_error 5 "Error cloning repo to delivered folder on remote"
 
 	run_remote "cd \"$DELIVERY_PATH\" && git submodule init && git submodule update"
 
-	exit_if_error 6
+	exit_if_error 6 "Error updating submodules on new remote clone"
 
 	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered'"
 
-	exit_if_error 7
+	exit_if_error 7 "Error checking out remote clone"
 
 	run_scripts "post-checkout"
 
