@@ -11,15 +11,26 @@ Since git clone uses hard-links to the original repository when on the same file
 
 The current version's clone is used through a "current" symlink, which makes the delivery "atomic".
 
-A delivery is done in stages. Between each stage, Bash scripts can be run to adapt the delivery process to the project's needs.
+A delivery is done in stages. Between each stage, Bash scripts can be run to adapt the delivery process to the project.
 
+
+Installation
+============
+
+Clone this repository in the directory of your choice.
+
+In your .gitconfig, add this line in the `[alias]` section:
+
+    deliver = "!<path_to_clone>/deliver.sh"
+
+Where `<path_to_clone>` is the path to the root of the git clone you just made.
 
 Usage
 =====
 
     git deliver <REMOTE> <REF>
 
-deliver <REF> (sha1, tag, branch) on <REMOTE>.
+deliver <REF> (sha1, tag, branch) on `<REMOTE>`.
 
     git deliver --gc <REMOTE>
 
@@ -27,11 +38,11 @@ deliver <REF> (sha1, tag, branch) on <REMOTE>.
 
     git deliver --init [presets]
 
-Initialise this repository for git-deliver, optionally including stage scripts for [presets]
+Initialise this repository for git-deliver, optionally including stage scripts for `[presets]`
 
     git deliver --init-remote <REMOTE_NAME> [REMOTE_URL]
 
-Initialize Git remote `<REMOTE_NAME>` for git-deliver. The remote needs to be bare. If it does not exist yet, it can be created at [REMOTE_URL]. If the remote exists but does not point to a bare repository, the repository will be created.
+Initialize Git remote `<REMOTE_NAME>` for git-deliver. The remote needs to be bare. If it does not exist yet, it can be created at `[REMOTE_URL]`. If the remote exists but does not point to a bare repository, the repository will be created.
 
     git deliver --list-presets
 
@@ -41,15 +52,15 @@ List available presets for --init
 How it works
 ============
 
-To get started, you'd run "git deliver --init" in your Git working folder. This would create an empty ".deliver" folder next to the ".git" one. You'd then be able to create scripts in this folder to customize the delivery process should you want to. You could keep the .deliver folder under version control and share it with your team that way.
+To get started, you'd run `git deliver --init` in your Git working folder. This would create an empty ".deliver" folder next to the ".git" one. You'd then be able to create scripts in this folder to customize the delivery process should you want to. You could keep the .deliver folder under version control and share it with your team that way.
 
-If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like "git deliver --init rails rails-pgsql" would copy both the "rails" scripts and the "rails-pgsql" scripts, both of which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running "git deliver --list-presets".
+If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like `git deliver --init rails rails-pgsql` would copy both the "rails" scripts and the "rails-pgsql" scripts, both of which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running `git deliver --list-presets`.
 
 Note that there are nearly no presets right now; I very much welcome contributions in this area. The "yisti" preset, which is build for a custom Common-Lisp environement shows how scripts can get delivery information, how dependencies are defined, how to execute scripts on the remote, and how to signal errors.
 
-Once our working copy is ready, each remote needs to be initialized (by running "git deliver --init-remote `<remote>`", where `<remote>` is the name of bare Git remote. This will result in the creation of the "delivered" folder on the remote. If you have "init-remote" scripts, they will be run. This might be used to install external dependencies on the remote.
+Once our working copy is ready, each remote needs to be initialized (by running `git deliver --init-remote <remote>`, where `<remote>` is the name of bare Git remote. This will result in the creation of the "delivered" folder on the remote. If you have "init-remote" scripts, they will be run. This might be used to install external dependencies on the remote.
 
-A delivery is then initiated by running "git deliver `<remote>` `<ref>`". Here's the timeline of what happens :
+A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the timeline of what happens :
 
 * We run preliminary checks. By default, we just check the available disk space on the remote, but you can create "pre-delivery" scripts to add checks.
 
@@ -90,6 +101,6 @@ Status, Roadmap
 
 Although I have started using it often, git-deliver is still in it's early stages. "It works for me", but your mileage may vary.
 
-See the output of "grep -r TODO" for an idea of coming changes and fixes.
+See the output of `grep -r TODO` for an idea of coming changes and fixes.
 
 I welcome all suggestions and code contributions.

@@ -18,12 +18,10 @@
 #
 
 #TODO: vim modeline
-#TODO: support remote groups (git config remotes.mygroup 'remote1 remote2')
-#TODO: rsync deliveries ? for shared hosting / FTP ?
-#TODO: option for non-bare remotes ? delivery by push only ?
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: check that git is installed on remote before we do anything
 #TODO: --single-branch in clone ?
+#TODO: remote pushes to anything other than the delivery remote (too unexpected, replace by warning that delivered ref is not on origin ?)
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
