@@ -228,7 +228,6 @@ testSshDeliverTag()
 	cd "$ROOT_DIR"/test_repo
 	"$ROOT_DIR"/deliver.sh --batch origin blah 2>&1 > /dev/null
 	assertTrueEcho "[ -f $ROOT_DIR/test_remote/delivered/current/new_file ]"
-	exit
 	}
 
 #test3DeliveriesSameVersion()
