@@ -19,7 +19,6 @@
 
 #TODO: vim modeline
 #TODO: support remote groups (git config remotes.mygroup 'remote1 remote2')
-#TODO: version GPL ? cf GIT
 #TODO: rsync deliveries ? for shared hosting / FTP ?
 #TODO: option for non-bare remotes ? delivery by push only ?
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
