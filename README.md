@@ -85,7 +85,8 @@ rollback-pre-symlink and rollback-post-symlink:
     $FAILED_HOOK_EXIT_STATUS : exit status of the hook that failed, triggering the rollback
 
 
-== Status, Roadmap ==
+Status, Roadmap
+===============
 
 Although I have started using it often, git-deliver is still in it's early stages. "It works for me", but your mileage may vary.
 
