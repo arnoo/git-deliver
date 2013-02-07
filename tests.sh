@@ -217,6 +217,20 @@ testSshDeliver1()
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
 	}
 
+testSshDeliverTag()
+	{
+	initWithSshOrigin
+	cd "$ROOT_DIR"/test_repo
+	echo "AAA" > new_file
+	git add new_file
+	git commit -m "new commit"
+	git tag blah
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch origin blah 2>&1 > /dev/null
+	assertTrueEcho "[ -f $ROOT_DIR/test_remote/delivered/current/new_file ]"
+	exit
+	}
+
 #test3DeliveriesSameVersion()
 #	{
 #	initWithOrigin

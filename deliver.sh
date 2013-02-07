@@ -23,6 +23,7 @@
 #TODO: option for non-bare remotes ? delivery by push only ?
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: check that git is installed on remote before we do anything
+#TODO: --single-branch in clone ?
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -413,7 +414,12 @@ function deliver
 	run_scripts "pre-delivery"
 
 	# Make sure the remote has all the commits leading to the version to be delivered
+	if [[ -e "$REPO_ROOT"/.git/refs/tags/"$VERSION" ]]; then
+		run "git push $REMOTE tag $VERSION"
+		exit_if_error 13
+	fi
 	run "git push $REMOTE $VERSION"
+	exit_if_error 14
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
