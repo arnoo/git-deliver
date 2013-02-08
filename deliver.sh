@@ -455,15 +455,19 @@ function deliver
 	run "git push $REMOTE $VERSION"
 	exit_if_error 14
 
-	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
+	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
 
-	run_remote "git clone --reference $REMOTE_PATH --recursive -b $VERSION $REMOTE_PATH \"$DELIVERY_PATH\""
-	
+	run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\""
+
 	exit_if_error 5 "Error cloning repo to delivered folder on remote"
+	
+	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION"
 
-	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered'"
-
-	exit_if_error 7 "Error checking out remote clone"
+	exit_if_error 6 "Error checking out remote clone"
+	
+	run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive"
+	
+	exit_if_error 7 "Error initializing submodules"
 
 	run_scripts "post-checkout"
 

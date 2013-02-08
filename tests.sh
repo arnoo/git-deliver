@@ -202,6 +202,7 @@ testInitNonExistingRemoteDirExistingNonEmpty()
 testBasicDeliver1()
 	{
 	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
 	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
@@ -211,6 +212,7 @@ testBasicDeliver1()
 testSshDeliver1()
 	{
 	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
 	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
@@ -221,6 +223,7 @@ testSshDeliverTag()
 	{
 	initWithSshOrigin
 	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	echo "AAA" > new_file
 	git add new_file
 	git commit -m "new commit"
