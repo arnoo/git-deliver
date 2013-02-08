@@ -56,7 +56,7 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || (echo $2 && exit $1)
+	[[ $? -eq 0 ]] || { echo $2 && exit $1; }
 	}
 
 function print_help
