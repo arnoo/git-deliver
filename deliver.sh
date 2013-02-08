@@ -343,7 +343,7 @@ function init_remote
 		run_remote "mkdir \"$REMOTE_PATH\" 2>&1 > /dev/null"
 		exit_if_error 12 "Error creating root directory on remote"
 	fi
-	if [[ $NEED_GIT_FILES ]]; then
+	if $NEED_GIT_FILES; then
 		scp -r "$REPO_ROOT"/.git/* "$REMOTE_URL/"
 		exit_if_error 10 "Error copying Git files"
 		run_remote "cd \"$REMOTE_PATH\" && \
