@@ -21,7 +21,7 @@
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: check that git is installed on remote before we do anything
 #TODO: --single-branch in clone ?
-#TODO: remote pushes to anything other than the delivery remote (too unexpected, replace by warning that delivered ref is not on origin ?)
+#TODO: remove pushes to anything other than the delivery remote (too unexpected, replace by warning that delivered ref is not on origin ?)
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -63,27 +63,61 @@ function print_help
 	{
 	echo "git deliver <REMOTE> <VERSION>"
 	echo "git deliver --gc <REMOTE>"
-	echo "git deliver --init [presets]"
+	echo "git deliver --init [PRESETS]"
 	echo "git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
 	echo "git deliver --list-presets"
-	echo "git deliver --status"
+	echo "git deliver --status [REMOTE]"
 	exit 1
 	}
 
-function repo_status
+function remote_status
 	{
 	local REMOTE=$1
-	if [[ "$REMOTE" = "." ]]; then
-		if [[ -d "$REPO_ROOT/.deliver" ]]; then
-			echo "Repository initialized"
-		fi
-	elif [[ $REMOTE -eq '' ]]; then
+	if [[ "$REMOTE" = '' ]]; then
 		for R in `git remote`; do
-			repo_status $R
+			echo ""
+			echo "Remote $R :"
+			remote_status "$R"
 		done
 	else
 		remote_info $REMOTE
-		run_remote "git status --git-dir \"$REMOTE_PATH/delivered/current\""
+		run_remote "bash" <<EOS
+			if [[ ! -d "$REMOTE_PATH"/delivered/current ]]; then
+				echo "    Not a git-deliver remote"
+				exit 1
+			fi
+			CURRENT_DIR=\`readlink "$REMOTE_PATH"/delivered/current\`
+			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
+			if [[ \$? -gt 0 ]]; then
+				echo "    No delivered version"
+				exit 2
+			fi
+			CURRENT_SHORTSHA1=\${CURRENT_DIR:19:6}
+			LATEST_SHA=\`git log --pretty=format:%H -n 1\`
+			PREVIOUS_SHA=\`git log --pretty=format:%H -n 2 | tail -n 1\`
+			CURRENT_BRANCH=\`git rev-parse --abbrev-ref HEAD\`
+			
+			COMMENT=""
+			
+			if [[ "\$CURRENT_BRANCH" = "_delivered" ]] && [[ \${PREVIOUS_SHA:0:6} = \$CURRENT_SHORTSHA1 ]]; then
+				VERSION=\$PREVIOUS_SHA
+				COMMENT="delivered "\`git log -n 1 --pretty=format:'%aD by %aN <%aE>' \$PREVIOUS_SHA\`
+				RETURN=3
+			else
+				VERSION=\$LATEST_SHA
+				COMMENT="not delivered with git-deliver"
+				RETURN=4
+			fi
+			
+			TAGS=\`git show-ref --tags -d | grep ^\$VERSION | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered_' | tr "\\n" ", "\`
+
+			if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
+				COMMENT="\$COMMENT, with uncommitted changes"
+			fi
+			echo "    \$VERSION [\$TAGS] (\$COMMENT)"
+			exit \$RETURN
+EOS
+	return $?
 	fi
 	}
 
@@ -385,15 +419,13 @@ function deliver
 		git push origin $VERSION
 	fi
 
-	#TODO: warning : the following line assumes that this repo is up to date with all the delivered tags
-	local CURRENT_LINK=`run_remote "readlink $REMOTE_PATH/delivered/current"`
-	if [[ "$CURRENT_LINK" = "" ]]; then
+	local RSTATUS=`remote_status $REMOTE`
+	RSTATUS_CODE=$?
+	if [[ $RSTATUS_CODE -lt 1 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
-		PREVIOUS_VERSION=`echo "$CURRENT_LINK" | sed 's/_[0-9]\{4\}\-[0-9]\{2\}\-[0-9]\{2\}_[0-9]\{2\}\-[0-9]\{2\}\-[0-9]\{2\}$//'`
-		PREVIOUS_VERSION_SHA=`git rev-parse --revs-only "$PREVIOUS_VERSION"`
-		echo -n "Current version on $REMOTE is " >&2
-		git name-rev "$PREVIOUS_VERSION_SHA" >&2
+		PREVIOUS_VERSION_SHA=${RSTATUS:0:40}
+		echo -n "Current version on $REMOTE is $RSTATUS" >&2
 	fi
 
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
@@ -425,7 +457,7 @@ function deliver
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. A shallow clone with depth one would do, but it would use more disk space because we wouldn't be able to share the files with the bare repo through hard links (git clone does that by default when cloning on the same filesystem).
 
-	run_remote "git clone --reference $REMOTE_PATH --recurse-submodules -b $VERSION $REMOTE_PATH \"$DELIVERY_PATH\""
+	run_remote "git clone --reference $REMOTE_PATH --recursive -b $VERSION $REMOTE_PATH \"$DELIVERY_PATH\""
 	
 	exit_if_error 5 "Error cloning repo to delivered folder on remote"
 
@@ -440,7 +472,7 @@ function deliver
 
 	local DELIVERED_BY_NAME=`git config --get user.name`
 	local DELIVERED_BY_EMAIL=`git config --get user.email`
-	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" -a -m \"\""
+	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"git-deliver automated commit\""
 
 	echo "Switching the 'current' symlink to the newly delivered version."
 	# Using a symlink makes our delivery atomic.
@@ -504,7 +536,7 @@ elif [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
 elif [[ $FLAGS_list_presets -eq $FLAGS_TRUE ]]; then
 	list_presets $*
 elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
-	repo_status $*
+	remote_status $*
 elif [[ $FLAGS_gc -eq $FLAGS_TRUE ]]; then
 	remote_gc $*
 elif [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
