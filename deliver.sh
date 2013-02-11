@@ -465,8 +465,8 @@ function deliver
 	exit_if_error 5 "Error cloning repo to delivered folder on remote"
 
 	CREATE_TRACKING=""
-	if [[ -e "$REPO_ROOT"/.git/refs/heads/"$VERSION" ]]; then
-		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b $VERSION origin/$VERSION"
+	if [[ -e "$REPO_ROOT"/.git/refs/heads/"$VERSION" ]] && [[ -e "$DELIVERY_PATH"/.git/refs/heads/"$VERSION" ]]; then
+		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$VERSION" || git checkout -b $VERSION origin/$VERSION }"
 		exit_if_error 15 "Error creating tracking branch on remote clone"
 	fi
 	
