@@ -463,6 +463,12 @@ function deliver
 	run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\""
 
 	exit_if_error 5 "Error cloning repo to delivered folder on remote"
+
+	CREATE_TRACKING=""
+	if [[ -e "$REPO_ROOT"/.git/refs/heads/"$VERSION" ]]; then
+		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b $VERSION origin/$VERSION"
+		exit_if_error 15 "Error creating tracking branch on remote clone"
+	fi
 	
 	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION"
 
