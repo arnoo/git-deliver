@@ -20,8 +20,8 @@
 #TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: check that git is installed on remote before we do anything
-#TODO: --single-branch in clone ?
 #TODO: remove pushes to anything other than the delivery remote (too unexpected, replace by warning that delivered ref is not on origin ?)
+#TODO: .remote.sh extension for scripts indicate script to be run on remote
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -92,7 +92,7 @@ function remote_status
 				echo "    No delivered version"
 				exit 2
 			fi
-			CURRENT_SHORTSHA1=\${CURRENT_DIR:19:6}
+			CURRENT_SHORTSHA1=\${CURRENT_DIR:20:6}
 			LATEST_SHA=\`git log --pretty=format:%H -n 1\`
 			PREVIOUS_SHA=\`git log --pretty=format:%H -n 2 | tail -n 1\`
 			CURRENT_BRANCH=\`git rev-parse --abbrev-ref HEAD\`
