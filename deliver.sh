@@ -403,6 +403,9 @@ function deliver
 	fi
 
 	remote_info $REMOTE
+
+	check_git_version $REMOTE
+
 	if [[ `run_remote "ls -1d \"$REMOTE_PATH/branches\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
@@ -505,6 +508,19 @@ function deliver
 	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION"
 	rm -f "$LOG_TEMPFILE"
 	run git push origin "$TAG_NAME"
+	}
+
+function check_git_version
+	{
+	REMOTE_GIT_VERSION=`run_remote "git --version" 2>&1 > /dev/null`
+	
+	if [[ $? = 127 ]]; then
+		echo "ERROR: Git needs to be installed and in \$PATH on the remote"
+		exit 11
+	else
+		echo -n ""
+		#TODO: check remote Git version and exit if too old
+	fi
 	}
 
 function rollback
