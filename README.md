@@ -32,6 +32,11 @@ Usage
 
 deliver <REF> (sha1, tag, branch) on `<REMOTE>`.
 
+
+    git deliver --status [REMOTE]
+
+Returns the version delivered (if any) on `[REMOTE]`, or on all remotes if `[REMOTE]` is not specified.
+
     git deliver --gc <REMOTE>
 
 "garbage collection": remove all previously delivered versions on `<REMOTE>`, except the last three ("current", "previous", "preprevious")
@@ -94,6 +99,8 @@ rollback-pre-symlink and rollback-post-symlink:
     $LAST_STAGE : what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
     $FAILED_HOOK : name of the hook that failed, triggering the rollback. Empty if the rollback was caused by human intervention (CTRL+C ... TODO)
     $FAILED_HOOK_EXIT_STATUS : exit status of the hook that failed, triggering the rollback
+
+Stage scripts can use the `run_remote` bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). `run_remote` also works for "local" remotes, the command will be run as the user running git-deliver.
 
 
 Status, Roadmap
