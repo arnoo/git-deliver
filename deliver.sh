@@ -190,8 +190,9 @@ function init
 		check_preset $PRESET
         done
 	mkdir -p "$REPO_ROOT/.deliver/scripts"
-	for PRESET in dependencies init-remote pre-delivery post-checkout post-symlink rollback-pre-symlink rollback-post-symlink; do
-		mkdir "$REPO_ROOT/.deliver/scripts/$PRESET"
+	for STAGE in dependencies init-remote pre-delivery post-checkout post-symlink rollback-pre-symlink rollback-post-symlink; do
+		mkdir "$REPO_ROOT/.deliver/scripts/$STAGE"
+		echo -e "Put your $STAGE Bash scripts in this folder with a .sh extension.\n\nSee https://github.com/arnoo/git-deliver for help." >> "$REPO_ROOT/.deliver/scripts/$STAGE/README"
 	done
 	echo "Setting up core preset" >&2
 	init_preset core
