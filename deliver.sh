@@ -19,8 +19,6 @@
 
 #TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
-#TODO: check that git is installed on remote before we do anything
-#TODO: remove pushes to anything other than the delivery remote (too unexpected, replace by warning that delivered ref is not on origin ?)
 #TODO: .remote.sh extension for scripts indicate script to be run on remote
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
@@ -413,14 +411,14 @@ function deliver
 	fi
 	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
+	local TAG_TO_PUSH=""
 	if [[ "$VERSION_SHA" = "" ]]; then
 		echo "Ref $VERSION not found." >&2
 		confirm_or_exit "Tag current HEAD ?"
 		VERSION_SHA=`git rev-parse HEAD`
 		echo "Tagging current HEAD" >&2
 		git tag $VERSION
-		echo "Pushing tag to origin" >&2
-		git push origin $VERSION
+		TAG_TO_PUSH=$VERSION
 	fi
 
 	local RSTATUS=`remote_status $REMOTE`
@@ -510,11 +508,14 @@ function deliver
 	local GPG_OPT
 	if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
 		GPG_OPT=" -s"
-		#TODO: Also sign the post-delivery commit (more critical than the tag)
 	fi
 	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION"
 	rm -f "$LOG_TEMPFILE"
-	run git push origin "$TAG_NAME"
+	if [[ $TAG_TO_PUSH != "" ]]; then
+		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
+	fi
+	echo "Delivery complete."
+       	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
 function check_git_version
