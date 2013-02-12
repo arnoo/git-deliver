@@ -21,9 +21,13 @@ Clone this repository in the directory of your choice.
 
 In your .gitconfig, add this line in the `[alias]` section:
 
-    deliver = "!<path_to_clone>/deliver.sh"
+    deliver = "!bash <path_to_clone>/deliver.sh"
 
 Where `<path_to_clone>` is the path to the root of the git clone you just made.
+
+
+To use Git deliver on Windows, you'll need to put the getopt.exe file from the "Binaries Zip" of util-linux (http://gnuwin32.sourceforge.net/packages/util-linux-ng.htm) in "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin".
+
 
 Usage
 =====
