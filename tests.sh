@@ -2,7 +2,7 @@
 
 assertTrueEcho()
 	{
-	$1 || ( echo "$1" && assertTrue false )
+	$1 || { echo "$1" ; assertTrue false ; }
 	}
 
 initDeliver()
@@ -40,6 +40,9 @@ oneTimeSetUp()
 	echo "blah blah" > a
 	git add a
 	git commit -m "test commit"
+	echo "blblublublu" > x
+	git add x
+	git commit -m "test commit 2"
 	cd "$ROOT_DIR"
 	}
 
@@ -199,7 +202,7 @@ testInitNonExistingRemoteDirExistingNonEmpty()
 	rm -rf "$ROOT_DIR"/test_new_remote_dir
 	}
 
-testBasicDeliver1()
+testBasicDeliverMaster()
 	{
 	initWithOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
@@ -207,6 +210,82 @@ testBasicDeliver1()
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
 	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
 	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertEquals `git rev-parse master` `git --git-dir=$ROOT_DIR/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+	}
+
+testBasicDeliverNonHeadSha1()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse master^` 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertEquals `git rev-parse master^` `git --git-dir=$ROOT_DIR/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+	}
+
+testBasicDeliverNonHeadTag()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	git tag foo master^
+	"$ROOT_DIR"/deliver.sh --batch origin foo 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertEquals `git rev-parse master^` `git --git-dir=$ROOT_DIR/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+	}
+
+testBasicDeliverNonMasterBranch()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	git checkout -b "mybranch"
+	echo "ssss" >> a 
+	git commit -am "modif"
+	"$ROOT_DIR"/deliver.sh --batch origin mybranch 2>&1 > /dev/null
+	git checkout master
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertEquals `git rev-parse mybranch` `git --git-dir=$ROOT_DIR/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+	}
+
+testBasicDeliverNonHeadSha1OtherBranch()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	git checkout "mybranch"
+	echo "ssss" >> a 
+	git commit -am "modif2"
+	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse mybranch^` 2>&1 > /dev/null
+	git checkout master
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertEquals `git rev-parse mybranch^` `git --git-dir=$ROOT_DIR/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+	}
+
+testBasicDeliverNonHeadTagOtherBranch()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	git tag foobranch mybranch^
+	"$ROOT_DIR"/deliver.sh --batch origin foobranch 2>&1 > /dev/null
+	git checkout master
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
+	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	assertEquals `git rev-parse mybranch^` `git --git-dir=$ROOT_DIR/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+	}
+
+testBasicDeliverStatus()
+	{
+	initWithOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
+	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
+	assertEquals `git rev-parse master` ${STATUS:0:44} 
 	}
 
 testSshDeliver1()

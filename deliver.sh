@@ -447,14 +447,25 @@ function deliver
 		fi
 	done
 
+	local BRANCHES=`git branch --contains $VERSION`
+	if [[ "$BRANCHES" = "" ]]; then
+		echo "ERROR Can't deliver a commit that does not belong to any branch"
+		exit 16
+	fi
+	
+	local BRANCH=`echo "$BRANCHES" | grep '^* ' | tr -d ' *'`
+	if [[ "$BRANCH" = "" ]]; then
+		BRANCH=`echo "$BRANCHES" | head -n 1 | tr -d ' '`
+	fi
+
 	run_scripts "pre-delivery"
 
-	# Make sure the remote has all the commits leading to the version to be delivered
 	if [[ -e "$REPO_ROOT"/.git/refs/tags/"$VERSION" ]]; then
 		run "git push $REMOTE tag $VERSION"
 		exit_if_error 13
 	fi
-	run "git push $REMOTE $VERSION"
+	#TODO: Can we push just what's needed and not the whole branch ?
+	run "git push $REMOTE $BRANCH"
 	exit_if_error 14
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
@@ -463,11 +474,8 @@ function deliver
 
 	exit_if_error 5 "Error cloning repo to delivered folder on remote"
 
-	CREATE_TRACKING=""
-	if [[ -e "$REPO_ROOT"/.git/refs/heads/"$VERSION" ]] && [[ -e "$DELIVERY_PATH"/.git/refs/heads/"$VERSION" ]]; then
-		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$VERSION" || git checkout -b $VERSION origin/$VERSION ; }"
-		exit_if_error 15 "Error creating tracking branch on remote clone"
-	fi
+	run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }"
+	exit_if_error 15 "Error creating tracking branch on remote clone"
 	
 	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION"
 
