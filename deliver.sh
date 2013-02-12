@@ -100,7 +100,7 @@ function remote_status
 			
 			if [[ "\$CURRENT_BRANCH" = "_delivered" ]] && [[ \${PREVIOUS_SHA:0:6} = \$CURRENT_SHORTSHA1 ]]; then
 				VERSION=\$PREVIOUS_SHA
-				COMMENT="delivered "\`git show --pretty=format:'%aD by %aN <%aE>' _delivered\`
+				COMMENT="delivered "\`git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1\`
 				RETURN=3
 			else
 				VERSION=\$LATEST_SHA
