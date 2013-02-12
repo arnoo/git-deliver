@@ -47,7 +47,7 @@ function confirm_or_exit
 	    local MSG=$1
 	fi
 	read -p "$MSG (y/n) " -n 1 REPLY >&2
-	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	if [[ ! $REPLY = "Y" ]] && [[ ! $REPLY = "y" ]]; then
 		exit 1
 	fi
 	}
@@ -59,12 +59,13 @@ function exit_if_error
 
 function print_help
 	{
-	echo "git deliver <REMOTE> <VERSION>"
-	echo "git deliver --gc <REMOTE>"
-	echo "git deliver --init [PRESETS]"
-	echo "git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
-	echo "git deliver --list-presets"
-	echo "git deliver --status [REMOTE]"
+	echo "Usage : "
+	echo "  git deliver <REMOTE> <VERSION>"
+	echo "  git deliver --gc <REMOTE>"
+	echo "  git deliver --init [PRESETS]"
+	echo "  git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
+	echo "  git deliver --list-presets"
+	echo "  git deliver --status [REMOTE]"
 	exit 1
 	}
 
@@ -170,7 +171,7 @@ function init_preset
 		[ "$PRESET_STAGE" = "dependencies" ] && continue
 		for SCRIPT_FILE in "$PRESET_STAGE_DIR"/*; do
 			local SCRIPT_NAME=`basename $SCRIPT_FILE`
-			local SCRIPT_SEQNUM=`echo $SCRIPT_NAME | grep -o '^[0-9]\+'` #TODO: rewrite using =~ and ${BASH_REMATCH[4]}
+			local SCRIPT_SEQNUM=`echo $SCRIPT_NAME | grep -o '^[0-9]\+'`
 			local SCRIPT_LABEL=${SCRIPT_NAME:$((${#SCRIPT_SEQNUM}+1))}
 			cp -f $SCRIPT_FILE "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
 		done
@@ -436,16 +437,6 @@ function deliver
 		HUMAN_VERSION="$HUMAN_VERSION"_"$VERSION"
 	fi
 	DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_DATE"_"$HUMAN_VERSION"
-
-	while run_remote "test -d \"$DELIVERY_PATH\""; do
-		if [[ "$DELIVERY_DATE" =~ ^(.*)_([0-9]+)$ ]]; then
-			DELIVERY_DATE=${BASH_REMATCH[1]}$(( ${BASH_REMATCH[2]} + 1 ))
-			DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_DATE"_"$HUMAN_VERSION"
-		else
-			DELIVERY_DATE="$DELIVERY_DATE"_2
-			DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_DATE"_"$HUMAN_VERSION"
-		fi
-	done
 
 	local BRANCHES=`git branch --contains $VERSION`
 	if [[ "$BRANCHES" = "" ]]; then
