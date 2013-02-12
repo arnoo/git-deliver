@@ -423,13 +423,14 @@ function deliver
 		TAG_TO_PUSH=$VERSION
 	fi
 
-	local RSTATUS=`remote_status $REMOTE`
+	remote_status $REMOTE 2>&1 > /dev/null
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 1 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
+		RSTATUS=`remote_status $REMOTE`
 		PREVIOUS_VERSION_SHA=${RSTATUS:0:40}
-		echo -n "Current version on $REMOTE is $RSTATUS" >&2
+		echo "Current version on $REMOTE is $RSTATUS" >&2
 	fi
 
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
