@@ -76,6 +76,7 @@ function remote_status
 		for R in `git remote`; do
 			echo ""
 			echo "Remote $R :"
+			echo -n "  "
 			remote_status "$R"
 		done
 	else
@@ -113,7 +114,7 @@ function remote_status
 			if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
 				COMMENT="\$COMMENT, with uncommitted changes"
 			fi
-			echo "    \$VERSION [\$TAGS] (\$COMMENT)"
+			echo "\$VERSION [\$TAGS] (\$COMMENT)"
 			exit \$RETURN
 EOS
 	return $?

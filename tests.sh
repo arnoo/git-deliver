@@ -285,7 +285,7 @@ testBasicDeliverStatus()
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-	assertEquals `git rev-parse master` ${STATUS:0:44} 
+	assertEquals `git rev-parse master` ${STATUS:0:40} 
 	}
 
 testSshDeliver1()
