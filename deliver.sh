@@ -465,7 +465,7 @@ function deliver
 
 	CREATE_TRACKING=""
 	if [[ -e "$REPO_ROOT"/.git/refs/heads/"$VERSION" ]] && [[ -e "$DELIVERY_PATH"/.git/refs/heads/"$VERSION" ]]; then
-		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$VERSION" || git checkout -b $VERSION origin/$VERSION }"
+		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$VERSION" || git checkout -b $VERSION origin/$VERSION ; }"
 		exit_if_error 15 "Error creating tracking branch on remote clone"
 	fi
 	
