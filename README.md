@@ -7,9 +7,9 @@ It uses "git push" combined with SSH as a way of delivering a project to various
 
 Each delivery remote is a bare Git repository, in the root of which Git-deliver creates a "delivered" folder. This folder will contain one non-bare clone of the base repository for each delivery.
 
-Since git clone uses hard-links to the original repository when on the same filesystem, this does not result in excessive space usage / copy time.
+The git clones share their metadata with the main repository for the remote, to avoid excessive space usage / copy time.
 
-The current version's clone is used through a "current" symlink, which makes the delivery "atomic".
+The current version's clone is used through a "current" symlink, which is switched once the new version is ready, to make the delivery "atomic".
 
 A delivery is done in stages. Between each stage, Bash scripts can be run to adapt the delivery process to the project.
 
@@ -27,6 +27,8 @@ Where `<path_to_clone>` is the path to the root of the git clone you just made.
 
 
 To use Git deliver on Windows, you'll need to put the getopt.exe file from the "Binaries Zip" of util-linux (http://gnuwin32.sourceforge.net/packages/util-linux-ng.htm) in "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin".
+
+BSD users need to install GNU getopts (cd /usr/ports/misc/getopt/ && sudo make install)
 
 
 Usage
