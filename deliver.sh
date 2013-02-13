@@ -214,7 +214,7 @@ function run_scripts
 	local STAGE=$1
 	local ROLLBACK_LAST_STAGE=$2
 
-	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$STAGE" -maxdepth 1 -name '*.sh' -print -quit)"
+	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$STAGE" -maxdepth 1 -name '*.sh' -print)"
 		then
 		echo "Running scripts for stage $STAGE" >&2
 		for SCRIPT_PATH in "$REPO_ROOT/.deliver/scripts/$STAGE"/*.sh; do
