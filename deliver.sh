@@ -20,6 +20,7 @@
 #TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: .remote.sh extension for scripts indicate script to be run on remote
+#TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -81,15 +82,20 @@ function remote_status
 		done
 	else
 		remote_info $REMOTE
+		if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+			echo "Not a Git-deliver remote"
+			return 1
+		fi
+
 		run_remote "bash" <<EOS
 			if [[ ! -d "$REMOTE_PATH"/delivered/current ]]; then
-				echo "    Not a git-deliver remote"
+				echo "Not a Git-deliver remote"
 				exit 1
 			fi
 			CURRENT_DIR=\`readlink "$REMOTE_PATH"/delivered/current\`
 			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
 			if [[ \$? -gt 0 ]]; then
-				echo "    No delivered version"
+				echo "No delivered version"
 				exit 2
 			fi
 			CURRENT_SHORTSHA1=\${CURRENT_DIR:20:6}
@@ -280,12 +286,20 @@ function remote_info
 	fi
 
 	REMOTE_URL=`git config --get "remote.$REMOTE.url"`
-	REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
-	REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
-
-	if [[ "$REMOTE_PATH" = "$REMOTE_URL" ]]; then
-		REMOTE_PATH="$REMOTE_SERVER";
+	if echo "$REMOTE_URL" | grep "://" > /dev/null; then
+		REMOTE_PROTO=`echo "$REMOTE_URL" | cut -d: -f 1`
+		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
+		REMOTE_PATH="/"`echo "$REMOTE_URL" | cut -d/ -f 4-`
+	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
+		REMOTE_PROTO='ssh'
+		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
+		REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
+	elif echo "$REMOTE_URL" | grep '^/' > /dev/null; then
+		REMOTE_PROTO='local'
+		REMOTE_PATH="$REMOTE_URL"
 		REMOTE_SERVER=""
+	else
+		REMOTE_PROTO=''
 	fi
 	}
 
@@ -322,6 +336,12 @@ function init_remote
 	INIT_URL=$2
 	local REMOTE=$1
 	remote_info $REMOTE true $INIT_URL
+	
+	if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+		echo "Git-deliver can only work with SSH or 'local' remotes"
+		exit 17
+	fi
+
 	NEED_GIT_FILES=true
 	run_remote "test -e \"$REMOTE_PATH\" 2>&1 > /dev/null"
 	if [[ $? = 0 ]]; then
@@ -365,6 +385,10 @@ function remote_gc
 	fi
 	local REMOTE=$1
 	remote_info $REMOTE
+	if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+		echo "$REMOTE is not a Git-deliver remote"
+		exit 17
+	fi
 	LOG_TEMPFILE=`mktemp`
 	local GC_SCRIPT="
 		CURVER=\`readlink \"$REMOTE_PATH/delivered/current\"\`;
@@ -404,6 +428,11 @@ function deliver
 	fi
 
 	remote_info $REMOTE
+	
+	if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+		echo "Git-deliver can only work with SSH or 'local' remotes"
+		exit 17
+	fi
 
 	check_git_version $REMOTE
 
@@ -485,7 +514,7 @@ function deliver
 
 	local DELIVERED_BY_NAME=`git config --get user.name`
 	local DELIVERED_BY_EMAIL=`git config --get user.email`
-	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"git-deliver automated commit\""
+	run_remote "cd \"$DELIVERY_PATH\" && git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
 
 	echo "Switching the 'current' symlink to the newly delivered version."
 	# Using a symlink makes our delivery atomic.

@@ -87,16 +87,23 @@ testRemoteInfo()
 	{
 	initWithOrigin
 	cd "$ROOT_DIR"/test_repo
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info origin ; echo "$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
-	assertEquals "+++$ROOT_DIR/test_remote" "$A"
-	}
-
-testRemoteInfoSsh()
-	{
-	initWithSshOrigin
-	cd "$ROOT_DIR"/test_repo
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 && remote_info origin && echo "$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
-	assertEquals "localhost+++$ROOT_DIR/test_remote" "$A"
+	git remote add ssh ssh://user@host/path/a/b
+	git remote add git git://user@host/path/a/b
+	git remote add scp user@host:/path/a/b
+	git remote add scp_no_user host:/path/a/b
+	git remote add http http://user@host/path/a/b
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info origin ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "local++++++$ROOT_DIR/test_remote" "$A"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info ssh ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "ssh+++user@host+++/path/a/b" "$A"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info git ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "git+++user@host+++/path/a/b" "$A"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info scp ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "ssh+++user@host+++/path/a/b" "$A"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info scp_no_user ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "ssh+++host+++/path/a/b" "$A"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info http ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "http+++user@host+++/path/a/b" "$A"
 	}
 
 testHelp1()
@@ -167,6 +174,15 @@ testInitNonExistingRemote()
 	rm -rf "$ROOT_DIR"/test_new_remote_dir
 	}
 
+testInitNonSshRemote()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	git remote add git git://user@host/path/a/b
+	"$ROOT_DIR"/deliver.sh --batch --init-remote git 2>&1 > /dev/null
+	assertEquals 17 $?
+	}
+
 testInitNonExistingRemoteDirExisting()
 	{
 	initDeliver
@@ -200,6 +216,15 @@ testInitNonExistingRemoteDirExistingNonEmpty()
 	assertEquals 9 $?
 	assertFalse "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
 	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	}
+
+testDeliverNonSshRemote()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	git remote add git git://user@host/path/a/b
+	"$ROOT_DIR"/deliver.sh --batch git master 2>&1 > /dev/null
+	assertEquals 17 $?
 	}
 
 testBasicDeliverMaster()
@@ -286,6 +311,14 @@ testBasicDeliverStatus()
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
 	assertEquals `git rev-parse master` ${STATUS:0:40} 
+	}
+	
+testStatusNonSshRemote()
+	{
+	initDeliver
+	git remote add git git://user@host/path/a/b
+	STATUS=`"$ROOT_DIR"/deliver.sh --status git`
+	assertEquals "Not a Git-deliver remote" "$STATUS"
 	}
 
 testSshDeliver1()
