@@ -88,7 +88,7 @@ function remote_status
 		fi
 
 		run_remote "bash" <<EOS
-			if [[ ! -d "$REMOTE_PATH"/delivered/current ]]; then
+			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
 				echo "Not a Git-deliver remote"
 				exit 1
 			fi
