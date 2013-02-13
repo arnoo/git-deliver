@@ -552,8 +552,11 @@ function deliver
 	fi
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
 	local GPG_OPT
-	if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
-		GPG_OPT=" -s"
+	which gpg 2>&1 > /dev/null
+	if [[ $? = 0 ]]; then
+		if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
+			GPG_OPT=" -s"
+		fi
 	fi
 	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION"
 	rm -f "$LOG_TEMPFILE"
