@@ -389,7 +389,7 @@ function remote_gc
 		echo "$REMOTE is not a Git-deliver remote"
 		exit 17
 	fi
-	LOG_TEMPFILE=`mktemp`
+	LOG_TEMPFILE=`make_temp_file`
 	local GC_SCRIPT="
 		CURVER=\`readlink \"$REMOTE_PATH/delivered/current\"\`;
 		PREVER=\`readlink \"$REMOTE_PATH/delivered/previous\"\`;
@@ -408,6 +408,22 @@ function remote_gc
 	rm -f "$LOG_TEMPFILE"
 	}
 
+function make_temp_file
+	{
+	which mktemp 2>&1 > /dev/null
+	if [[ $? = 0 ]]; then
+		mktemp
+	else
+		TEMPDIR=$TMPDIR
+		if [[ $TEMPDIR = "" ]]; then
+			TEMPDIR="/tmp"
+		fi
+		TEMPFILE="$TEMPDIR"/git-deliver-$$.$RANDOM
+		touch "$TEMPFILE"
+		echo "$TEMPFILE"
+	fi
+	}
+	
 function deliver
 	{
 	if [[ $3 != "" ]] || [[ $1 = "" ]] || [[ $2 = "" ]]; then
@@ -417,7 +433,7 @@ function deliver
 	local REMOTE=$1
 	local VERSION=$2
 
-	LOG_TEMPFILE=`mktemp`
+	LOG_TEMPFILE=`make_temp_file`
 	echo -e "Delivery of ref \"$VERSION\" to remote \"$REMOTE\"\n\n" > "$LOG_TEMPFILE"
 	echo -e "Delivery log:\n" >> "$LOG_TEMPFILE"
 
