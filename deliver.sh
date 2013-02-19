@@ -365,7 +365,7 @@ function init_remote
 		exit_if_error 12 "Error creating root directory on remote"
 	fi
 	if $NEED_GIT_FILES; then
-		scp -r "$REPO_ROOT"/.git/* "$REMOTE_URL/"
+		scp -r "$REPO_ROOT"/.git/* "$REMOTE_SERVER:$REMOTE_PATH/"
 		exit_if_error 10 "Error copying Git files"
 		run_remote "cd \"$REMOTE_PATH\" && \
 			    git config --bool core.bare true && \
