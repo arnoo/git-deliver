@@ -88,7 +88,7 @@ testRemoteInfo()
 	initWithOrigin
 	cd "$ROOT_DIR"/test_repo
 	git remote add ssh ssh://user@host/path/a/b
-	git remote add git git://user@host/path/a/b
+	git remote add git GIT://user@host/path/a/b
 	git remote add scp user@host:/path/a/b
 	git remote add scp_no_user host:/path/a/b
 	git remote add http http://user@host/path/a/b

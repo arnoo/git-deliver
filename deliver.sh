@@ -21,7 +21,6 @@
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: .remote.sh extension for scripts indicate script to be run on remote
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
-#TODO: lowercase protocol in remote_info
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -289,6 +288,7 @@ function remote_info
 	REMOTE_URL=`git config --get "remote.$REMOTE.url"`
 	if echo "$REMOTE_URL" | grep "://" > /dev/null; then
 		REMOTE_PROTO=`echo "$REMOTE_URL" | cut -d: -f 1`
+		REMOTE_PROTO=${REMOTE_PROTO,,}
 		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
 		REMOTE_PATH="/"`echo "$REMOTE_URL" | cut -d/ -f 4-`
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
