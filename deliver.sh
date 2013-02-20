@@ -21,6 +21,7 @@
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: .remote.sh extension for scripts indicate script to be run on remote
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
+#TODO: lowercase protocol in remote_info
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
@@ -365,7 +366,12 @@ function init_remote
 		exit_if_error 12 "Error creating root directory on remote"
 	fi
 	if $NEED_GIT_FILES; then
-		scp -r "$REPO_ROOT"/.git/* "$REMOTE_SERVER:$REMOTE_PATH/"
+		if [[ "$REMOTE_PROTO" = "ssh" ]]; then
+			REMOTE_SCP_URL="$REMOTE_SERVER:$REMOTE_PATH"
+		else
+			REMOTE_SCP_URL="$REMOTE_PATH"
+		fi
+		scp -r "$REPO_ROOT"/.git/* "$REMOTE_SCP_URL"
 		exit_if_error 10 "Error copying Git files"
 		run_remote "cd \"$REMOTE_PATH\" && \
 			    git config --bool core.bare true && \
