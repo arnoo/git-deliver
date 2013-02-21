@@ -25,7 +25,7 @@ initWithSshOrigin()
 	cd "$ROOT_DIR"
 	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote"  > /dev/null 2>&1
 	cd "$ROOT_DIR/test_repo"
-	git remote add origin "localhost:$ROOT_DIR/test_remote" 
+	git remote add origin "arno@localhost:$ROOT_DIR/test_remote" 
 	initDeliver $*
 	}
 
@@ -163,7 +163,7 @@ testUnknownRef()
 	assertEquals "Ref non_existent_ref not found." "$RESULT"
 	}
 
-testInitNonExistingRemote()
+testInitNonExistingRemoteLocal()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
@@ -172,6 +172,57 @@ testInitNonExistingRemote()
 	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
 	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
 	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	git remote remove new_remote
+	}
+
+testInitNonExistingRemoteSsh()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote localhost:"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	git remote remove new_remote
+	}
+
+testInitNonExistingRemoteSsh2()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote `whoami`@localhost:"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	git remote remove new_remote
+	}
+
+testInitNonExistingRemoteSsh3()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://`whoami`@localhost"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	git remote remove new_remote
+	}
+
+testInitAlreadyInitRemoteSsh()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://`whoami`@localhost"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
+	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://`whoami`@localhost"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	assertEquals 18 $?
+	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	git remote remove new_remote
 	}
 
 testInitNonSshRemote()

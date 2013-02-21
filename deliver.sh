@@ -342,6 +342,13 @@ function init_remote
 		echo "Git-deliver can only work with SSH or 'local' remotes"
 		exit 17
 	fi
+	
+	run_remote "{ test -d \"$REMOTE_PATH\"/refs && test -d \"$REMOTE_PATH\"/delivered ; } 2>&1 > /dev/null"
+	if [[ $? = 0 ]]; then
+		echo "This remote looks like it has already been setup for git-deliver."
+		exit 18
+	fi
+	
 
 	NEED_GIT_FILES=true
 	run_remote "test -e \"$REMOTE_PATH\" 2>&1 > /dev/null"
@@ -380,6 +387,7 @@ function init_remote
 	run_remote "mkdir \"$REMOTE_PATH\"/delivered"
 	exit_if_error 11 "Error creating 'delivered' directory in remote root"
 	run_scripts "init-remote"
+	echo "Remote is ready to receive deliveries"
 	IN_INIT=""
 	}
 
