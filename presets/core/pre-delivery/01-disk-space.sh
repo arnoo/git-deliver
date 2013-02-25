@@ -1,6 +1,6 @@
 SAFETY_MARGIN=$(( 10 * 1024 * 1024 )) # in bytes
 
-FREE_BYTES=`run_remote "df -k \"$REMOTE_PATH\"" | awk '/[0-9]%/{print $(NF-2)*1024}'`
+FREE_BYTES=`run_remote "df -k \"$REMOTE_PATH\"" | awk '/[0-9]%/{printf "%d", $(NF-2)*1024}'`
 
 NECESSARY_BYTES=$(( `git archive --format=tar $VERSION | wc -c` + $SAFETY_MARGIN ))
 #TODO: ajouter la taille du diff entre le .git de la remote (donc toute la remote sauf le delivered) et le .git a livrer ?
@@ -20,6 +20,6 @@ echo "    Delivery will require $HUMAN_NECESSARY_BYTES on remote, $HUMAN_FREE_BY
 if [[ $FREE_BYTES -gt $NECESSARY_BYTES ]]; then
 	exit 0
 else
-       echo "    Not enough disk space abvailable on remote"
-       exit 1
+	echo "    Not enough disk space abvailable on remote"
+	exit 1
 fi
