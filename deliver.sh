@@ -169,10 +169,12 @@ function check_preset
 function init_preset
 	{
 	local PRESET=$1
+	if echo "$INIT_PRESETS" | grep ",$PRESET," > /dev/null; then
+		return
+	fi
 	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET" ] || { echo "Preset not found : $PRESET" && exit 19; }
-	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies ] && cp -r "$GIT_DELIVER_PATH/presets/$PRESET/dependencies" "$REPO_ROOT/.deliver/scripts/dependencies/$PRESET"
+	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies ] && cp -ri "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies "$REPO_ROOT"/.deliver/scripts/dependencies/"$PRESET"
 	local PRESET_SCRIPT
-	#TODO: forbid double init unless specific flag passed (and then use cp -i)
 	for PRESET_STAGE_DIR in "$GIT_DELIVER_PATH/presets/$PRESET"/*; do
 		[ -d $PRESET_STAGE_DIR ] || continue
 		local PRESET_STAGE=`basename $PRESET_STAGE_DIR`
@@ -181,11 +183,15 @@ function init_preset
 			local SCRIPT_NAME=`basename $SCRIPT_FILE`
 			local SCRIPT_SEQNUM=`echo $SCRIPT_NAME | grep -o '^[0-9]\+'`
 			local SCRIPT_LABEL=${SCRIPT_NAME:$((${#SCRIPT_SEQNUM}+1))}
-			cp -f $SCRIPT_FILE "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
+			cp -i $SCRIPT_FILE "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
 		done
 	done
+	INIT_PRESETS="$INIT_PRESETS$PRESET,"
         source "$GIT_DELIVER_PATH/presets/$PRESET"/info
-        #TODO: init_preset for all DEPENDENCIES
+	IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
+	for DEP in "${DEPENDENCIES[@]}"; do
+		init_preset "$DEP"
+	done
 	}
 
 function init
@@ -202,6 +208,7 @@ function init
 		echo -e "Put your $STAGE Bash scripts in this folder with a .sh extension.\n\nSee https://github.com/arnoo/git-deliver for help." >> "$REPO_ROOT/.deliver/scripts/$STAGE/README"
 	done
 	echo "Setting up core preset" >&2
+	INIT_PRESETS=","
 	init_preset core
 	for PRESET_DIR in "${PRESETS[@]}"; do
 		local PRESET=`basename $PRESET_DIR`
