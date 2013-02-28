@@ -300,9 +300,15 @@ function remote_info
 		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
 		REMOTE_PATH="/"`echo "$REMOTE_URL" | cut -d/ -f 4-`
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
-		REMOTE_PROTO='ssh'
-		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
-		REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
+		if [[ "$OSTYPE" == "msys" ]] && [[ ${REMOTE_URL:1:1} == ":" ]]; then
+			REMOTE_PROTO='local'
+			REMOTE_PATH="$REMOTE_URL"
+			REMOTE_SERVER=""
+		else
+			REMOTE_PROTO='ssh'
+			REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
+			REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
+		fi
 	elif echo "$REMOTE_URL" | grep '^/' > /dev/null; then
 		REMOTE_PROTO='local'
 		REMOTE_PATH="$REMOTE_URL"
