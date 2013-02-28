@@ -147,12 +147,12 @@ function check_preset
 		local INFO_PATH="$GIT_DELIVER_PATH/presets/$PRESET/info"
 		if [[ ! -f "$INFO_PATH" ]]; then
 			echo "ERROR : Info file for preset $PRESET not found." >&2
-			exit 1
+			exit 21
 		fi
 		source "$INFO_PATH"
 		if [[ "$DESCRIPTION" = "ERROR" ]] || [[ "$DESCRIPTION" = "" ]]; then
 			echo "ERROR : Missing description for preset $PRESET" >&2
-			exit 1
+			exit 20
 		fi
 		local OLDIFS=$IFS
 		IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
@@ -161,7 +161,7 @@ function check_preset
 		done
 	else
 		echo "ERROR : could not find preset $PRESET" >&2
-		exit
+		exit 19
 	fi
 	}
 
@@ -169,7 +169,8 @@ function check_preset
 function init_preset
 	{
 	local PRESET=$1
-	[ -d "$GIT_DELIVER_PATH/presets/$PRESET/dependencies" ] && cp -r "$GIT_DELIVER_PATH/presets/$PRESET/dependencies" "$REPO_ROOT/.deliver/scripts/dependencies/$PRESET"
+	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET" ] || { echo "Preset not found : $PRESET" && exit 19; }
+	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies ] && cp -r "$GIT_DELIVER_PATH/presets/$PRESET/dependencies" "$REPO_ROOT/.deliver/scripts/dependencies/$PRESET"
 	local PRESET_SCRIPT
 	#TODO: forbid double init unless specific flag passed (and then use cp -i)
 	for PRESET_STAGE_DIR in "$GIT_DELIVER_PATH/presets/$PRESET"/*; do

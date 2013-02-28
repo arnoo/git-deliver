@@ -142,6 +142,15 @@ testInitPreset()
 	assertTrueEcho "[ -f .deliver/scripts/pre-delivery/01-php-syntax-check.sh ]"
 	}
 
+testInitBadPreset()
+	{
+	cd "$ROOT_DIR/test_repo"
+	A=`"$ROOT_DIR"/deliver.sh --batch --init foo 2>&1`
+	assertEquals 19 $? 
+	echo "$A" | grep "could not find preset" > /dev/null 2>&1
+	assertEquals 0 $?
+	}
+
 testUninitedDir()
 	{
 	cd "$ROOT_DIR/test_repo"
