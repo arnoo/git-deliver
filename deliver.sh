@@ -296,7 +296,7 @@ function remote_info
 	REMOTE_URL=`git config --get "remote.$REMOTE.url"`
 	if echo "$REMOTE_URL" | grep "://" > /dev/null; then
 		REMOTE_PROTO=`echo "$REMOTE_URL" | cut -d: -f 1`
-		REMOTE_PROTO=${REMOTE_PROTO,,}
+		REMOTE_PROTO=`echo "${REMOTE_PROTO}" | tr '[A-Z]' '[a-z]'`
 		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
 		REMOTE_PATH="/"`echo "$REMOTE_URL" | cut -d/ -f 4-`
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
