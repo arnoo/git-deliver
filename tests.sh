@@ -1,5 +1,9 @@
 #!/bin/bash
 
+SSH_TEST_USER="arno"
+SSH_TEST_HOST="localhost"
+SSH_TEST_PATH="/tmp"
+
 assertTrueEcho()
 	{
 	$1 || { echo "$1" ; assertTrue false ; }
@@ -25,7 +29,7 @@ initWithSshOrigin()
 	cd "$ROOT_DIR"
 	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote"  > /dev/null 2>&1
 	cd "$ROOT_DIR/test_repo"
-	git remote add origin "arno@localhost:$ROOT_DIR/test_remote" 
+	git remote add origin "$SSH_TEST_USER@$SSH_TEST_HOST:$SSH_TEST_PATH/test_remote" 
 	initDeliver $*
 	}
 
@@ -33,6 +37,10 @@ oneTimeSetUp()
 	{
 	ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	OLD_PWD=`pwd`
+
+	rm -rf "$ROOT_DIR/test_repo"
+	rm -rf "$ROOT_DIR/test_remote"
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_remote
 
 	mkdir "$ROOT_DIR/test_repo"
 	cd "$ROOT_DIR/test_repo"
@@ -58,7 +66,7 @@ tearDown()
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
 	cd "$ROOT_DIR/test_repo"
 	git remote remove origin 2> /dev/null
-	rm -rf "$ROOT_DIR/test_remote"
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_remote
 	cd "$ROOT_DIR"
 	}
 
@@ -72,7 +80,7 @@ testRunRemoteLocal()
 testRunRemoteSsh()
 	{
 	cd "$ROOT_DIR"
-	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="localhost" run_remote ls "'$ROOT_DIR'/deliver.sh"' | bash`
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="'$SSH_TEST_HOST'" run_remote ls "'$ROOT_DIR'/deliver.sh"' | bash`
 	assertEquals "$ROOT_DIR/deliver.sh" "$A"
 	}
 
@@ -193,11 +201,10 @@ testInitNonExistingRemoteSsh()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote localhost:"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
-	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
+	assertEquals 3 $A
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
 	git remote remove new_remote
 	}
 
@@ -205,11 +212,10 @@ testInitNonExistingRemoteSsh2()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote `whoami`@localhost:"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
-	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
+	assertEquals 3 $A
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
 	git remote remove new_remote
 	}
 
@@ -217,11 +223,10 @@ testInitNonExistingRemoteSsh3()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://`whoami`@localhost"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
-	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
+	assertEquals 3 $A
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
 	git remote remove new_remote
 	}
 
@@ -229,13 +234,12 @@ testInitAlreadyInitRemoteSsh()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://`whoami`@localhost"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/delivered ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_new_remote_dir/refs ]"
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://`whoami`@localhost"$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
+	assertEquals 3 $A
+	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
 	assertEquals 18 $?
-	rm -rf "$ROOT_DIR"/test_new_remote_dir
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
 	git remote remove new_remote
 	}
 
@@ -391,9 +395,8 @@ testSshDeliver1()
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
-	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered ]"
-	assertTrueEcho "[ -L $ROOT_DIR/test_remote/delivered/current ]"
-	assertTrueEcho "[ -d $ROOT_DIR/test_remote/delivered/`readlink $ROOT_DIR/test_remote/delivered/current` ]"
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST cd "$SSH_TEST_PATH"/test_remote/delivered/current \&\& git log --pretty=format:%H -n 2 \| tail -n 1`
+	assertEquals `cd "$ROOT_DIR"/test_repo && git log --pretty=format:%H -n 1` "$A"
 	}
 
 testSshDeliverTag()
@@ -407,7 +410,8 @@ testSshDeliverTag()
 	git tag blah
 	cd "$ROOT_DIR"/test_repo
 	"$ROOT_DIR"/deliver.sh --batch origin blah 2>&1 > /dev/null
-	assertTrueEcho "[ -f $ROOT_DIR/test_remote/delivered/current/new_file ]"
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST test -f "$SSH_TEST_PATH"/test_remote/delivered/current/new_file \&\& echo "OK"`
+	assertEquals "OK" "$A"
 	}
 
 #test3DeliveriesSameVersion()
