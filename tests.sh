@@ -70,6 +70,16 @@ tearDown()
 	cd "$ROOT_DIR"
 	}
 
+testPath2Unix()
+	{
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; path2unix "c:/a/b/c"' | bash`
+	assertEquals "/c/a/b/c" "$A"
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; path2unix "C:/A/b/C"' | bash`
+	assertEquals "/c/A/b/C" "$A"
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; path2unix "/C/A/b/C"' | bash`
+	assertEquals "/C/A/b/C" "$A"
+	}
+
 testRunRemoteLocal()
 	{
 	cd "$ROOT_DIR"
@@ -107,7 +117,7 @@ testRemoteInfo()
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; OSTYPE="linux" remote_info win ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "ssh+++c+++/path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; OSTYPE="msys" remote_info win ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
-	assertEquals "local++++++c:/path/a/b" "$A"
+	assertEquals "local++++++/c/path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info ssh ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "ssh+++user@host+++/path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info git ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`

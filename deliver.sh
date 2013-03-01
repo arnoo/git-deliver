@@ -33,6 +33,9 @@ if [[ $REPO_ROOT = ".git" ]]; then
 else
 	REPO_ROOT=${REPO_ROOT%/.git}
 fi
+if [[ "$OSTYPE" == "msys" ]]; then
+	REPO_ROOT=`path2unix "$REPO_ROOT"`
+fi
 
 GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -303,7 +306,7 @@ function remote_info
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
 		if [[ "$OSTYPE" == "msys" ]] && [[ ${REMOTE_URL:1:1} == ":" ]]; then
 			REMOTE_PROTO='local'
-			REMOTE_PATH="$REMOTE_URL"
+			REMOTE_PATH=`path2unix "$REMOTE_URL"`
 			REMOTE_SERVER=""
 		else
 			REMOTE_PROTO='ssh'
@@ -317,6 +320,17 @@ function remote_info
 	else
 		REMOTE_PROTO=''
 	fi
+	}
+
+function path2unix
+	{
+	local SOURCE_PATH=$1
+	if [[ "${SOURCE_PATH:0:1}" = "/" ]]; then
+		echo $SOURCE_PATH
+		return
+	fi
+	local DRIVE_LETTER=$(echo "${SOURCE_PATH:0:1}" | tr '[A-Z]' '[a-z]')
+	echo "/$DRIVE_LETTER${SOURCE_PATH:2}"
 	}
 
 function run
