@@ -382,7 +382,7 @@ function init_remote
 	fi
 	
 
-	NEED_GIT_FILES=true
+	NEED_INIT=true
 	run_remote "test -e \"$REMOTE_PATH\" 2>&1 > /dev/null"
 	if [[ $? = 0 ]]; then
 		run_remote "test -d \"$REMOTE_PATH\" 2>&1 > /dev/null"
@@ -396,7 +396,7 @@ function init_remote
 					echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
 					exit 9
 				else
-					NEED_GIT_FILES=false
+					NEED_INIT=false
 				fi
 			fi
 		fi
@@ -404,18 +404,11 @@ function init_remote
 		run_remote "mkdir \"$REMOTE_PATH\" 2>&1 > /dev/null"
 		exit_if_error 12 "Error creating root directory on remote"
 	fi
-	if $NEED_GIT_FILES; then
-		if [[ "$REMOTE_PROTO" = "ssh" ]]; then
-			REMOTE_SCP_URL="$REMOTE_SERVER:$REMOTE_PATH"
-		else
-			REMOTE_SCP_URL="$REMOTE_PATH"
-		fi
-		#TODO: this seems moronic in hindsight... why not just init --bare and let it at that ? A push will happen at delivery anyway ?
-		scp -r "$REPO_ROOT"/.git/* "$REMOTE_SCP_URL"
-		exit_if_error 10 "Error copying Git files"
+	if $NEED_INIT; then
 		run_remote "cd \"$REMOTE_PATH\" && \
-			    git config --bool core.bare true && \
+			    git init --bare \"$REMOTE_PATH\" && \
 			    git config --bool receive.autogc false"
+		exit_if_error 10 "Error initializing repository on remote"
 	fi
 	run_remote "mkdir \"$REMOTE_PATH\"/delivered"
 	exit_if_error 11 "Error creating 'delivered' directory in remote root"
