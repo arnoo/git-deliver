@@ -130,6 +130,16 @@ testRemoteInfo()
 	assertEquals "http+++user@host+++/path/a/b" "$A"
 	}
 
+testRunScripts()
+	{
+	cd "$ROOT_DIR/test_repo"
+	mkdir -p ".deliver/scripts/foo"
+	echo "echo -n 'L:' ; test \"\$SSH_CONNECTION\" = \"\" && echo -n 'OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/01-bar.sh"
+	echo "echo -n ',R:' ; test \"\$SSH_CONNECTION\" = \"\" || echo -n 'OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/02-bar.remote.sh"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="localhost" REMOTE_PROTO="ssh" run_scripts foo' | bash`
+	assertEquals "L:OK,R:OK" "$A"
+	}
+
 testHelp1()
 	{
 	cd "$ROOT_DIR/test_repo"

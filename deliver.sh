@@ -19,7 +19,6 @@
 
 #TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
-#TODO: .remote.sh extension for scripts indicate script to be run on remote
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
 #TODO: check for .deliver directory before doing anything ?
 
@@ -233,7 +232,10 @@ function run_scripts
 			SCRIPT=`basename "$SCRIPT_PATH"`
 			echo "  Running script $STAGE/$SCRIPT" >&2
 			[[ $ROLLBACK_LAST_STAGE = "" ]] || LAST_STAGE_REACHED=$ROLLBACK_LAST_STAGE
-			bash <<EOS
+			if [[ "${SCRIPT: -10}" = ".remote.sh" ]]; then
+				SHELL='run_remote "bash"'
+			fi
+			$SHELL <<EOS
 export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 export REPO_ROOT="$REPO_ROOT"
 export DELIVERY_DATE="$DELIVERY_DATE"
@@ -257,7 +259,7 @@ function run_remote
 
 export -f run_remote
 
-source "$SCRIPT_PATH";
+`cat "$SCRIPT_PATH"`
 EOS
 			local SCRIPT_RESULT=$?
 			if [[ $SCRIPT_RESULT -gt 0 ]]; then
@@ -362,6 +364,7 @@ function init_remote
 		print_help
 		exit 1
 	fi
+	#TODO: also print help if arguments don't look right (particularly remote name)
 	IN_INIT=true
 	INIT_URL=$2
 	local REMOTE=$1
@@ -407,6 +410,7 @@ function init_remote
 		else
 			REMOTE_SCP_URL="$REMOTE_PATH"
 		fi
+		#TODO: this seems moronic in hindsight... why not just init --bare and let it at that ? A push will happen at delivery anyway ?
 		scp -r "$REPO_ROOT"/.git/* "$REMOTE_SCP_URL"
 		exit_if_error 10 "Error copying Git files"
 		run_remote "cd \"$REMOTE_PATH\" && \
@@ -499,6 +503,7 @@ function deliver
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
+	#TODO: check that remote has been init
 	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
 	local TAG_TO_PUSH=""
