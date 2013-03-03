@@ -4,6 +4,12 @@ SSH_TEST_USER="arno"
 SSH_TEST_HOST="localhost"
 SSH_TEST_PATH="/tmp"
 
+if [[ "$OSTYPE" == "msys" ]]; then
+	function readlink() {
+		ls -l "$1" | sed 's/^.* -> \(.*\)$/\1/'
+	}
+fi
+
 assertTrueEcho()
 	{
 	$1 || { echo "$1" ; assertTrue false ; }

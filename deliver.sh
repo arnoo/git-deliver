@@ -20,7 +20,6 @@
 #TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
-#TODO: check for .deliver directory before doing anything ?
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
