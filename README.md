@@ -17,6 +17,9 @@ A delivery is done in stages. Between each stage, Bash scripts can be run to ada
 Installation
 ============
 
+All platforms
+-------------
+
 Clone this repository in the directory of your choice.
 
 In your .gitconfig, add this line in the `[alias]` section:
@@ -26,7 +29,13 @@ In your .gitconfig, add this line in the `[alias]` section:
 Where `<path_to_clone>` is the path to the root of the git clone you just made.
 
 
-To use Git deliver on Windows, you'll need to put the getopt.exe file from the "Binaries Zip" of util-linux (http://gnuwin32.sourceforge.net/packages/util-linux-ng.htm) in "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin".
+Windows
+-------
+
+To use Git-deliver on Windows, you'll need to copy the libintl-8.dll and getopt.exe from the "msys" folder of the git-deliver clone to your "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin". These are files from the MinGW project (http://www.mingw.org/) which are included with Git-deliver for convenience.
+
+BSD
+---
 
 BSD users need to install GNU getopts (cd /usr/ports/misc/getopt/ && sudo make install)
 
