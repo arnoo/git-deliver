@@ -115,7 +115,9 @@ rollback-pre-symlink and rollback-post-symlink:
     $FAILED_HOOK : name of the hook that failed, triggering the rollback. Empty if the rollback was caused by human intervention (CTRL+C ... TODO)
     $FAILED_HOOK_EXIT_STATUS : exit status of the hook that failed, triggering the rollback
 
-Stage scripts can use the `run_remote` bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). `run_remote` also works for "local" remotes, the command will be run as the user running git-deliver.
+Stage scripts can use the `run_remote` bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). `run_remote` also works for "local" remotes, the command will then be run as the user running git-deliver.
+
+Scripts with a name ending in .remote.sh will be executed entirely on the remote.
 
 
 Status, Roadmap
