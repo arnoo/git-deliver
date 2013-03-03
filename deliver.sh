@@ -496,7 +496,17 @@ function deliver
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
-	#TODO: check that remote has been init
+
+	# If this projet has init-remote scripts, check that the remote has been init. Otherwise, we don't really care, as it's just a matter of creating the 'delivered' directory
+
+	if [[ -e "$REPO_ROOT"/.deliver/scripts/init-remote ]] && test -n "$(find "$REPO_ROOT/.deliver/scripts/init-remote" -maxdepth 1 -name '*.sh' -print)"; then
+		run_remote "test -d \"$REMOTE_PATH\"/delivered"
+		if [[ $? -gt 0 ]]; then
+			echo "ERROR : Remote has not been init" >&2
+			exit 22
+		fi
+	fi
+
 	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
 	local TAG_TO_PUSH=""
