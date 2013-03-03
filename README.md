@@ -95,7 +95,7 @@ Stage scripts
 
 Stage scripts can read a few envrionment variables to gather information about the delivery process.
 
-All stages have a access to :
+All stages have access to :
 
     $VERSION : the ref being delivered, as it was specified on the command line
     $VERSION_SHA : sha1 of the ref being delivered
