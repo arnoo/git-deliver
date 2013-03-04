@@ -26,10 +26,10 @@ if [[ $? -gt 0 ]]; then
 	echo "ERROR : not a git repo" >&2
 	exit 1
 fi
-if [[ $REPO_ROOT = ".git" ]]; then
+if [[ "$REPO_ROOT" = ".git" ]]; then
 	REPO_ROOT=`pwd`
 else
-	REPO_ROOT=${REPO_ROOT%/.git}
+	REPO_ROOT="${REPO_ROOT%/.git}"
 fi
 if [[ "$OSTYPE" == "msys" ]]; then
 	REPO_ROOT=`path2unix "$REPO_ROOT"`
@@ -47,7 +47,7 @@ function confirm_or_exit
 	if [[ "$1" = "" ]]; then
 	    local MSG="Continue ?"
 	else
-	    local MSG=$1
+	    local MSG="$1"
 	fi
 	read -p "$MSG (y/n) " -n 1 REPLY >&2
 	if [[ ! $REPLY = "Y" ]] && [[ ! $REPLY = "y" ]]; then
@@ -74,7 +74,7 @@ function print_help
 
 function remote_status
 	{
-	local REMOTE=$1
+	local REMOTE="$1"
 	if [[ "$REMOTE" = '' ]]; then
 		for R in `git remote`; do
 			echo ""
@@ -131,7 +131,7 @@ EOS
 
 function list_presets
 	{
-	for PRESET_PATH in $GIT_DELIVER_PATH/presets/*; do
+	for PRESET_PATH in "$GIT_DELIVER_PATH"/presets/*; do
 		PRESET=`basename "$PRESET_PATH"`
 		if [[ -f "$PRESET_PATH/info" ]]; then
 			source "$PRESET_PATH/info"
@@ -142,7 +142,7 @@ function list_presets
 
 function check_preset
 	{
-	local PRESET=$1
+	local PRESET="$1"
 	if [[ -d "$GIT_DELIVER_PATH/presets/$PRESET" ]]; then
 		local DEPENDENCIES=""
 		local DESCRIPTION="ERROR"
@@ -170,7 +170,7 @@ function check_preset
 # Copies the files for preset $1 to the repo's .deliver/scripts directory
 function init_preset
 	{
-	local PRESET=$1
+	local PRESET="$1"
 	if echo "$INIT_PRESETS" | grep ",$PRESET," > /dev/null; then
 		return
 	fi
@@ -178,14 +178,14 @@ function init_preset
 	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies ] && cp -ri "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies "$REPO_ROOT"/.deliver/scripts/dependencies/"$PRESET"
 	local PRESET_SCRIPT
 	for PRESET_STAGE_DIR in "$GIT_DELIVER_PATH/presets/$PRESET"/*; do
-		[ -d $PRESET_STAGE_DIR ] || continue
-		local PRESET_STAGE=`basename $PRESET_STAGE_DIR`
+		[ -d "$PRESET_STAGE_DIR" ] || continue
+		local PRESET_STAGE=`basename "$PRESET_STAGE_DIR"`
 		[ "$PRESET_STAGE" = "dependencies" ] && continue
 		for SCRIPT_FILE in "$PRESET_STAGE_DIR"/*; do
-			local SCRIPT_NAME=`basename $SCRIPT_FILE`
+			local SCRIPT_NAME=`basename "$SCRIPT_FILE"`
 			local SCRIPT_SEQNUM=`echo $SCRIPT_NAME | sed -e 's/^\([0-9]\+\).*$/\1/'`
-			local SCRIPT_LABEL=${SCRIPT_NAME:$((${#SCRIPT_SEQNUM}+1))}
-			cp -i $SCRIPT_FILE "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
+			local SCRIPT_LABEL="${SCRIPT_NAME:$((${#SCRIPT_SEQNUM}+1))}"
+			cp -i "$SCRIPT_FILE" "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
 		done
 	done
 	INIT_PRESETS="$INIT_PRESETS$PRESET,"
@@ -198,7 +198,7 @@ function init_preset
 
 function init
 	{
-	local PRESETS=$1
+	local PRESETS="$1"
 	IFS=',' read -ra PRESETS <<< "$PRESETS"
 	for PRESET_DIR in "${PRESETS[@]}"; do
 		local PRESET=`basename "$PRESET_DIR"`
@@ -213,7 +213,7 @@ function init
 	INIT_PRESETS=","
 	init_preset core
 	for PRESET_DIR in "${PRESETS[@]}"; do
-		local PRESET=`basename $PRESET_DIR`
+		local PRESET=`basename "$PRESET_DIR"`
 		echo "Setting up $PRESET preset" >&2
 		init_preset $PRESET
 	done
@@ -221,8 +221,8 @@ function init
 
 function run_scripts
 	{
-	local STAGE=$1
-	local ROLLBACK_LAST_STAGE=$2
+	local STAGE="$1"
+	local ROLLBACK_LAST_STAGE="$2"
 
 	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$STAGE" -maxdepth 1 -name '*.sh' -print)"
 		then
@@ -279,13 +279,13 @@ EOS
 
 function remote_info
 	{
-	local REMOTE=$1
-	local INIT=$2
-	local INIT_URL=$3
+	local REMOTE="$1"
+	local INIT="$2"
+	local INIT_URL="$3"
 	local REMOTE_INFO
 	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'	' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
-		if [[ $INIT_URL = "" ]]; then
+		if [[ "$INIT_URL" = "" ]]; then
 			echo "Remote $REMOTE not found." >&2
 			confirm_or_exit "Create it ?"
 			echo ""
@@ -294,7 +294,7 @@ function remote_info
 		git remote add "$REMOTE" "$INIT_URL"
 		exit_if_error 8 "Error adding remote in local Git config"
 		if [[ ! $IN_INIT ]]; then
-			init_remote $REMOTE $INIT_URL
+			init_remote "$REMOTE" "$INIT_URL"
 		fi
 	fi
 
@@ -305,7 +305,7 @@ function remote_info
 		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
 		REMOTE_PATH="/"`echo "$REMOTE_URL" | cut -d/ -f 4-`
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
-		if [[ "$OSTYPE" == "msys" ]] && [[ ${REMOTE_URL:1:1} == ":" ]]; then
+		if [[ "$OSTYPE" == "msys" ]] && [[ "${REMOTE_URL:1:1}" == ":" ]]; then
 			REMOTE_PROTO='local'
 			REMOTE_PATH=`path2unix "$REMOTE_URL"`
 			REMOTE_SERVER=""
@@ -327,7 +327,7 @@ function remote_info
 
 function path2unix
 	{
-	local SOURCE_PATH=$1
+	local SOURCE_PATH="$1"
 	if [[ "${SOURCE_PATH:0:1}" = "/" ]]; then
 		echo $SOURCE_PATH
 		return
@@ -361,17 +361,18 @@ function run_remote
 
 function init_remote
 	{
-	if [[ $4 != "" ]]; then
+	if [[ "$4" != "" ]]; then
 		print_help
 		exit 1
 	fi
 	#TODO: also print help if arguments don't look right (particularly remote name)
+	#TODO: don't allow init with url if remote name already exists
 	IN_INIT=true
-	INIT_URL=$2
-	local REMOTE=$1
-	remote_info $REMOTE true $INIT_URL
+	INIT_URL="$2"
+	local REMOTE="$1"
+	remote_info "$REMOTE" true "$INIT_URL"
 	
-	if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
 		echo "Git-deliver can only work with SSH or 'local' remotes"
 		exit 17
 	fi
@@ -392,7 +393,7 @@ function init_remote
 			exit 10
 		else
 			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l"` != "0" ]]; then
-				git fetch $REMOTE 2>&1 > /dev/null
+				git fetch "$REMOTE" 2>&1 > /dev/null
 				if [[ $? -gt 0 ]]; then
 					echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
 					exit 9
@@ -424,9 +425,9 @@ function remote_gc
 		print_help
 		exit 1
 	fi
-	local REMOTE=$1
-	remote_info $REMOTE
-	if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+	local REMOTE="$1"
+	remote_info "$REMOTE"
+	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
 		echo "$REMOTE is not a Git-deliver remote"
 		exit 17
 	fi
@@ -455,8 +456,8 @@ function make_temp_file
 	if [[ $? = 0 ]]; then
 		mktemp
 	else
-		TEMPDIR=$TMPDIR
-		if [[ $TEMPDIR = "" ]]; then
+		TEMPDIR="$TMPDIR"
+		if [[ "$TEMPDIR" = "" ]]; then
 			TEMPDIR="/tmp"
 		fi
 		TEMPFILE="$TEMPDIR"/git-deliver-$$.$RANDOM
@@ -471,8 +472,8 @@ function deliver
 		print_help
 		exit 1
 	fi
-	local REMOTE=$1
-	local VERSION=$2
+	local REMOTE="$1"
+	local VERSION="$2"
 
 	LOG_TEMPFILE=`make_temp_file`
 	echo -e "Delivery of ref \"$VERSION\" to remote \"$REMOTE\"\n\n" > "$LOG_TEMPFILE"
@@ -484,14 +485,14 @@ function deliver
 		init
 	fi
 
-	remote_info $REMOTE
+	remote_info "$REMOTE"
 	
-	if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
 		echo "Git-deliver can only work with SSH or 'local' remotes"
 		exit 17
 	fi
 
-	check_git_version $REMOTE
+	check_git_version "$REMOTE"
 
 	if [[ `run_remote "ls -1d \"$REMOTE_PATH/branches\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
@@ -520,12 +521,12 @@ function deliver
 		TAG_TO_PUSH=$VERSION
 	fi
 
-	remote_status $REMOTE 2>&1 > /dev/null
+	remote_status "$REMOTE" 2>&1 > /dev/null
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 1 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
-		RSTATUS=`remote_status $REMOTE`
+		RSTATUS=`remote_status "$REMOTE"`
 		PREVIOUS_VERSION_SHA=${RSTATUS:0:40}
 		echo "Current version on $REMOTE is $RSTATUS" >&2
 	fi
@@ -592,7 +593,7 @@ function deliver
 	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && rm \"$REMOTE_PATH/delivered/preprevious\" ; \
 		    test -L \"$REMOTE_PATH/delivered/previous\"    && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" ; \
 		    test -L \"$REMOTE_PATH/delivered/current\"     && cp -d \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" ; \
-		    cd $REMOTE_PATH/delivered && ln -sfn \""`basename "$DELIVERY_PATH"`"\" \"new\" && mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\""
+		    cd \"$REMOTE_PATH\"/delivered && ln -sfn \""`basename "$DELIVERY_PATH"`"\" \"new\" && mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\""
 	#TODO: check for each link that everything went well and be able to rollback accordingly
 
 	run_scripts "post-symlink"
@@ -634,7 +635,7 @@ function check_git_version
 
 function rollback
 	{
-	local LAST_STAGE=$1
+	local LAST_STAGE="$1"
 	echo "Rolling back"
 	run_scripts "rollback-pre-symlink" "$LAST_STAGE"
 	
@@ -659,15 +660,15 @@ FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 
 if [[ $FLAGS_init -eq $FLAGS_TRUE ]]; then
-	init $*
+	init "$@"
 elif [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
-	init_remote $*
+	init_remote "$@"
 elif [[ $FLAGS_list_presets -eq $FLAGS_TRUE ]]; then
-	list_presets $*
+	list_presets "$@"
 elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
-	remote_status $*
+	remote_status "$@" 
 elif [[ $FLAGS_gc -eq $FLAGS_TRUE ]]; then
-	remote_gc $*
+	remote_gc "$@"
 elif [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
-	deliver $*
+	deliver "$@"
 fi
