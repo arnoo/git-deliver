@@ -17,6 +17,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+#TODO: cleanup remote-info, handle multi-url remotes
 #TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
@@ -60,7 +61,7 @@ function exit_if_error
 	[[ $? -eq 0 ]] || { echo $2 && exit $1; }
 	}
 
-function print_help
+function exit_with_help
 	{
 	echo "Usage : "
 	echo "  git deliver <REMOTE> <VERSION>"
@@ -69,7 +70,11 @@ function print_help
 	echo "  git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
 	echo "  git deliver --list-presets"
 	echo "  git deliver --status [REMOTE]"
-	exit 1
+	if [[ "$1" = "" ]]; then
+		exit 1;
+	else
+		exit $1
+	fi
 	}
 
 function remote_status
@@ -282,6 +287,12 @@ function remote_info
 	local REMOTE="$1"
 	local INIT="$2"
 	local INIT_URL="$3"
+
+	if echo "$REMOTE" | grep -vE '^[A-Za-z0-9\./_-]+$'; then
+		echo "Not a valid remote name : $REMOTE"
+		exit_with_help 22
+	fi
+
 	local REMOTE_INFO
 	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'	' | grep '(push)'`
 	if [[ $? -gt 0 ]] && $INIT; then
@@ -362,11 +373,8 @@ function run_remote
 function init_remote
 	{
 	if [[ "$4" != "" ]]; then
-		print_help
-		exit 1
+		exit_with_help
 	fi
-	#TODO: also print help if arguments don't look right (particularly remote name)
-	#TODO: don't allow init with url if remote name already exists
 	IN_INIT=true
 	INIT_URL="$2"
 	local REMOTE="$1"
@@ -422,8 +430,7 @@ function init_remote
 function remote_gc
 	{
 	if [[ $2 != "" ]] || [[ $1 = "" ]]; then
-		print_help
-		exit 1
+		exit_with_help
 	fi
 	local REMOTE="$1"
 	remote_info "$REMOTE"
@@ -469,8 +476,7 @@ function make_temp_file
 function deliver
 	{
 	if [[ $3 != "" ]] || [[ $1 = "" ]] || [[ $2 = "" ]]; then
-		print_help
-		exit 1
+		exit_with_help
 	fi
 	local REMOTE="$1"
 	local VERSION="$2"

@@ -332,6 +332,14 @@ testDeliverNonSshRemote()
 	assertEquals 17 $?
 	}
 
+testDeliverInvalidRemoteName()
+	{
+	initDeliver
+	cd "$ROOT_DIR"/test_repo
+	"$ROOT_DIR"/deliver.sh --batch +++ master 2>&1 > /dev/null
+	assertEquals 22 $?
+	}
+
 testBasicDeliverMaster()
 	{
 	initWithOrigin
