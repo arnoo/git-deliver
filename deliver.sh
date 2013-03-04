@@ -88,8 +88,8 @@ function remote_status
 			remote_status "$R"
 		done
 	else
-		remote_info $REMOTE
-		if [[ $REMOTE_PROTO != "ssh" ]] && [[ $REMOTE_PROTO != "local" ]]; then
+		remote_info "$REMOTE"
+		if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
 			echo "Not a Git-deliver remote"
 			return 1
 		fi
@@ -558,11 +558,11 @@ function deliver
 	run_scripts "pre-delivery"
 
 	if [[ -e "$REPO_ROOT"/.git/refs/tags/"$VERSION" ]]; then
-		run "git push $REMOTE tag $VERSION"
+		run "git push \"$REMOTE\" tag $VERSION"
 		exit_if_error 13
 	fi
 	#TODO: Can we push just what's needed and not the whole branch ?
-	run "git push $REMOTE $BRANCH"
+	run "git push \"$REMOTE\" $BRANCH"
 	exit_if_error 14
 
 	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
