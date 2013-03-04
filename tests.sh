@@ -112,6 +112,7 @@ testRemoteInfo()
 	initWithOrigin
 	cd "$ROOT_DIR"/test_repo
 	git remote add unix /path/a/b
+	git remote add relative ../path/a/b
 	git remote add win c:/path/a/b
 	git remote add ssh ssh://user@host/path/a/b
 	git remote add git GIT://user@host/path/a/b
@@ -120,6 +121,8 @@ testRemoteInfo()
 	git remote add http http://user@host/path/a/b
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info unix ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "local++++++/path/a/b" "$A"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info relative ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	assertEquals "local++++++$ROOT_DIR/test_repo/../path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; OSTYPE="linux" remote_info win ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "ssh+++c+++/path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; OSTYPE="msys" remote_info win ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`

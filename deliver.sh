@@ -314,12 +314,14 @@ function remote_info
 			REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d: -f 1`
 			REMOTE_PATH=`echo "$REMOTE_URL" | cut -d: -f 2`
 		fi
-	elif echo "$REMOTE_URL" | grep '^/' > /dev/null; then
-		REMOTE_PROTO='local'
-		REMOTE_PATH="$REMOTE_URL"
-		REMOTE_SERVER=""
 	else
-		REMOTE_PROTO=''
+		REMOTE_PROTO='local'
+		REMOTE_SERVER=""
+		if [[ "${REMOTE_URL:0:1}" = "/" ]]; then
+			REMOTE_PATH="$REMOTE_URL"
+		else
+			REMOTE_PATH="$REPO_ROOT/$REMOTE_URL"
+		fi
 	fi
 	}
 
