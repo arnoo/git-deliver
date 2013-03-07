@@ -546,7 +546,7 @@ function deliver
 
 	remote_status "$REMOTE" 2>&1 > /dev/null
 	RSTATUS_CODE=$?
-	if [[ $RSTATUS_CODE -lt 1 ]]; then
+	if [[ $RSTATUS_CODE -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 	else
 		RSTATUS=`remote_status "$REMOTE"`

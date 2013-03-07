@@ -344,7 +344,10 @@ testBasicDeliverMaster()
 	{
 	initWithOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	echo "$A"
+	echo "$A" | grep "No version delivered yet on origin" > /dev/null
+	assertEquals 0 $?
 	cd "$ROOT_DIR"/test_remote
 	assertEquals 0 $?
 	assertTrueEcho "[ -d delivered ]"
