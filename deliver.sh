@@ -99,7 +99,8 @@ function remote_status
 				echo "Not a Git-deliver remote"
 				exit 1
 			fi
-			CURRENT_DIR=\`readlink "$REMOTE_PATH"/delivered/current\`
+			CURRENT_DIR=\`realpath "$REMOTE_PATH"/delivered/current\`
+			CURRENT_DIR=\`basename "\$CURRENT_DIR"\`
 			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
 			if [[ \$? -gt 0 ]]; then
 				echo "No delivered version"
@@ -440,19 +441,35 @@ function remote_gc
 	fi
 	LOG_TEMPFILE=`make_temp_file`
 	local GC_SCRIPT="
-		CURVER=\`readlink \"$REMOTE_PATH/delivered/current\"\`;
-		PREVER=\`readlink \"$REMOTE_PATH/delivered/previous\"\`;
-		PREPREVER=\`readlink \"$REMOTE_PATH/delivered/preprevious\"\`;
+		FREE_BYTES_BEFORE=`df -k \"$REMOTE_PATH\" | awk '/[0-9]%/{print $(NF-2)*1024}'`
+		CURVER=\`realpath \"$REMOTE_PATH/delivered/current\"\`
+		PREVER=\`realpath \"$REMOTE_PATH/delivered/previous\"\`
+		PREPREVER=\`realpath \"$REMOTE_PATH/delivered/preprevious\"\`
+		DELETED=0
 		for rep in \"$REMOTE_PATH/delivered/\"*; do
 			if [ ! -L \"\$rep\" ] &&
-			   [ \"\$rep\" != \"$REMOTE_PATH/delivered/\$CURVER\" ] &&
-			   [ \"\$rep\" != \"$REMOTE_PATH/delivered/\$PREVER\" ] &&
-			   [ \"\$rep\" != \"$REMOTE_PATH/delivered/\$PREPREVER\" ]; then
+			   [ \"\$rep\" != \"\$CURVER\" ] &&
+			   [ \"\$rep\" != \"\$PREVER\" ] &&
+			   [ \"\$rep\" != \"\$PREPREVER\" ]; then
 				echo \"Removing \$rep\"
 				rm -rf \"\$rep\"
-			fi;
-		done"
-	#TODO : INdicate how many folders were deleted and how much space was freed
+				DELETED=$(($DELETED + 1))
+			fi
+		done
+		FREE_BYTES_AFTER=\`df -k \"$REMOTE_PATH\" | awk '/[0-9]%/{print \$(NF-2)*1024}'\`
+		FREED_BYTES=\$((\$FREE_BYTES_AFTER - \$FREE_BYTES_BEFORE))
+		if [[ \$FREED_BYTES = 0 ]]; then
+			HUMAN_FREED_BYTES=\"0 B\"
+		else
+			HUMAN_FREED_BYTES=\`echo \$FREED_BYTES | awk '{x = \$0;
+								     split(\"B KB MB GB TB PB\", type);
+								     for(i=5;y < 1;i--)
+									 y = x / (2**(10*i));
+								     print y \" \" type[i+2];
+								     }'\`
+		fi
+		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\"
+		"
 	run_remote "$GC_SCRIPT"
 	rm -f "$LOG_TEMPFILE"
 	}

@@ -476,6 +476,45 @@ testSshDeliverTag()
 	assertEquals "OK" "$A"
 	}
 
+
+testLocalGC()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR"/test_repo
+	rm -rf "$ROOT_DIR"/test_remote/delivered/*
+	mkdir -p "$ROOT_DIR"/test_remote/delivered/a
+	echo "ABCDEFG" >> "$ROOT_DIR"/test_remote/delivered/a/f
+	cp -r "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/b
+	cp -r "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/c
+	cp -r "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/d
+	ln -s "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/current
+	ln -s "$ROOT_DIR"/test_remote/delivered/b "$ROOT_DIR"/test_remote/delivered/previous
+	ln -s "$ROOT_DIR"/test_remote/delivered/c "$ROOT_DIR"/test_remote/delivered/preprevious
+	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
+	echo "$GC" | grep "1 version(s) removed" > /dev/null
+	assertEquals 0 $?
+	echo "$GC" | grep '12 KB freed' > /dev/null
+	assertEquals 0 $?
+	echo "GC: $GC"
+	cd "$ROOT_DIR"/test_remote/delivered
+	assertTrueEcho "[ -d a ]"
+	assertTrueEcho "[ -d b ]"
+	assertTrueEcho "[ -d c ]"
+	assertTrueEcho "[ ! -d d ]"
+	cd "$ROOT_DIR"/test_repo
+	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
+	echo "$GC" | grep "0 version(s) removed" > /dev/null
+	assertEquals 0 $?
+	echo "$GC" | grep '0 B freed' > /dev/null
+	assertEquals 0 $?
+	echo "GC: $GC"
+	cd "$ROOT_DIR"/test_remote/delivered
+	assertTrueEcho "[ -d a ]"
+	assertTrueEcho "[ -d b ]"
+	assertTrueEcho "[ -d c ]"
+	assertTrueEcho "[ ! -d d ]"
+	}
+	
 #test3DeliveriesSameVersion()
 #	{
 #	initWithOrigin
