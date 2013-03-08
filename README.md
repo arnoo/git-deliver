@@ -40,6 +40,34 @@ BSD
 BSD users need to install GNU getopts (cd /usr/ports/misc/getopt/ && sudo make install)
 
 
+A simple example (TL;DR)
+========================
+
+Let's assume for this example that you have a simple project for which a delivery just means copying files.
+
+Git-deliver will allow you to deliver the project (as of a specific git commit) to servers, to rollback a delivery, and to keep track of what is delivered on which server.
+
+In your project directory, run :
+    git deliver --init
+    git add .deliver && git commit # to track and share delivery files
+
+Create a bare repository, and add it as a remote in your local Git project, or ask Git-deliver to do it :
+    git deliver --init-remote test_server user@test_server.example.com:/project_files
+
+You can then perform your first delivery (of your local "master"):
+
+    git deliver test_server master
+
+Your project is now accessible on test_server.example.com at /project_files/delivered/current
+
+Let's deliver another version (tagged "v1.0") :
+
+    git deliver test_server v1.0
+
+You can ask Git-deliver what the current version on test_server is, who delivered it and when : 
+    git deliver --status test_server
+
+
 Usage
 =====
 
