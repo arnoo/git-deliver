@@ -18,7 +18,6 @@
 #
 
 #TODO: cleanup remote-info, handle multi-url remotes
-#TODO: vim modeline
 #TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
 
