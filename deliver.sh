@@ -18,7 +18,6 @@
 #
 
 #TODO: cleanup remote-info, handle multi-url remotes
-#TODO: check everywhere that we display/log sha1 and not just ref (for clarity)
 #TODO: open a single SSH connection and pipe commands to it instead of opening one per command ?
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
@@ -627,11 +626,11 @@ function deliver
 
 	run_scripts "post-symlink"
 
-	# TAG the delivered version here and on the origin remote
-
 	if [[ $FLAGS_batch -ne $FLAGS_TRUE ]]; then
 		$EDITOR "$LOG_TEMPFILE"
 	fi
+
+	# TAG the delivered version here and on the origin remote
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
 	local GPG_OPT
 	which gpg 2>&1 > /dev/null
@@ -646,7 +645,7 @@ function deliver
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
 	echo "Delivery complete."
-       	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
+	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
 function check_git_version
