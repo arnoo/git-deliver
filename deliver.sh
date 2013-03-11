@@ -517,7 +517,7 @@ function deliver
 
 	check_git_version "$REMOTE"
 
-	if [[ `run_remote "ls -1d \"$REMOTE_PATH/branches\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
+	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
 		echo "ERROR : Remote does not look like a bare git repo" >&2
 		exit 1
 	fi
