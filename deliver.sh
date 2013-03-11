@@ -633,7 +633,7 @@ function deliver
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
 	local GPG_OPT
 	which gpg 2>&1 > /dev/null
-	if [[ $? = 0 ]]; then
+	if [[ $? = 0 ]] && [[ -d ~/.gnupg ]]; then
 		if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
 			GPG_OPT=" -s"
 		fi
