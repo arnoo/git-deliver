@@ -31,6 +31,18 @@ if [[ "$REPO_ROOT" = ".git" ]]; then
 else
 	REPO_ROOT="${REPO_ROOT%/.git}"
 fi
+
+function path2unix
+	{
+	local SOURCE_PATH="$1"
+	if [[ "${SOURCE_PATH:0:1}" = "/" ]]; then
+		echo $SOURCE_PATH
+		return
+	fi
+	local DRIVE_LETTER=$(echo "${SOURCE_PATH:0:1}" | tr '[A-Z]' '[a-z]')
+	echo "/$DRIVE_LETTER${SOURCE_PATH:2}"
+	}
+
 if [[ "$OSTYPE" == "msys" ]]; then
 	REPO_ROOT=`path2unix "$REPO_ROOT"`
 fi
@@ -334,17 +346,6 @@ function remote_info
 			REMOTE_PATH="$REPO_ROOT/$REMOTE_URL"
 		fi
 	fi
-	}
-
-function path2unix
-	{
-	local SOURCE_PATH="$1"
-	if [[ "${SOURCE_PATH:0:1}" = "/" ]]; then
-		echo $SOURCE_PATH
-		return
-	fi
-	local DRIVE_LETTER=$(echo "${SOURCE_PATH:0:1}" | tr '[A-Z]' '[a-z]')
-	echo "/$DRIVE_LETTER${SOURCE_PATH:2}"
 	}
 
 function run
