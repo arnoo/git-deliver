@@ -642,30 +642,6 @@ testStatusNonSshRemote()
 	assertEquals "Not a Git-deliver remote" "$STATUS"
 	}
 
-testSshDeliver1()
-	{
-	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
-	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST cd "$SSH_TEST_PATH"/test_remote/delivered/current \&\& git log --pretty=format:%H -n 2 \| tail -n 1`
-	assertEquals `cd "$ROOT_DIR"/test_repo && git log --pretty=format:%H -n 1` "$A"
-	}
-
-testSshDeliverTag()
-	{
-	initWithSshOrigin
-	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	echo "AAA" > new_file
-	git add new_file
-	git commit -m "new commit"
-	git tag blah
-	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch origin blah 2>&1 > /dev/null
-	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST test -f "$SSH_TEST_PATH"/test_remote/delivered/current/new_file \&\& echo "OK"`
-	assertEquals "OK" "$A"
-	}
-
 testLocalGC()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
