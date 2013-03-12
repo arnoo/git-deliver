@@ -627,7 +627,11 @@ function deliver
 	run_scripts "post-symlink"
 
 	if [[ $FLAGS_batch -ne $FLAGS_TRUE ]]; then
-		$EDITOR "$LOG_TEMPFILE"
+		local GEDITOR=`git var GIT_EDITOR`
+		if [[ "$GEDITOR" = "" ]]; then
+		        GEDITOR="vi"
+		fi
+		$GEDITOR "$LOG_TEMPFILE"
 	fi
 
 	# TAG the delivered version here and on the origin remote
