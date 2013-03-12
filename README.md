@@ -47,14 +47,16 @@ Let's assume for this example that you have a simple project for which a deliver
 
 Git-deliver will allow you to deliver the project (as of a specific git commit) to servers, to rollback a delivery, and to keep track of what is delivered on which server.
 
-In your project directory, run :
+The example below assumes that the server is accessible with SSH. You'll want to setup SSH public key authentication, as Git-deliver will open lots of SSH connections (this should change in future versions). See http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication for instructions.
+
+To setup your project for Git-deliver, in your project directory, run :
     git deliver --init
     git add .deliver && git commit # to track and share delivery files
 
-Create a bare repository, and add it as a remote in your local Git project, or ask Git-deliver to do it :
+Create a bare repository on the server where you want the project delivered, and add it as a remote in your local Git project, or ask Git-deliver to do it :
     git deliver --init-remote test_server user@test_server.example.com:/project_files
 
-You can then perform your first delivery (of your local "master"):
+You can then perform your first delivery (here, of your local "master"):
 
     git deliver test_server master
 
