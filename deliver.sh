@@ -356,7 +356,7 @@ function run
 
 function run_remote
 	{
-	COMMAND="$*"
+	COMMAND="cd /tmp && $*"
 	if [[ "$REMOTE_SERVER" = "" ]]; then
 		if [[ "$LOG_TEMPFILE" != "" ]]; then
 			echo "running bash -c \"$COMMAND\"" >> "$LOG_TEMPFILE"
@@ -366,7 +366,7 @@ function run_remote
 		if [[ "$LOG_TEMPFILE" != "" ]]; then
 			echo "running ssh \"$REMOTE_SERVER\" \"$COMMAND\"" >> "$LOG_TEMPFILE"
 		fi
-		ssh "$REMOTE_SERVER" "cd /tmp && $COMMAND"
+		ssh "$REMOTE_SERVER" "$COMMAND"
 	fi
 	}
 

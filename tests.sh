@@ -83,8 +83,8 @@ testPath2Unix()
 testRunRemoteLocal()
 	{
 	cd "$ROOT_DIR"
-	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_PATH="'$ROOT_DIR'" run_remote "ls deliver.sh"' | bash`
-	assertEquals "deliver.sh" "$A"
+	A=`echo 'source deliver.sh --source > /dev/null 2>&1 ; REMOTE_PATH="'$ROOT_DIR'" run_remote "pwd"' | bash`
+	assertEquals "/tmp" "$A"
 	}
 
 testRunRemoteSsh()
