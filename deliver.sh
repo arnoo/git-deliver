@@ -563,7 +563,7 @@ function deliver
 
 	local BRANCHES=`git branch --contains $VERSION`
 	if [[ "$BRANCHES" = "" ]]; then
-		echo "ERROR Can't deliver a commit that does not belong to any branch"
+		echo "ERROR : Can't deliver a commit that does not belong to a local branch"
 		exit 16
 	fi
 	
@@ -574,7 +574,7 @@ function deliver
 
 	run_scripts "pre-delivery"
 
-	if [[ -e "$REPO_ROOT"/.git/refs/tags/"$VERSION" ]]; then
+	if git tag -l | grep "$VERSION" > /dev/null 2>&1; then
 		run "git push \"$REMOTE\" tag $VERSION"
 		exit_if_error 13
 	fi
