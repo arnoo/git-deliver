@@ -78,7 +78,7 @@ Usage
 
     git deliver <REMOTE> <REF>
 
-deliver <REF> (sha1, tag, branch) on `<REMOTE>`.
+deliver `<REF>` (sha1, tag, branch) on `<REMOTE>`.
 
 
     git deliver --status [REMOTE]
