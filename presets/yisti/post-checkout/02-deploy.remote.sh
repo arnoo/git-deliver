@@ -125,3 +125,5 @@ echo "    NEW_PORT=\"$NEW_PORT\" \
       NB_SCREENS=\"$NB_SCREENS\" \
       RUNNING_SERVER_PID=\"$RUNNING_SERVER_PID\" \
       RUNNING_SCREEN_PID=\"$RUNNING_SCREEN_PID\"" > /tmp/delivery_vars.sh
+
+echo "    You need to clear the CDN cache manually"
