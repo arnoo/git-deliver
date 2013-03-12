@@ -109,13 +109,13 @@ function remote_status
 				echo "Not a Git-deliver remote"
 				exit 1
 			fi
-			CURRENT_DIR=\`realpath "$REMOTE_PATH"/delivered/current\`
-			CURRENT_DIR=\`basename "\$CURRENT_DIR"\`
 			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
 			if [[ \$? -gt 0 ]]; then
 				echo "No delivered version"
 				exit 2
 			fi
+			CURRENT_DIR=\`pwd -P\`
+			CURRENT_DIR=\`basename "\$CURRENT_DIR"\`
 			CURRENT_SHORTSHA1=\${CURRENT_DIR:20:6}
 			LATEST_SHA=\`git log --pretty=format:%H -n 1\`
 			PREVIOUS_SHA=\`git log --pretty=format:%H -n 2 | tail -n 1\`
@@ -440,9 +440,9 @@ function remote_gc
 	fi
 	LOG_TEMPFILE=`make_temp_file`
 	local GC_SCRIPT="
-		CURVER=\`realpath \"$REMOTE_PATH/delivered/current\"\`
-		PREVER=\`realpath \"$REMOTE_PATH/delivered/previous\"\`
-		PREPREVER=\`realpath \"$REMOTE_PATH/delivered/preprevious\"\`
+		CURVER=\`{ cd \"$REMOTE_PATH/delivered/current\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+		PREVER=\`{ cd \"$REMOTE_PATH/delivered/previous\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+		PREPREVER=\`{ cd \"$REMOTE_PATH/delivered/preprevious\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
 		DELETED=0
 		FREED_BYTES=0
 		for rep in \"$REMOTE_PATH/delivered/\"*; do
@@ -453,7 +453,7 @@ function remote_gc
 				echo \"Removing \$rep\"
 				FREED_BYTES_NEW=\`du -b \"\$rep\" | cut -f1\`
 				rm -rf \"\$rep\" && \
-				DELETED=$(($DELETED + 1)) && \
+				DELETED=\$((\$DELETED + 1)) && \
 			   	FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW))
 			fi
 		done
