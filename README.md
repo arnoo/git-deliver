@@ -49,11 +49,13 @@ Git-deliver will allow you to deliver the project (as of a specific git commit) 
 
 The example below assumes that the server is accessible with SSH. You'll want to setup SSH public key authentication, as Git-deliver will open lots of SSH connections (this should change in future versions). See http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication for instructions.
 
-To setup your project for Git-deliver, in your project directory, run :
+To setup your project for Git-deliver, in your project directory, run:
+
     git deliver --init
     git add .deliver && git commit # to track and share delivery files
 
-Create a bare repository on the server where you want the project delivered, and add it as a remote in your local Git project, or ask Git-deliver to do it :
+Create a bare repository on the server where you want the project delivered, and add it as a remote in your local Git project, or ask Git-deliver to do it:
+
     git deliver --init-remote test_server user@test_server.example.com:/project_files
 
 You can then perform your first delivery (here, of your local "master"):
@@ -62,11 +64,12 @@ You can then perform your first delivery (here, of your local "master"):
 
 Your project is now accessible on test_server.example.com at /project_files/delivered/current
 
-Let's deliver another version (tagged "v1.0") :
+Let's deliver another version (tagged "v1.0"):
 
     git deliver test_server v1.0
 
-You can ask Git-deliver what the current version on test_server is, who delivered it and when : 
+You can ask Git-deliver what the current version on test_server is, who delivered it and when:
+
     git deliver --status test_server
 
 
@@ -110,7 +113,7 @@ Note that there are nearly no presets right now; I very much welcome contributio
 
 Once our working copy is ready, each remote needs to be initialized (by running `git deliver --init-remote <remote>`, where `<remote>` is the name of bare Git remote. This will result in the creation of the "delivered" folder on the remote. If you have "init-remote" scripts, they will be run. This might be used to install external dependencies on the remote.
 
-A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the timeline of what happens :
+A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the timeline of what happens:
 
 * We run preliminary checks. By default, we just check the available disk space on the remote, but you can create "pre-delivery" scripts to add checks.
 
@@ -125,25 +128,25 @@ Stage scripts
 
 Stage scripts can read a few envrionment variables to gather information about the delivery process.
 
-All stages have access to :
+All stages have access to:
 
-    $VERSION : the ref being delivered, as it was specified on the command line
-    $VERSION_SHA : sha1 of the ref being delivered
-    $PREVIOUS_VERSION_SHA : sha1 of the previously delivered ref
-    $GIT_DELIVER_PATH : path to where git-deliver is stored
-    $REPO_ROOT : root of the local git repo
-    $DELIVERY_DATE : date and time the delivery was initiated (using date +'%F_%H-%M-%S')
-    $REMOTE_SERVER : hostname or IP of the server we are delivering to, empty if doing a local delivery
-    $REMOTE_PATH : path to the bare remote repository we are delivering to
-    $REMOTE : name of the Git remote we are delivering to
-    $DELIVERY_PATH : path where the version will be delivered on the remote ($REMOTE_PATH/delivered/$VERSION_$DELIVERY_DATE)
+    $VERSION               the ref being delivered, as it was specified on the command line
+    $VERSION_SHA           sha1 of the ref being delivered
+    $PREVIOUS_VERSION_SHA  sha1 of the previously delivered ref
+    $GIT_DELIVER_PATH      path to where git-deliver is stored
+    $REPO_ROOT             root of the local git repo
+    $DELIVERY_DATE         date and time the delivery was initiated (using date +'%F_%H-%M-%S')
+    $REMOTE_SERVER         hostname or IP of the server we are delivering to, empty if doing a local delivery
+    $REMOTE_PATH           path to the bare remote repository we are delivering to
+    $REMOTE                name of the Git remote we are delivering to
+    $DELIVERY_PATH         path where the version will be delivered on the remote ($REMOTE_PATH/delivered/$VERSION_$DELIVERY_DATE)
 
-Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to :
+Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to:
 
-    $LAST_STAGE_REACHED : the last stage the delivery reached before rollback had to be called
-    $LAST_STAGE : what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
-    $FAILED_HOOK : name of the hook that failed, triggering the rollback. Empty if the rollback was caused by human intervention (CTRL+C ... TODO)
-    $FAILED_HOOK_EXIT_STATUS : exit status of the hook that failed, triggering the rollback
+    $LAST_STAGE_REACHED       the last stage the delivery reached before rollback had to be called
+    $LAST_STAGE               what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
+    $FAILED_HOOK              name of the hook that failed, triggering the rollback. Empty if the rollback was caused by human intervention (CTRL+C ... TODO)
+    $FAILED_HOOK_EXIT_STATUS  exit status of the hook that failed, triggering the rollback
 
 Stage scripts can use the `run_remote` bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). `run_remote` also works for "local" remotes, the command will then be run as the user running git-deliver.
 
