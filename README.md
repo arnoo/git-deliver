@@ -138,7 +138,7 @@ All stages have access to :
     $REMOTE : name of the Git remote we are delivering to
     $DELIVERY_PATH : path where the version will be delivered on the remote ($REMOTE_PATH/delivered/$VERSION_$DELIVERY_DATE)
 
-rollback-pre-symlink and rollback-post-symlink:
+Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to :
 
     $LAST_STAGE_REACHED : the last stage the delivery reached before rollback had to be called
     $LAST_STAGE : what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
