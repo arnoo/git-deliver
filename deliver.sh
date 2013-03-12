@@ -645,7 +645,7 @@ function deliver
 	fi
 	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION"
 	rm -f "$LOG_TEMPFILE"
-	if [[ $TAG_TO_PUSH != "" ]]; then
+	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
 	echo "Delivery complete."
