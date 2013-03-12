@@ -636,7 +636,7 @@ function deliver
 
 	# TAG the delivered version here and on the origin remote
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
-	local GPG_OPT
+	local GPG_OPT=""
 	which gpg > /dev/null 2>&1 
 	if [[ $? = 0 ]] && [[ -d ~/.gnupg ]]; then
 		if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
