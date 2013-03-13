@@ -594,6 +594,25 @@ testBasicDeliverNonHeadSha1OtherBranch()
 	fi
 	}
 
+testBasicDeliverNonHeadSha1OtherBranchSsh()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	git checkout "mybranch"
+	echo "ssss" >> a 
+	git commit -am "modif2"
+	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse mybranch^` 2>&1 > /dev/null
+	git checkout master
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
+	assertEquals 0 $?
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+
+	assertEquals `git rev-parse mybranch^` "$SSH_SHA1";
+
+	}
+
 testBasicDeliverNonHeadTagOtherBranch()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
@@ -611,6 +630,21 @@ testBasicDeliverNonHeadTagOtherBranch()
 	else
 		echo "Test won't be run (msys)"
 	fi
+	}
+
+testBasicDeliverNonHeadTagOtherBranch()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	git tag foobranch mybranch^
+	"$ROOT_DIR"/deliver.sh --batch origin foobranch 2>&1 > /dev/null
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
+	assertEquals 0 $?
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+
+	assertEquals `git rev-parse mybranch^` "$SSH_SHA1";
 	}
 
 testBasicDeliverStatus()
