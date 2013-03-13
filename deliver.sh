@@ -556,7 +556,7 @@ function deliver
 		echo "No version delivered yet on $REMOTE" >&2
 	else
 		RSTATUS=`remote_status "$REMOTE"`
-		PREVIOUS_VERSION_SHA=${RSTATUS:0:40}
+		PREVIOUS_VERSION_SHA="${RSTATUS:0:40}"
 		echo "Current version on $REMOTE is $RSTATUS" >&2
 	fi
 
