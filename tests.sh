@@ -555,7 +555,9 @@ testBasicDeliverNonMasterBranchSsh()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	git checkout -b "mybranch"
+	echo "asasd" >> a
+	git commit -am "New master"
+	git checkout -b "mybranch" master^
 	echo "ssss" >> a 
 	git commit -am "modif"
 	"$ROOT_DIR"/deliver.sh --batch origin mybranch 2>&1 > /dev/null
@@ -599,7 +601,6 @@ testBasicDeliverNonHeadTagOtherBranch()
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 		git tag foobranch mybranch^
 		"$ROOT_DIR"/deliver.sh --batch origin foobranch 2>&1 > /dev/null
-		git checkout master
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
 		assertTrueEcho "[ delivered ]"
