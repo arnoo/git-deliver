@@ -498,8 +498,15 @@ function deliver
 	local VERSION="$2"
 
 	LOG_TEMPFILE=`make_temp_file`
-	echo -e "Delivery of ref \"$VERSION\" to remote \"$REMOTE\"\n\n" > "$LOG_TEMPFILE"
-	echo -e "Delivery log:\n" >> "$LOG_TEMPFILE"
+	echo "#" > "$LOG_TEMPFILE"
+	echo "# This is the log of your delivery" >> "$LOG_TEMPFILE"
+	echo "# It will be added as a note on the delivery tag" >> "$LOG_TEMPFILE"
+	echo "# You can customize the note now, before the tag is created" >> "$LOG_TEMPFILE"
+	echo "# Lines starting with # will be ignored" >> "$LOG_TEMPFILE"
+	echo "#" >> "$LOG_TEMPFILE"
+	echo "" >> "$LOG_TEMPFILE"
+
+	echo -e "Delivery of ref \"$VERSION\" to remote \"$REMOTE\"\n\n" >> "$LOG_TEMPFILE"
 
 	if [[ ! -d "$REPO_ROOT/.deliver" ]]; then
 		echo ".deliver not found."
