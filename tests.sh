@@ -26,9 +26,8 @@ initWithOrigin()
 
 initWithSshOrigin()
 	{
-	cd "$ROOT_DIR"
-	git clone --bare "$ROOT_DIR/test_repo" "$ROOT_DIR/test_remote"  > /dev/null 2>&1
 	cd "$ROOT_DIR/test_repo"
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir -p \"$SSH_TEST_PATH\"/test_remote && cd \"$SSH_TEST_PATH\"/test_remote && git init --bare"
 	git remote add origin "$SSH_TEST_USER@$SSH_TEST_HOST:$SSH_TEST_PATH/test_remote" 
 	initDeliver $*
 	}
@@ -48,9 +47,20 @@ oneTimeSetUp()
 	echo "blah blah" > a
 	git add a
 	git commit -m "test commit"
+	git tag older master
 	echo "blblublublu" > x
 	git add x
 	git commit -m "test commit 2"
+	git checkout -b "branch"
+	echo "ssss" >> a 
+	git commit -am "branch commit 1"
+	echo "ssss" >> a 
+	git commit -am "branch commit 2"
+	git checkout master
+	echo "ssss" >> a 
+	git commit -m "test commit 3"
+	git tag branch_non_head branch^
+	git tag branch_head branch
 	cd "$ROOT_DIR"
 	}
 
@@ -66,6 +76,7 @@ tearDown()
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
 	cd "$ROOT_DIR/test_repo"
 	git remote remove origin 2> /dev/null
+	rm -rf "$ROOT_DIR/test_remote"
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_remote
 	cd "$ROOT_DIR"
 	}
@@ -461,7 +472,7 @@ testBasicDeliverMasterSsh()
 	assertEquals `git rev-parse master` $SSH_SHA1;
 	}
 
-testBasicDeliverNonHeadSha1()
+testBasicDeliverNonHeadSha1OnMaster()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
@@ -479,7 +490,7 @@ testBasicDeliverNonHeadSha1()
 	fi
 	}
 
-testBasicDeliverNonHeadSha1Ssh()
+testBasicDeliverNonHeadSha1OnMasterSsh()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
@@ -499,15 +510,14 @@ testBasicDeliverNonHeadTag()
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-		git tag foo master^
-		"$ROOT_DIR"/deliver.sh --batch origin foo 2>&1 > /dev/null
+		"$ROOT_DIR"/deliver.sh --batch origin older 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
 		assertTrueEcho "[ -d delivered ]"
 		assertTrueEcho "[ -L delivered/current ]"
 		assertTrueEcho "[ -d delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse master^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse older` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -517,8 +527,7 @@ testBasicDeliverNonHeadTagSsh()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	git tag foo master^
-	"$ROOT_DIR"/deliver.sh --batch origin foo 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --batch origin older 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
@@ -526,7 +535,7 @@ testBasicDeliverNonHeadTagSsh()
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
 
 	cd "$ROOT_DIR"/test_repo
-	assertEquals `git rev-parse master^` $SSH_SHA1;
+	assertEquals `git rev-parse older` $SSH_SHA1;
 	}
 
 testBasicDeliverNonMasterBranch()
@@ -534,18 +543,14 @@ testBasicDeliverNonMasterBranch()
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-		git checkout -b "mybranch"
-		echo "ssss" >> a 
-		git commit -am "modif"
-		"$ROOT_DIR"/deliver.sh --batch origin mybranch 2>&1 > /dev/null
-		git checkout master
+		"$ROOT_DIR"/deliver.sh --batch origin branch 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
 		assertTrueEcho "[ -d delivered ]"
 		assertTrueEcho "[ -L delivered/current ]"
 		assertTrueEcho "[ -d delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse mybranch` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse branch` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -555,13 +560,7 @@ testBasicDeliverNonMasterBranchSsh()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	echo "asasd" >> a
-	git commit -am "New master"
-	git checkout -b "mybranch" master^
-	echo "ssss" >> a 
-	git commit -am "modif"
-	"$ROOT_DIR"/deliver.sh --batch origin mybranch 2>&1 > /dev/null
-	git checkout master
+	"$ROOT_DIR"/deliver.sh --batch origin branch 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
@@ -569,7 +568,7 @@ testBasicDeliverNonMasterBranchSsh()
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
 
 	cd "$ROOT_DIR"/test_repo
-	assertEquals `git rev-parse mybranch` $SSH_SHA1;
+	assertEquals `git rev-parse branch` $SSH_SHA1;
 	}
 
 testBasicDeliverNonHeadSha1OtherBranch()
@@ -577,18 +576,14 @@ testBasicDeliverNonHeadSha1OtherBranch()
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-		git checkout "mybranch"
-		echo "ssss" >> a 
-		git commit -am "modif2"
-		"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse mybranch^` 2>&1 > /dev/null
-		git checkout master
+		"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse branch^` 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
 		assertTrueEcho "[ delivered ]"
 		assertTrueEcho "[ delivered/current ]"
 		assertTrueEcho "[ delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse mybranch^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse branch^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -598,18 +593,14 @@ testBasicDeliverNonHeadSha1OtherBranchSsh()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	git checkout "mybranch"
-	echo "ssss" >> a 
-	git commit -am "modif2"
-	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse mybranch^` 2>&1 > /dev/null
-	git checkout master
+	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse branch^` 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
 
-	assertEquals `git rev-parse mybranch^` "$SSH_SHA1";
+	assertEquals `git rev-parse branch^` "$SSH_SHA1";
 
 	}
 
@@ -618,15 +609,14 @@ testBasicDeliverNonHeadTagOtherBranch()
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-		git tag foobranch mybranch^
-		"$ROOT_DIR"/deliver.sh --batch origin foobranch 2>&1 > /dev/null
+		"$ROOT_DIR"/deliver.sh --batch origin branch_non_head 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
 		assertTrueEcho "[ delivered ]"
 		assertTrueEcho "[ delivered/current ]"
 		assertTrueEcho "[ delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse mybranch^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse branch_non_head` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -636,15 +626,14 @@ testBasicDeliverNonHeadTagOtherBranch()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
-	git tag foobranch mybranch^
-	"$ROOT_DIR"/deliver.sh --batch origin foobranch 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --batch origin branch_non_head 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
 
-	assertEquals `git rev-parse mybranch^` "$SSH_SHA1";
+	assertEquals `git rev-parse branch_non_head` "$SSH_SHA1";
 	}
 
 testBasicDeliverStatus()
@@ -766,25 +755,4 @@ testSshGC()
 #	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
 #	}
 	
-#test3DeliveriesSameVersion()
-#	{
-#	initWithOrigin
-#	"$ROOT_DIR"/deliver.sh --batch origin master 
-#	"$ROOT_DIR"/deliver.sh --batch origin master 
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/previous ]"
-#	assertFalse "[ -L \"$ROOT_DIR\"/test_remote/delivered/preprevious ]"
-#	"$ROOT_DIR"/deliver.sh --batch origin master 
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
-#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/previous ]"
-#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/previous`"\" ]"
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/preprevious ]"
-#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/preprevious`"\" ]"
-#
-#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/previous`"
-#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/previous`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
-#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
-#	}
-
 . lib/shunit2
