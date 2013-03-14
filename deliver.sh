@@ -235,17 +235,14 @@ function init
 	done
 	}
 
-function run_scripts
+function run_stage_scripts
 	{
-	local STAGE="$1"
-	local ROLLBACK_LAST_STAGE="$2"
-
-	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$STAGE" -maxdepth 1 -name '*.sh' -print)"
+	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print)"
 		then
-		echo "Running scripts for stage $STAGE" >&2
-		for SCRIPT_PATH in "$REPO_ROOT/.deliver/scripts/$STAGE"/*.sh; do
+		echo "Running scripts for stage $DELIVERY_STAGE" >&2
+		for SCRIPT_PATH in "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE"/*.sh; do
 			SCRIPT=`basename "$SCRIPT_PATH"`
-			echo "  Running script $STAGE/$SCRIPT" >&2
+			echo "  Running script $DELIVERY_STAGE/$SCRIPT" >&2
 			[[ $ROLLBACK_LAST_STAGE = "" ]] || LAST_STAGE_REACHED=$ROLLBACK_LAST_STAGE
 			if [[ "${SCRIPT: -10}" = ".remote.sh" ]]; then
 				SHELL='run_remote "bash"'
@@ -281,9 +278,11 @@ EOS
 				echo "" >&2
 				echo "  Script returned with status $SCRIPT_RESULT" >&2
 				if [[ $ROLLBACK_LAST_STAGE = "" ]]; then
-					rollback $STAGE
+					rollback
 				else
 					echo "A script failed during rollback, manual intervention is likely necessary"
+					echo "Delivery log : $LOG_TEMPFILE"
+					exit 23
 				fi
 				exit
 			fi
@@ -422,7 +421,8 @@ function init_remote
 	fi
 	run_remote "mkdir \"$REMOTE_PATH\"/delivered"
 	exit_if_error 11 "Error creating 'delivered' directory in remote root"
-	run_scripts "init-remote"
+	DELIVERY_STAGE="init-remote"
+	run_stage_scripts
 	echo "Remote is ready to receive deliveries"
 	IN_INIT=""
 	}
@@ -579,7 +579,8 @@ function deliver
 		BRANCH=`echo "$BRANCHES" | head -n 1 | tr -d ' '`
 	fi
 
-	run_scripts "pre-delivery"
+	DELIVERY_STAGE="pre-delivery"
+	run_stage_scripts
 
 	if git tag -l | grep '^'"$VERSION"'$' &> /dev/null; then
 		run "git push \"$REMOTE\" tag $VERSION"
@@ -606,7 +607,8 @@ function deliver
 	
 	exit_if_error 7 "Error initializing submodules"
 
-	run_scripts "post-checkout"
+	DELIVERY_STAGE="post-checkout"
+	run_stage_scripts
 
 	# Commit after the post-checkouts have run and might have changed a few things (added production database passwords for instance).
 	# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
@@ -628,10 +630,11 @@ function deliver
 	SWITCH_STATUS=$?
 	if [[ $SWITCH_STATUS -gt 0 ]]; then
 		echo "Error switching symlinks"
-		rollback "pre-symlink" $SWITCH_STATUS
+		rollback "pre-symlink"
 	fi
 
-	run_scripts "post-symlink"
+	DELIVERY_STAGE="post-symlink"
+	run_stage_scripts
 
 	if [[ $FLAGS_batch -ne $FLAGS_TRUE ]]; then
 		local GEDITOR=`git var GIT_EDITOR`
@@ -674,17 +677,25 @@ function check_git_version
 
 function rollback
 	{
-	local LAST_STAGE="$1"
-	local SWITCH_STATUS="$2"
 	echo "Rolling back"
-	run_scripts "rollback-pre-symlink" "$LAST_STAGE"
+	DELIVERY_STAGE="rollback-pre-symlink"
+	run_stage_scripts "$DELIvERY_STAGE"
 	
-	if [[ $LAST_STAGE = "post-symlink" ]]; then
+	if [[ $DELIvERY_STAGE = "post-symlink" ]]; then
 		run_remote "rm \"$REMOTE_PATH/delivered/current\" && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" &&  mv \"$REMOTE_PATH/delivered/preprevious\" \"$REMOTE_PATH/delivered/previous\""
 	fi
 
-	run_scripts "rollback-post-symlink" "$LAST_STAGE"
+	DELIVERY_STAGE="rollback-post-symlink"
+	run_stage_scripts "$DELIvERY_STAGE"
 	}
+
+function caught_sigint
+	{
+	echo -en "Caught SIGINT\n"
+	exit
+	}
+	   
+trap control_c SIGINT
 
 DEFINE_boolean 'source' false 'Used for tests : define functions but don''t do anything.'
 DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
