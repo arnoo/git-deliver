@@ -58,7 +58,7 @@ oneTimeSetUp()
 	git commit -am "branch commit 2"
 	git checkout master
 	echo "ssss" >> a 
-	git commit -m "test commit 3"
+	git commit -am "test commit 3"
 	git tag branch_non_head branch^
 	git tag branch_head branch
 	cd "$ROOT_DIR"
