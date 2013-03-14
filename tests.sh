@@ -440,8 +440,18 @@ testBasicDeliverMaster()
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 		A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
 		echo "$A"
-		echo "$A" | grep "No version delivered yet on origin" > /dev/null
+		echo "$A" | grep "No version delivered yet on origin" &> /dev/null
 		assertEquals 0 $?
+		echo "$A" | grep "Running scripts for stage pre-delivery" &> /dev/null
+		assertEquals 0 $?
+		echo "$A" | grep "No scripts for stage post-checkout" &> /dev/null
+		assertEquals 0 $?
+		echo "$A" | grep "No scripts for stage post-symlink" &> /dev/null
+		assertEquals 0 $?
+		echo "$A" | grep "No scripts for stage rollback-pre-symlink" &> /dev/null
+		assertNotSame 0 $?
+		echo "$A" | grep "No scripts for stage rollback-post-symlink" &> /dev/null
+		assertNotSame 0 $?
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
 		assertTrueEcho "[ -d delivered ]"
