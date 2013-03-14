@@ -385,7 +385,7 @@ function init_remote
 		exit 17
 	fi
 	
-	run_remote "{ test -d \"$REMOTE_PATH\"/refs && test -d \"$REMOTE_PATH\"/delivered ; } > /dev/null 2>&1"
+	run_remote "{ test -d \"$REMOTE_PATH\"/refs && test -d \"$REMOTE_PATH\"/delivered ; } &> /dev/null"
 	if [[ $? = 0 ]]; then
 		echo "This remote looks like it has already been setup for git-deliver."
 		exit 18
@@ -393,15 +393,15 @@ function init_remote
 	
 
 	NEED_INIT=true
-	run_remote "test -e \"$REMOTE_PATH\" > /dev/null 2>&1"
+	run_remote "test -e \"$REMOTE_PATH\" &> /dev/null"
 	if [[ $? = 0 ]]; then
-		run_remote "test -d \"$REMOTE_PATH\" > /dev/null 2>&1"
+		run_remote "test -d \"$REMOTE_PATH\" &> /dev/null"
 		if [[ $? -gt 0 ]]; then
 			echo "ERROR: Remote path points to a file"
 			exit 10
 		else
 			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l"` != "0" ]]; then
-				git fetch "$REMOTE" > /dev/null 2>&1 
+				git fetch "$REMOTE" &> /dev/null
 				if [[ $? -gt 0 ]]; then
 					echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
 					exit 9
@@ -411,7 +411,7 @@ function init_remote
 			fi
 		fi
 	else
-		run_remote "mkdir \"$REMOTE_PATH\" > /dev/null 2>&1"
+		run_remote "mkdir \"$REMOTE_PATH\" &> /dev/null"
 		exit_if_error 12 "Error creating root directory on remote"
 	fi
 	if $NEED_INIT; then
@@ -475,7 +475,7 @@ function remote_gc
 
 function make_temp_file
 	{
-	which mktemp > /dev/null 2>&1 
+	which mktemp &> /dev/null
 	if [[ $? = 0 ]]; then
 		mktemp
 	else
@@ -550,7 +550,7 @@ function deliver
 		TAG_TO_PUSH=$VERSION
 	fi
 
-	remote_status "$REMOTE" > /dev/null 2>&1 
+	remote_status "$REMOTE" &> /dev/null
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
@@ -581,7 +581,7 @@ function deliver
 
 	run_scripts "pre-delivery"
 
-	if git tag -l | grep '^'"$VERSION"'$' > /dev/null 2>&1; then
+	if git tag -l | grep '^'"$VERSION"'$' &> /dev/null; then
 		run "git push \"$REMOTE\" tag $VERSION"
 		exit_if_error 13
 	fi
@@ -644,7 +644,7 @@ function deliver
 	# TAG the delivered version here and on the origin remote
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
 	local GPG_OPT=""
-	which gpg > /dev/null 2>&1 
+	which gpg &> /dev/null
 	if [[ $? = 0 ]] && [[ -d ~/.gnupg ]]; then
 		if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
 			GPG_OPT=" -s"
@@ -661,7 +661,7 @@ function deliver
 
 function check_git_version
 	{
-	REMOTE_GIT_VERSION=`run_remote "git --version" > /dev/null` 2>&1 
+	REMOTE_GIT_VERSION=`run_remote "git --version 2> /dev/null"`
 	
 	if [[ $? = 127 ]]; then
 		echo "ERROR: Git needs to be installed and in \$PATH on the remote"
