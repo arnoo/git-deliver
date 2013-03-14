@@ -581,7 +581,7 @@ function deliver
 
 	run_scripts "pre-delivery"
 
-	if git tag -l | grep "$VERSION" > /dev/null 2>&1; then
+	if git tag -l | grep '^'"$VERSION"'$' > /dev/null 2>&1; then
 		run "git push \"$REMOTE\" tag $VERSION"
 		exit_if_error 13
 	fi
