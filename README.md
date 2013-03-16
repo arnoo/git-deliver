@@ -143,10 +143,9 @@ All stages have access to:
 
 Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to:
 
-    $LAST_STAGE_REACHED       the last stage the delivery reached before rollback had to be called
-    $LAST_STAGE               what stage the delivery was in before rollback was initiated. This allows the hooks to know what needs to be undone to perform the rollback
-    $FAILED_HOOK              name of the hook that failed, triggering the rollback. Empty if the rollback was caused by human intervention (CTRL+C ... TODO)
-    $FAILED_HOOK_EXIT_STATUS  exit status of the hook that failed, triggering the rollback
+    $LAST_STAGE_REACHED       The last stage the delivery reached before rollback had to be called. This allows the rollback stage scripts to know what needs to be undone to perform the rollback. Empty if delivery stopped before stage "pre-delivery".
+    $FAILED_SCRIPT              Name of the stage script that failed, triggering the rollback. Empty if the rollback was caused by an error in the standard Git-deliver process.
+    $FAILED_SCRIPT_EXIT_STATUS  Exit status of the stage script that failed, triggering the rollback. 0 if the rollback was caused by a SIGINT (CTRL+C).
 
 Stage scripts can use the `run_remote` bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). `run_remote` also works for "local" remotes, the command will then be run as the user running git-deliver.
 

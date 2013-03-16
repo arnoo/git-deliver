@@ -170,7 +170,7 @@ testRunScripts()
 	mkdir -p ".deliver/scripts/foo"
 	echo "echo -n 'L:' ; test \"\$SSH_CONNECTION\" = \"\" && echo -n 'OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/01-bar.sh"
 	echo "echo -n ',R:' ; test \"\$SSH_CONNECTION\" = \"\" || echo -n 'OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/02-bar.remote.sh"
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="'$SSH_TEST_USER@$SSH_TEST_HOST'" REMOTE_PROTO="ssh" run_scripts foo' | bash`
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="'$SSH_TEST_USER@$SSH_TEST_HOST'" REMOTE_PROTO="ssh" DELIVERY_STAGE="foo" run_stage_scripts' | bash`
 	assertEquals "L:OK,R:OK" "$A"
 	}
 
@@ -743,7 +743,165 @@ testSshGC()
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_TEST_PATH\"/test_remote"
 	}
-	
+
+testRollbackPreDelivery()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 1" > "$ROOT_DIR/test_repo/.deliver/scripts/pre-delivery/00-fail.sh"
+	echo "echo \"PRE_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-pre-symlink/00-info.sh"
+	echo "echo \"PRE_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-pre-symlink/00-info.sh"
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	echo "$A"
+	echo "$A" | grep "Script returned with status 1" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "PRE_FAILED_SCRIPT:00-fail" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "PRE_FAILED_SCRIPT_EXIT_STATUS:1" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "No scripts for stage rollback-post-symlink" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "No scripts for stage post-checkout" &> /dev/null
+	assertNotSame 0 $?
+	echo "$A" | grep "Rolling back" &> /dev/null
+	assertEquals 0 $?
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ ! -e delivered/current ]"
+	}
+
+testRollbackPostCheckout()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-checkout/00-fail.sh"
+	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
+	echo "echo \"POST_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	echo "$A"
+	echo "$A" | grep "Script returned with status 22" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "POST_FAILED_SCRIPT:00-fail" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "POST_FAILED_SCRIPT_EXIT_STATUS:22" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "No scripts for stage rollback-pre-symlink" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "Running scripts for stage post-checkout" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "No scripts for stage post-symlink" &> /dev/null
+	assertNotSame 0 $?
+	echo "$A" | grep "Rolling back" &> /dev/null
+	assertEquals 0 $?
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ ! -e delivered/current ]"
+	}
+
+testRollbackPostSymlinkNoPrevious()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
+	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
+	echo "echo \"POST_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	echo "$A"
+	echo "$A" | grep "Script returned with status 22" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "POST_FAILED_SCRIPT:00-fail" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "POST_FAILED_SCRIPT_EXIT_STATUS:22" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "No scripts for stage rollback-pre-symlink" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "No scripts for stage post-checkout" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "Running scripts for stage post-symlink" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "Rolling back" &> /dev/null
+	assertEquals 0 $?
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ ! -e delivered/current ]"
+	}
+
+testRollbackPostSymlinkWithPrevious()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
+	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
+	touch "$ROOT_DIR/test_remote/delivered/a/f"
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ -e delivered/current/f ]"
+	assertTrueEcho "[ ! -e delivered/previous ]"
+	}
+
+testRollbackPostSymlinkWith2Previous()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
+	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
+	touch "$ROOT_DIR/test_remote/delivered/a/f"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
+	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
+	touch "$ROOT_DIR/test_remote/delivered/b/g"
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ -e delivered/current/f ]"
+	assertTrueEcho "[ -e delivered/previous/g ]"
+	assertTrueEcho "[ ! -e delivered/preprevious ]"
+	}
+
+testRollbackPostSymlinkWith3Previous()
+	{
+	initWithOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
+	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
+	touch "$ROOT_DIR/test_remote/delivered/a/f"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
+	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
+	touch "$ROOT_DIR/test_remote/delivered/b/g"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/c"
+	ln -s "$ROOT_DIR/test_remote/delivered/c" "$ROOT_DIR/test_remote/delivered/preprevious"
+	touch "$ROOT_DIR/test_remote/delivered/c/h"
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ -e delivered/current/f ]"
+	assertTrueEcho "[ -e delivered/previous/g ]"
+	assertTrueEcho "[ -e delivered/preprevious/h ]"
+	assertTrueEcho "[ ! -e delivered/prepreprevious ]"
+	}
+
+CtestRollbackCurrentNotWritable()
+	{
+	initWithOrigin
+	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT@\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
+	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
+	chmod u-w "$ROOT_DIR/test_remote/delivered/a"
+	touch "$ROOT_DIR/test_remote/delivered/a/f"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
+	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
+	touch "$ROOT_DIR/test_remote/delivered/b/g"
+	mkdir -p "$ROOT_DIR/test_remote/delivered/c"
+	ln -s "$ROOT_DIR/test_remote/delivered/c" "$ROOT_DIR/test_remote/delivered/preprevious"
+	touch "$ROOT_DIR/test_remote/delivered/c/h"
+	cd "$ROOT_DIR/test_repo"
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	echo "$A"
+	echo "$A" | grep "POST_FAILED_SCRIPT:@" &> /dev/null
+	assertEquals 0 $?
+	cd "$ROOT_DIR"/test_remote/
+	assertTrueEcho "[ -e delivered/current/f ]"
+	assertTrueEcho "[ -e delivered/previous/g ]"
+	assertTrueEcho "[ -e delivered/preprevious/h ]"
+	}
+
 #test3DeliveriesSameVersion()
 #	{
 #	initWithOrigin
