@@ -1,8 +1,6 @@
 #!/bin/bash
 
-cd "$1"
-DELIVERY_PATH="$1"
-cd $DELIVERY_PATH
+cd "$DELIVERY_PATH"
 source yisti.conf
 
 if [[ ! -f `which lessc 2> /dev/null` ]]; then
@@ -10,7 +8,7 @@ if [[ ! -f `which lessc 2> /dev/null` ]]; then
 	exit 1
 fi
 
-if [[ ! -f `which java 2> /dev/null` ]]; then
+if [[ ! -f `which uglifyjs 2> /dev/null` ]]; then
 	echo "    ERROR : uglifyjs not found."
 	exit 2
 fi

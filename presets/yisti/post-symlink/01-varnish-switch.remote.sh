@@ -1,7 +1,7 @@
 #!/bin/bash
 
-DELIVERY_PATH="$1"
-source "$DELIVERY_PATH/yisti.conf"
+cd "$DELIVERY_PATH"
+source "yisti.conf"
 
 function exit_if_error
 	{
