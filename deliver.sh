@@ -458,7 +458,7 @@ function remote_gc
 			   [ \"\$rep\" != \"\$PREVER\" ] &&
 			   [ \"\$rep\" != \"\$PREPREVER\" ]; then
 				echo \"Removing \$rep\"
-				FREED_BYTES_NEW=\`du -b \"\$rep\" | cut -f1\`
+				FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
 				rm -rf \"\$rep\" && \
 				DELETED=\$((\$DELETED + 1)) && \
 			   	FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW))

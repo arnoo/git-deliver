@@ -684,6 +684,7 @@ testLocalGC()
 		rm -rf "$ROOT_DIR"/test_remote/delivered/*
 		mkdir -p "$ROOT_DIR"/test_remote/delivered/a
 		echo "ABCDEFG" >> "$ROOT_DIR"/test_remote/delivered/a/f
+		echo "ABCDEFG" >> "$ROOT_DIR"/test_remote/delivered/a/g
 		cp -r "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/b
 		cp -r "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/c
 		cp -r "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/d
@@ -721,7 +722,7 @@ testSshGC()
 	initWithSshOrigin
 	cd "$ROOT_DIR"/test_repo
 	
-	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir -p \"$SSH_TEST_PATH\"/test_remote/delivered && cd \"$SSH_TEST_PATH\"/test_remote/delivered && rm -rf * && mkdir a && echo \"ABCDEFG\" >> a/f && cp -r a b && cp -r a c && cp -r a d && ln -s a current && ln -s b previous && ln -s c preprevious"
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir -p \"$SSH_TEST_PATH\"/test_remote/delivered && cd \"$SSH_TEST_PATH\"/test_remote/delivered && rm -rf * && mkdir a && echo \"ABCDEFG\" >> a/f && echo \"ABCDEFG\" >> a/g && cp -r a b && cp -r a c && cp -r a d && ln -s a current && ln -s b previous && ln -s c preprevious"
 
 	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
 	echo "$GC" | grep "1 version(s) removed" > /dev/null
