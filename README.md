@@ -29,6 +29,9 @@ In your .gitconfig, add this line in the `[alias]` section:
 Where `<path_to_clone>` is the path to the root of the git clone you just made.
 
 
+Note that Git-deliver has only been tested on Windows (msys) and Linux so far.
+
+
 Windows
 -------
 
@@ -109,9 +112,9 @@ To get started, you'd run `git deliver --init` in your Git working folder. This 
 
 If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like `git deliver --init rails rails-pgsql` would copy both the "rails" scripts and the "rails-pgsql" scripts, both of which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running `git deliver --list-presets`.
 
-Note that there are nearly no presets right now; I very much welcome contributions in this area. The "yisti" preset, which is build for a custom Common-Lisp environement shows how scripts can get delivery information, how dependencies are defined, how to execute scripts on the remote, and how to signal errors.
+Note that presets are pretty much inexistent right now; I very much welcome contributions in this area.
 
-Once our working copy is ready, each remote needs to be initialized (by running `git deliver --init-remote <remote>`, where `<remote>` is the name of bare Git remote. This will result in the creation of the "delivered" folder on the remote. If you have "init-remote" scripts, they will be run. This might be used to install external dependencies on the remote.
+Once our working copy is ready, if you have "init-remote" scripts, you'll need to run `git deliver --init-remote <remote>` to run those. They might be used to install external dependencies on the remote. If you don't have "init-remote" scripts, remote initialization is not needed.
 
 A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the timeline of what happens:
 
@@ -121,12 +124,12 @@ A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the
 
 * Your scripts might change the delivered files (add production passwords for instance). We therefore do a commit in the clone repository, to save the delivered state. We then change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts.
 
-* If any of the run scripts fails (has a non zero exit status) or if an internal git-deliver step fails, we'll not run the others, and instead initiate a rollback. To do this, we'll run the "rollback-pre-symlink" scripts, switch the symlinks back if necessary (if we went as far in the process as to change them in the first place), then run the "rollback-post-symlink" scripts.
+* If any of the run scripts fails (has a non zero exit status) or if an internal git-deliver step fails, we'll stop the delivery there and initiate a rollback. To do this, we'll run the "rollback-pre-symlink" scripts, switch the symlinks back if necessary (if we went as far in the process as to change them in the first place), then run the "rollback-post-symlink" scripts.
 
 Stage scripts
 =============
 
-Stage scripts can read a few envrionment variables to gather information about the delivery process.
+Stage scripts can read a few environment variables to gather information about the delivery process.
 
 All stages have access to:
 
