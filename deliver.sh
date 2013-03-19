@@ -75,6 +75,7 @@ function exit_with_help
 	{
 	echo "Usage : "
 	echo "  git deliver <REMOTE> <VERSION>"
+	echo "  git deliver --rollback <REMOTE>"
 	echo "  git deliver --gc <REMOTE>"
 	echo "  git deliver --init [PRESETS]"
 	echo "  git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
@@ -497,11 +498,17 @@ function make_temp_file
 	
 function deliver
 	{
-	if [[ $3 != "" ]] || [[ $1 = "" ]] || [[ $2 = "" ]]; then
+	if [[ $3 != "" ]] || [[ $1 = "" ]]; then
 		exit_with_help
 	fi
 	local REMOTE="$1"
-	local VERSION="$2"
+
+	if [[ $FLAGS_rollback != $FLAGS_TRUE ]]; then
+		if [[ $2 = "" ]]; then
+			exit_with_help
+		fi
+		local VERSION="$2"
+	fi
 
 	CURRENT_STAGE_SCRIPT=""
 	LAST_STAGE_REACHED=""
@@ -549,16 +556,18 @@ function deliver
 		fi
 	fi
 
-	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
+	if [[ $FLAGS_rollback != $FLAGS_TRUE ]]; then
+		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
-	local TAG_TO_PUSH=""
-	if [[ "$VERSION_SHA" = "" ]]; then
-		echo "Ref $VERSION not found." >&2
-		confirm_or_exit "Tag current HEAD ?"
-		VERSION_SHA=`git rev-parse HEAD`
-		echo "Tagging current HEAD" >&2
-		git tag $VERSION
-		TAG_TO_PUSH=$VERSION
+		local TAG_TO_PUSH=""
+		if [[ "$VERSION_SHA" = "" ]]; then
+			echo "Ref $VERSION not found." >&2
+			confirm_or_exit "Tag current HEAD ?"
+			VERSION_SHA=`git rev-parse HEAD`
+			echo "Tagging current HEAD" >&2
+			git tag $VERSION
+			TAG_TO_PUSH=$VERSION
+		fi
 	fi
 
 	remote_status "$REMOTE" &> /dev/null
@@ -576,15 +585,15 @@ function deliver
 	fi
 
 	if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
-		DELIVERY_PATH=`run_remote "cd $REMOTE_PATH/delivered/previous && pwd"`
-		if [[ $? -gt 0 ]];
+		DELIVERY_PATH=`run_remote "cd $REMOTE_PATH/delivered/previous && pwd -P" 2>&1`
+		if [[ $? -gt 0 ]]; then
 			echo "No previous version found; cannot rollback"
 			exit 25
 		fi
 		#TODO: Display version and confirm rollback
 		echo "Switching the 'current' symlink to the previous version."
 
-		run_remote "cp \"$REMOTE_PATH/delivered/current\" \"$REMOTE_PATH/delivered/rolledback\" || exit 3 ; \
+		run_remote "cp -d \"$REMOTE_PATH/delivered/current\" \"$REMOTE_PATH/delivered/rolledback\" || exit 3 ; \
 			        mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" || exit 2 ; \
 			        mv \"$REMOTE_PATH/delivered/rolledback\" \"$REMOTE_PATH/delivered/previous\" || exit 1 ; \
 				exit 0"
