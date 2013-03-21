@@ -85,6 +85,10 @@ deliver `<REF>` (sha1, tag, branch) on `<REMOTE>`.
 
 Returns the version delivered (if any) on `[REMOTE]`, or on all remotes if `[REMOTE]` is not specified.
 
+	git deliver --rollback <REMOTE> [PREVIOUSLY_DELIVERED_FOLDER]
+
+Switches back to a previously delivered version on `<REMOTE>`. This is like a regular delivery, except we reuse an already delivered folder and use it to start the process at stage pre-symlink. You can give the name of a previous delivery folder; if you don't, the "previous" version is used.
+
     git deliver --gc <REMOTE>
 
 "garbage collection": remove all previously delivered versions on `<REMOTE>`, except the last three ("current", "previous", "preprevious")
@@ -119,7 +123,9 @@ A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the
 
 * The commit to deliver is pushed to the remote, and the remote repository cloned in the delivered folder. "post-checkout" scripts are then run.
 
-* Your scripts might change the delivered files (add production passwords for instance). We therefore do a commit in the clone repository, to save the delivered state. We then change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts.
+* Your scripts might change the delivered files (add production passwords for instance). We therefore do a commit in the clone repository, to save the delivered state. We then run the "pre-symlink" scripts.
+
+* We change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts.
 
 * If any of the run scripts fails (has a non zero exit status) or if an internal git-deliver step fails, we'll not run the others, and instead initiate a rollback. To do this, we'll run the "rollback-pre-symlink" scripts, switch the symlinks back if necessary (if we went as far in the process as to change them in the first place), then run the "rollback-post-symlink" scripts.
 
@@ -140,6 +146,7 @@ All stages have access to:
     $REMOTE_PATH           path to the bare remote repository we are delivering to
     $REMOTE                name of the Git remote we are delivering to
     $DELIVERY_PATH         path where the version will be delivered on the remote ($REMOTE_PATH/delivered/$VERSION_$DELIVERY_DATE)
+	$IS_ROLLBACK		   boolean, true if this delivery is a rollback to a previously installed version
 
 Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to:
 
