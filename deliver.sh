@@ -517,8 +517,6 @@ function deliver
 	LAST_STAGE_REACHED=""
 	LOG_TEMPFILE=`make_temp_file`
 
-	trap delivery_sigint_handler SIGINT
-
 	echo "#" > "$LOG_TEMPFILE"
 	echo "# This is the log of your delivery" >> "$LOG_TEMPFILE"
 	echo "# It will be added as a note on the delivery tag" >> "$LOG_TEMPFILE"
@@ -588,6 +586,8 @@ function deliver
 	fi
 
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
+
+	trap delivery_sigint_handler SIGINT
 
 	if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
 		local ROLLBACK_TO_VERSION="$VERSION"
