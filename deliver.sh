@@ -823,32 +823,19 @@ function rollback
 	DELIVERY_STAGE="rollback-pre-symlink"
 	run_stage_scripts "$DELIVERY_STAGE"
 	
-	if [[ $SYMLINK_SWITCH_STATUS != "" ]]; then
-		if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]] && [[ $SYMLINK_SWITCH_STATUS -lt 3 ]]; then
-				local SYMLINK_ROLLBACK
-				if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
-					run_remote "cp \"$REMOTE_PATH/delivered/current\" \"$REMOTE_PATH/delivered/rolledback\" \
-								mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" \
-								mv \"$REMOTE_PATH/delivered/rolledback\" \"$REMOTE_PATH/delivered/previous\""
-				elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
-					run_remote "rm  \"$REMOTE_PATH/delivered/rolledback\"; mv -Tf \"$REMOTE_PATH/delivered/current\" \"$REMOTE_PATH/delivered/previous\""
-				elif [[ $SYMLINK_SWITCH_STATUS = 2 ]]; then
-					run_remote "rm  \"$REMOTE_PATH/delivered/rolledback\""
-				fi
-		elif [[ $FLAGS_rollback != $FLAGS_TRUE ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
-				local SYMLINK_ROLLBACK
-				if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
-					SYMLINK_ROLLBACK="if test -L \"$REMOTE_PATH/delivered/previous\"; then mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; else rm -rf \"$REMOTE_PATH/delivered/current\"; fi"
-				elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
-					SYMLINK_ROLLBACK="rm -f \"$REMOTE_PATH/delivered/new\""
-				fi
-				if [[ $SYMLINK_SWITCH_STATUS -lt 3 ]]; then
-					SYMLINK_ROLLBACK="$SYMLINK_ROLLBACK ; rm -f \"$REMOTE_PATH/delivered/previous\"; test -L \"$REMOTE_PATH/delivered/preprevious\" && mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/previous\""
-				fi
-				SYMLINK_ROLLBACK="$SYMLINK_ROLLBACK ; test -L \"$REMOTE_PATH/delivered/prepreprevious\" && mv \"$REMOTE_PATH/delivered/prepreprevious\"  \"$REMOTE_PATH/delivered/preprevious\""
-
-				run_remote "$SYMLINK_ROLLBACK"
+	if [[ $SYMLINK_SWITCH_STATUS != "" ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
+			local symlink_rollback
+			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
+				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; else rm -rf \"$REMOTE_PATH/delivered/current\"; fi"
+			elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
+				symlink_rollback="rm -f \"$REMOTE_PATH/delivered/new\""
 			fi
+			if [[ $SYMLINK_SWITCH_STATUS -lt 3 ]]; then
+				symlink_rollback="$symlink_rollback ; rm -f \"$REMOTE_PATH/delivered/previous\"; test -L \"$REMOTE_PATH/delivered/preprevious\" && mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/previous\""
+			fi
+			symlink_rollback="$symlink_rollback ; test -L \"$REMOTE_PATH/delivered/prepreprevious\" && mv \"$REMOTE_PATH/delivered/prepreprevious\"  \"$REMOTE_PATH/delivered/preprevious\""
+
+			run_remote "$symlink_rollback"
 	fi
 
 	DELIVERY_STAGE="rollback-post-symlink"
