@@ -652,8 +652,8 @@ testBasicDeliverStatus()
 		initWithOrigin
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
-		STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-		assertEquals `git rev-parse master` ${STATUS:0:40} 
+		STATUS=`"$ROOT_DIR"/deliver.sh --status origin 2>&1 | head -n +2 | tail -n 1`
+		assertEquals `git rev-parse master` "${STATUS:3:43}"
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -664,8 +664,8 @@ testBasicDeliverStatusSsh()
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
-	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-	assertEquals `git rev-parse master` ${STATUS:0:40} 
+	STATUS=`"$ROOT_DIR"/deliver.sh --status origin | head -n +2 | tail -n 1`
+	assertEquals `git rev-parse master` "${STATUS:3:43}"
 	}
 
 testStatusNonSshRemote()
@@ -876,32 +876,6 @@ testRollbackPostSymlinkWith3Previous()
 	assertTrueEcho "[ -e delivered/previous/g ]"
 	assertTrueEcho "[ -e delivered/preprevious/h ]"
 	assertTrueEcho "[ ! -e delivered/prepreprevious ]"
-	}
-
-testRollbackCurrentNotWritable()
-	{
-	initWithOrigin
-	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT@\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
-	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
-	touch "$ROOT_DIR/test_remote/delivered/a/f"
-	chmod u-w "$ROOT_DIR/test_remote/delivered/a"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
-	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
-	touch "$ROOT_DIR/test_remote/delivered/b/g"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/c"
-	ln -s "$ROOT_DIR/test_remote/delivered/c" "$ROOT_DIR/test_remote/delivered/preprevious"
-	touch "$ROOT_DIR/test_remote/delivered/c/h"
-	cd "$ROOT_DIR/test_repo"
-	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
-	echo "$A"
-	echo "$A" | grep "POST_FAILED_SCRIPT:@" &> /dev/null
-	assertEquals 0 $?
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ -e delivered/current/f ]"
-	assertTrueEcho "[ -e delivered/previous/g ]"
-	assertTrueEcho "[ -e delivered/preprevious/h ]"
-	chmod u+w "$ROOT_DIR/test_remote/delivered/a"
 	}
 
 testFullRollbackNoRemote()

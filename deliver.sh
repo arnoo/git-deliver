@@ -181,7 +181,8 @@ function remote_status
 			}
 
 			curinfo=\`version_info "current"\`
-			if [[ \$? -lt 3 ]]; then
+			RETURN=\$?
+			if [[ \$RETURN -lt 3 ]]; then
 				echo "No version currently delivered"
 			else
 				echo "\$curinfo"
@@ -639,6 +640,7 @@ function deliver
 	remote_status "$REMOTE" &> /dev/null
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
+		echo "RSTATUS_CODE : $RSTATUS_CODE"
 		echo "No version delivered yet on $REMOTE" >&2
 		if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
 			echo "Cannot rollback"
@@ -646,8 +648,10 @@ function deliver
 		fi
 	else
 		RSTATUS=`remote_status "$REMOTE"`
-		PREVIOUS_VERSION_SHA="${RSTATUS:0:40}"
-		echo "Current version on $REMOTE is $RSTATUS" >&2
+		local version_line=`echo "$RSTATUS" | head -n +2 | tail -n 1`
+		PREVIOUS_VERSION_SHA="${version_line:3:43}"
+		echo "Current version on $REMOTE:"
+		echo "$RSTATUS" >&2
 	fi
 
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
