@@ -88,15 +88,23 @@ function exit_with_help
 	fi
 	}
 
+function echo_indented
+	{
+	local level=$(( $1 + 1 ))
+	shift
+	local prefix=`seq -s "   " $level | sed 's/[0-9]//g'`
+	echo "$@" | sed -e "s/^/$prefix/"
+	}
+
 function remote_status
 	{
 	local REMOTE="$1"
+	local SHORT="$2"
 	if [[ "$REMOTE" = '' ]]; then
 		for R in `git remote`; do
 			echo ""
 			echo "Remote $R :"
-			echo -n "  "
-			remote_status "$R"
+			remote_status "$R" 1
 		done
 	else
 		remote_info "$REMOTE"
@@ -106,40 +114,97 @@ function remote_status
 		fi
 
 		run_remote "bash" <<EOS
+			function echo_indented
+				{
+				local level=\$(( \$1 + 1))
+				shift
+				local prefix=\`seq -s "   " \$level | sed 's/[0-9]//g'\`
+				echo "\$@" | sed -e "s/^/\$prefix/"
+				}
 			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
-				echo "Not a Git-deliver remote"
+				echo_indented 1 "Not a Git-deliver remote"
 				exit 1
 			fi
 			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
 			if [[ \$? -gt 0 ]]; then
-				echo "No delivered version"
+				echo_indented 1 "No delivered version"
 				exit 2
 			fi
-			CURRENT_DIR=\`pwd -P\`
-			CURRENT_DIR=\`basename "\$CURRENT_DIR"\`
-			CURRENT_SHORTSHA1=\${CURRENT_DIR:20:6}
-			LATEST_SHA=\`git log --pretty=format:%H -n 1\`
-			PREVIOUS_SHA=\`git log --pretty=format:%H -n 2 | tail -n 1\`
-			CURRENT_BRANCH=\`git rev-parse --abbrev-ref HEAD\`
-			
-			COMMENT=""
-			
-			if [[ "\$CURRENT_BRANCH" = "_delivered" ]] && [[ \${PREVIOUS_SHA:0:6} = \$CURRENT_SHORTSHA1 ]]; then
-				VERSION=\$PREVIOUS_SHA
-				COMMENT="delivered "\`git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1\`
-				RETURN=3
-			else
-				VERSION=\$LATEST_SHA
-				COMMENT="not delivered with git-deliver"
-				RETURN=4
-			fi
-			
-			TAGS=\`git show-ref --tags -d | grep ^\$VERSION | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered_' | tr "\\n" ", "\`
 
-			if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
-				COMMENT="\$COMMENT, with uncommitted changes"
+			function version_info () {
+				local dir=\`basename "\$1"\`
+				local dir_resolved
+				dir_resolved=\`cd "$REMOTE_PATH/delivered/\$dir" &> /dev/null && pwd -P && cd - &> /dev/null\` 
+				if [[ \$? -gt 0 ]]; then
+					return
+				fi
+				dir_resolved=\`basename "\$dir_resolved"\`
+
+				if [[ "$SHORT" != "1" ]]; then
+					echo -n "\$dir"
+					if [[ "\$dir" = "\$dir_resolved" ]]; then
+						echo ""
+					else
+						echo " (\$dir_resolved)"
+					fi
+				fi
+				local short_sha=\${dir_resolved:20:6}
+				local latest_sha=\`git log --pretty=format:%H -n 1\`
+				local previous_sha=\`git log --pretty=format:%H -n 1 --skip 1\`
+				local branch=\`git rev-parse --abbrev-ref HEAD\`
+
+				if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
+					local version=\$previous_sha
+					local delivery_info=\`git show --pretty=format:'delivered %aD%nby %aN <%aE>' _delivered\`
+					return=3
+				else
+					local version=\$latest_sha
+					local delivery_info="* not delivered with git-deliver *"
+					return=4
+				fi
+
+				local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered-' | tr "\\n" ", "\`
+
+				if [[ "\$tags" = "" ]]; then
+					echo_indented 1 "\$version"
+				else
+					echo_indented 1 "\$version (\$tags)"
+				fi
+
+				if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
+					echo_indented 1 "* plus uncommitted changes *"
+				fi
+
+				echo_indented 1 "\$delivery_info"
+
+				return \$return
+			}
+
+			curinfo=\`version_info "current"\`
+			if [[ \$? -lt 3 ]]; then
+				echo "No version currently delivered"
+			else
+				echo "\$curinfo"
 			fi
-			echo "\$VERSION [\$TAGS] (\$COMMENT)"
+
+			if [[ "$SHORT" != "1" ]]; then
+				echo ""
+				version_info "previous"
+				echo ""
+				version_info "preprevious"
+				curver=\`{ cd "$REMOTE_PATH/delivered/current" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+				prever=\`{ cd "$REMOTE_PATH/delivered/previous" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+				preprever=\`{ cd "$REMOTE_PATH/delivered/preprevious" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+				for rep in \$(find "$REMOTE_PATH/delivered/" -mindepth 1 -maxdepth 1 -type d | sort -r); do
+					if [ "\$rep" != "\$curver" ] &&
+					   [ "\$rep" != "\$prever" ] &&
+					   [ "\$rep" != "\$preprever" ]; then
+						echo ""
+						version_info "\$rep"
+					fi
+				done
+			fi
+
 			exit \$RETURN
 EOS
 	return $?
