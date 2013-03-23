@@ -68,7 +68,7 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || { echo $2 && exit $1; }
+	[[ $? -eq 0 ]] || { echo -e "\E[31m" && echo "$2" && tput sgr0 && exit $1; }
 	}
 
 function exit_with_help
@@ -88,12 +88,11 @@ function exit_with_help
 	fi
 	}
 
-function echo_indented
+function indent
 	{
 	local level=$(( $1 + 1 ))
-	shift
 	local prefix=`seq -s "   " $level | sed 's/[0-9]//g'`
-	echo "$@" | sed -e "s/^/$prefix/"
+	sed -e "s/^/$prefix/"
 	}
 
 function remote_status
@@ -114,20 +113,19 @@ function remote_status
 		fi
 
 		run_remote "bash" <<EOS
-			function echo_indented
+			function indent
 				{
 				local level=\$(( \$1 + 1))
-				shift
 				local prefix=\`seq -s "   " \$level | sed 's/[0-9]//g'\`
-				echo "\$@" | sed -e "s/^/\$prefix/"
+				sed -e "s/^/\$prefix/"
 				}
 			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
-				echo_indented 1 "Not a Git-deliver remote"
+				echo "Not a Git-deliver remote" | indent 1
 				exit 1
 			fi
 			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
 			if [[ \$? -gt 0 ]]; then
-				echo_indented 1 "No delivered version"
+				echo "No delivered version" | indent 1
 				exit 2
 			fi
 
@@ -166,16 +164,16 @@ function remote_status
 				local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered-' | tr "\\n" ", "\`
 
 				if [[ "\$tags" = "" ]]; then
-					echo_indented 1 "\$version"
+					echo "\$version" | indent 1
 				else
-					echo_indented 1 "\$version (\$tags)"
+					echo "\$version (\$tags)" | indent 1
 				fi
 
 				if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
-					echo_indented 1 "* plus uncommitted changes *"
+					echo "* plus uncommitted changes *" | indent 1
 				fi
 
-				echo_indented 1 "\$delivery_info"
+				echo "\$delivery_info" | indent 1
 
 				return \$return
 			}
@@ -304,17 +302,19 @@ function init
 
 function run_stage_scripts
 	{
-	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print)"
+	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"
 		then
 		echo "Running scripts for stage $DELIVERY_STAGE" >&2
 		for SCRIPT_PATH in "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE"/*.sh; do
 			local SCRIPT=`basename "$SCRIPT_PATH"`
 			CURRENT_STAGE_SCRIPT="$SCRIPT"
-			echo "  Running script $DELIVERY_STAGE/$SCRIPT" >&2
+			echo "$DELIVERY_STAGE/$SCRIPT" | indent 1 >&2 
 			if [[ "${SCRIPT: -10}" = ".remote.sh" ]]; then
-				SHELL='run_remote "bash"'
+				SHELL='run_remote bash'
+			else
+				SHELL='bash'
 			fi
-			$SHELL <<EOS
+			{ $SHELL | indent 2 >&2; } <<EOS
 export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 export REPO_ROOT="$REPO_ROOT"
 export DELIVERY_DATE="$DELIVERY_DATE"
@@ -347,15 +347,19 @@ EOS
 			local SCRIPT_RESULT=$?
 			if [[ $SCRIPT_RESULT -gt 0 ]]; then
 				echo "" >&2
+				echo -e "\E[31m"
 				echo "  Script returned with status $SCRIPT_RESULT" >&2
+				tput sgr0
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
 					FAILED_SCRIPT_EXIT_STATUS="$SCRIPT_RESULT"
 					rollback
 				else
+					echo -e "\E[31m"
 					echo "A script failed during rollback, manual intervention is likely necessary"
 					echo "Delivery log : $LOG_TEMPFILE"
+					tput sgr0
 					exit 23
 				fi
 				exit
@@ -647,7 +651,7 @@ function deliver
 			exit 24
 		fi
 	else
-		RSTATUS=`remote_status "$REMOTE"`
+		RSTATUS=`remote_status "$REMOTE" 1`
 		local version_line=`echo "$RSTATUS" | head -n +2 | tail -n 1`
 		PREVIOUS_VERSION_SHA="${version_line:3:43}"
 		echo "Current version on $REMOTE:"
@@ -705,24 +709,27 @@ function deliver
 			run "git push \"$REMOTE\" tag $VERSION"
 			exit_if_error 13
 		fi
+		echo "Pushing necessary commits to remote"
 		#TODO: Can we push just what's needed and not the whole branch ?
-		run "git push \"$REMOTE\" $BRANCH"
+		run "git push \"$REMOTE\" $BRANCH" 2>&1 | indent 1
 		exit_if_error 14
 
 		# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
 
-		run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\""
+		echo "Creating new delivery clone"
+		run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\"" | indent 1
 
 		exit_if_error 5 "Error cloning repo to delivered folder on remote"
 
-		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }"
+		echo "Checking out files" | indent 1
+		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 | indent 1
 		exit_if_error 15 "Error creating tracking branch on remote clone"
 		
-		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION"
+		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
 
 		exit_if_error 6 "Error checking out remote clone"
 		
-		run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive"
+		run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1
 		
 		exit_if_error 7 "Error initializing submodules"
 
@@ -780,12 +787,14 @@ function deliver
 			GPG_OPT=" -s"
 		fi
 	fi
-	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"
+	echo "Tagging delivery commit"
+	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"  2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
-	echo "Delivery complete."
+    echo -e "\E[32mDelivery complete."
+	tput sgr0
 	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
