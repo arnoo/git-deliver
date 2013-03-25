@@ -963,25 +963,4 @@ testFullRollbackVersionSsh()
 	assertEquals `git rev-parse master` "$SSH_SHA1";
 	}
 
-#test3DeliveriesSameVersion()
-#	{
-#	initWithOrigin
-#	"$ROOT_DIR"/deliver.sh --batch origin master 
-#	"$ROOT_DIR"/deliver.sh --batch origin master 
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/previous ]"
-#	assertFalse "[ -L \"$ROOT_DIR\"/test_remote/delivered/preprevious ]"
-#	"$ROOT_DIR"/deliver.sh --batch origin master 
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/current ]"
-#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/current`"\" ]"
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/previous ]"
-#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/previous`"\" ]"
-#	assertTrueEcho "[ -L \"$ROOT_DIR\"/test_remote/delivered/preprevious ]"
-#	assertTrueEcho "[ -d \""`readlink "$ROOT_DIR"/test_remote/delivered/preprevious`"\" ]"
-#
-#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/previous`"
-#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/previous`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
-#	assertNotEquals "`readlink \"$ROOT_DIR\"/test_remote/current`" "`readlink \"$ROOT_DIR\"/test_remote/preprevious`"
-#	}
-	
 . lib/shunit2
