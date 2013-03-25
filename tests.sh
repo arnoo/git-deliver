@@ -652,8 +652,8 @@ testBasicDeliverStatus()
 		initWithOrigin
 		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
-		STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-		assertEquals `git rev-parse master` ${STATUS:0:40} 
+		STATUS=`"$ROOT_DIR"/deliver.sh --status origin 2>&1 | head -n +2 | tail -n 1`
+		assertEquals `git rev-parse master` "${STATUS:3:43}"
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -664,8 +664,8 @@ testBasicDeliverStatusSsh()
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
-	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-	assertEquals `git rev-parse master` ${STATUS:0:40} 
+	STATUS=`"$ROOT_DIR"/deliver.sh --status origin | head -n +2 | tail -n 1`
+	assertEquals `git rev-parse master` "${STATUS:3:43}"
 	}
 
 testStatusNonSshRemote()
@@ -878,29 +878,89 @@ testRollbackPostSymlinkWith3Previous()
 	assertTrueEcho "[ ! -e delivered/prepreprevious ]"
 	}
 
-CtestRollbackCurrentNotWritable()
+testFullRollbackNoRemote()
 	{
-	initWithOrigin
-	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT@\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
-	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
-	chmod u-w "$ROOT_DIR/test_remote/delivered/a"
-	touch "$ROOT_DIR/test_remote/delivered/a/f"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
-	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
-	touch "$ROOT_DIR/test_remote/delivered/b/g"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/c"
-	ln -s "$ROOT_DIR/test_remote/delivered/c" "$ROOT_DIR/test_remote/delivered/preprevious"
-	touch "$ROOT_DIR/test_remote/delivered/c/h"
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
-	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
-	echo "$A"
-	echo "$A" | grep "POST_FAILED_SCRIPT:@" &> /dev/null
-	assertEquals 0 $?
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ -e delivered/current/f ]"
-	assertTrueEcho "[ -e delivered/previous/g ]"
-	assertTrueEcho "[ -e delivered/preprevious/h ]"
+	"$ROOT_DIR"/deliver.sh --rollback &> /dev/null
+	assertEquals 1 $?
+	}
+
+testFullRollbackNoPreviousSsh()
+	{
+	initWithSshOrigin
+	cd "$ROOT_DIR/test_repo"
+	"$ROOT_DIR"/deliver.sh --batch --rollback origin
+	assertEquals 24 $?
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	"$ROOT_DIR"/deliver.sh --batch --rollback origin
+	assertEquals 25 $?
+	}
+
+testFullRollbackSsh()
+	{
+	initWithSshOrigin
+	cd "$ROOT_DIR/test_repo"
+	"$ROOT_DIR"/deliver.sh --batch origin master^
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master^` "$SSH_SHA1";
+
+	"$ROOT_DIR"/deliver.sh --batch origin master
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master` "$SSH_SHA1";
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master^` "$SSH_SHA1";
+
+	"$ROOT_DIR"/deliver.sh --batch --rollback origin
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master^` "$SSH_SHA1";
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master` "$SSH_SHA1";
+	}
+
+testFullRollbackNonExistentVersionSsh()
+	{
+	initWithSshOrigin
+	cd "$ROOT_DIR/test_repo"
+	"$ROOT_DIR"/deliver.sh --batch --rollback origin foo
+	assertEquals 24 $?
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	"$ROOT_DIR"/deliver.sh --batch --rollback origin foo
+	assertEquals 25 $?
+	}
+
+testFullRollbackVersionSsh()
+	{
+	initWithSshOrigin
+	cd "$ROOT_DIR/test_repo"
+	"$ROOT_DIR"/deliver.sh --batch origin master^^
+	local ROLLBACK_TO=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote/delivered/current && pwd -P"`
+	ROLLBACK_TO=`basename "$ROLLBACK_TO"`
+
+	"$ROOT_DIR"/deliver.sh --batch origin master^
+	"$ROOT_DIR"/deliver.sh --batch origin master
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master` "$SSH_SHA1";
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master^` "$SSH_SHA1";
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/preprevious/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master^^` "$SSH_SHA1";
+
+	"$ROOT_DIR"/deliver.sh --batch --rollback origin "$ROLLBACK_TO"
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master^^` "$SSH_SHA1";
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	assertEquals `git rev-parse master` "$SSH_SHA1";
 	}
 
 #test3DeliveriesSameVersion()

@@ -68,13 +68,14 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || { echo $2 && exit $1; }
+	[[ $? -eq 0 ]] || { echo -e "\E[31m" && echo "$2" && tput sgr0 && exit $1; }
 	}
 
 function exit_with_help
 	{
 	echo "Usage : "
 	echo "  git deliver <REMOTE> <VERSION>"
+	echo "  git deliver --rollback <REMOTE> [DELIVERY]"
 	echo "  git deliver --gc <REMOTE>"
 	echo "  git deliver --init [PRESETS]"
 	echo "  git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
@@ -87,15 +88,22 @@ function exit_with_help
 	fi
 	}
 
+function indent
+	{
+	local level=$(( $1 + 1 ))
+	local prefix=`seq -s "   " $level | sed 's/[0-9]//g'`
+	sed -e "s/^/$prefix/"
+	}
+
 function remote_status
 	{
 	local REMOTE="$1"
+	local SHORT="$2"
 	if [[ "$REMOTE" = '' ]]; then
 		for R in `git remote`; do
 			echo ""
 			echo "Remote $R :"
-			echo -n "  "
-			remote_status "$R"
+			remote_status "$R" 1
 		done
 	else
 		remote_info "$REMOTE"
@@ -105,40 +113,97 @@ function remote_status
 		fi
 
 		run_remote "bash" <<EOS
+			function indent
+				{
+				local level=\$(( \$1 + 1))
+				local prefix=\`seq -s "   " \$level | sed 's/[0-9]//g'\`
+				sed -e "s/^/\$prefix/"
+				}
 			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
-				echo "Not a Git-deliver remote"
+				echo "Not a Git-deliver remote" | indent 1
 				exit 1
 			fi
 			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
 			if [[ \$? -gt 0 ]]; then
-				echo "No delivered version"
+				echo "No delivered version" | indent 1
 				exit 2
 			fi
-			CURRENT_DIR=\`pwd -P\`
-			CURRENT_DIR=\`basename "\$CURRENT_DIR"\`
-			CURRENT_SHORTSHA1=\${CURRENT_DIR:20:6}
-			LATEST_SHA=\`git log --pretty=format:%H -n 1\`
-			PREVIOUS_SHA=\`git log --pretty=format:%H -n 2 | tail -n 1\`
-			CURRENT_BRANCH=\`git rev-parse --abbrev-ref HEAD\`
-			
-			COMMENT=""
-			
-			if [[ "\$CURRENT_BRANCH" = "_delivered" ]] && [[ \${PREVIOUS_SHA:0:6} = \$CURRENT_SHORTSHA1 ]]; then
-				VERSION=\$PREVIOUS_SHA
-				COMMENT="delivered "\`git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1\`
-				RETURN=3
-			else
-				VERSION=\$LATEST_SHA
-				COMMENT="not delivered with git-deliver"
-				RETURN=4
-			fi
-			
-			TAGS=\`git show-ref --tags -d | grep ^\$VERSION | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered_' | tr "\\n" ", "\`
 
-			if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
-				COMMENT="\$COMMENT, with uncommitted changes"
+			function version_info () {
+				local dir=\`basename "\$1"\`
+				local dir_resolved
+				dir_resolved=\`cd "$REMOTE_PATH/delivered/\$dir" &> /dev/null && pwd -P && cd - &> /dev/null\` 
+				if [[ \$? -gt 0 ]]; then
+					return
+				fi
+				dir_resolved=\`basename "\$dir_resolved"\`
+
+				if [[ "$SHORT" != "1" ]]; then
+					echo -n "\$dir"
+					if [[ "\$dir" = "\$dir_resolved" ]]; then
+						echo ""
+					else
+						echo " (\$dir_resolved)"
+					fi
+				fi
+				local short_sha=\${dir_resolved:20:6}
+				local latest_sha=\`git log --pretty=format:%H -n 1\`
+				local previous_sha=\`git log --pretty=format:%H -n 1 --skip 1\`
+				local branch=\`git rev-parse --abbrev-ref HEAD\`
+
+				if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
+					local version=\$previous_sha
+					local delivery_info=\`git show --pretty=format:'delivered %aD%nby %aN <%aE>' _delivered\`
+					return=3
+				else
+					local version=\$latest_sha
+					local delivery_info="* not delivered with git-deliver *"
+					return=4
+				fi
+
+				local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered-' | tr "\\n" ", "\`
+
+				if [[ "\$tags" = "" ]]; then
+					echo "\$version" | indent 1
+				else
+					echo "\$version (\$tags)" | indent 1
+				fi
+
+				if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
+					echo "* plus uncommitted changes *" | indent 1
+				fi
+
+				echo "\$delivery_info" | indent 1
+
+				return \$return
+			}
+
+			curinfo=\`version_info "current"\`
+			RETURN=\$?
+			if [[ \$RETURN -lt 3 ]]; then
+				echo "No version currently delivered"
+			else
+				echo "\$curinfo"
 			fi
-			echo "\$VERSION [\$TAGS] (\$COMMENT)"
+
+			if [[ "$SHORT" != "1" ]]; then
+				echo ""
+				version_info "previous"
+				echo ""
+				version_info "preprevious"
+				curver=\`{ cd "$REMOTE_PATH/delivered/current" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+				prever=\`{ cd "$REMOTE_PATH/delivered/previous" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+				preprever=\`{ cd "$REMOTE_PATH/delivered/preprevious" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+				for rep in \$(find "$REMOTE_PATH/delivered/" -mindepth 1 -maxdepth 1 -type d | sort -r); do
+					if [ "\$rep" != "\$curver" ] &&
+					   [ "\$rep" != "\$prever" ] &&
+					   [ "\$rep" != "\$preprever" ]; then
+						echo ""
+						version_info "\$rep"
+					fi
+				done
+			fi
+
 			exit \$RETURN
 EOS
 	return $?
@@ -221,7 +286,7 @@ function init
 		check_preset $PRESET
         done
 	mkdir -p "$REPO_ROOT/.deliver/scripts"
-	for STAGE in dependencies init-remote pre-delivery post-checkout post-symlink rollback-pre-symlink rollback-post-symlink; do
+	for STAGE in dependencies init-remote pre-delivery post-checkout pre-symlink post-symlink rollback-pre-symlink rollback-post-symlink; do
 		mkdir "$REPO_ROOT/.deliver/scripts/$STAGE"
 		echo -e "Put your $STAGE Bash scripts in this folder with a .sh extension.\n\nSee https://github.com/arnoo/git-deliver for help." >> "$REPO_ROOT/.deliver/scripts/$STAGE/README"
 	done
@@ -237,17 +302,19 @@ function init
 
 function run_stage_scripts
 	{
-	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print)"
+	if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"
 		then
 		echo "Running scripts for stage $DELIVERY_STAGE" >&2
 		for SCRIPT_PATH in "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE"/*.sh; do
 			local SCRIPT=`basename "$SCRIPT_PATH"`
 			CURRENT_STAGE_SCRIPT="$SCRIPT"
-			echo "  Running script $DELIVERY_STAGE/$SCRIPT" >&2
+			echo "$DELIVERY_STAGE/$SCRIPT" | indent 1 >&2 
 			if [[ "${SCRIPT: -10}" = ".remote.sh" ]]; then
-				SHELL='run_remote "bash"'
+				SHELL='run_remote bash'
+			else
+				SHELL='bash'
 			fi
-			$SHELL <<EOS
+			{ $SHELL | indent 2 >&2; } <<EOS
 export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 export REPO_ROOT="$REPO_ROOT"
 export DELIVERY_DATE="$DELIVERY_DATE"
@@ -259,6 +326,7 @@ export REMOTE_SERVER="$REMOTE_SERVER"
 export REMOTE_PATH="$REMOTE_PATH"
 export REMOTE="$REMOTE"
 export LAST_STAGE_REACHED="$LAST_STAGE_REACHED"
+export IS_ROLLBACK="$IS_ROLLBACK"
 export FAILED_SCRIPT="$FAILED_SCRIPT"
 export FAILED_SCRIPT_EXIT_STATUS="$FAILED_SCRIPT_EXIT_STATUS"
 
@@ -279,15 +347,19 @@ EOS
 			local SCRIPT_RESULT=$?
 			if [[ $SCRIPT_RESULT -gt 0 ]]; then
 				echo "" >&2
+				echo -e "\E[31m"
 				echo "  Script returned with status $SCRIPT_RESULT" >&2
+				tput sgr0
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
 					FAILED_SCRIPT_EXIT_STATUS="$SCRIPT_RESULT"
 					rollback
 				else
+					echo -e "\E[31m"
 					echo "A script failed during rollback, manual intervention is likely necessary"
 					echo "Delivery log : $LOG_TEMPFILE"
+					tput sgr0
 					exit 23
 				fi
 				exit
@@ -497,17 +569,23 @@ function make_temp_file
 	
 function deliver
 	{
-	if [[ $3 != "" ]] || [[ $1 = "" ]] || [[ $2 = "" ]]; then
+	if [[ $3 != "" ]] || [[ $1 = "" ]]; then
 		exit_with_help
 	fi
 	local REMOTE="$1"
+
+	IS_ROLLBACK="True"
+	if [[ $FLAGS_rollback != $FLAGS_TRUE ]]; then
+		IS_ROLLBACK="False"
+		if [[ $2 = "" ]]; then
+			exit_with_help
+		fi
+	fi
 	local VERSION="$2"
 
 	CURRENT_STAGE_SCRIPT=""
 	LAST_STAGE_REACHED=""
 	LOG_TEMPFILE=`make_temp_file`
-
-	trap delivery_sigint_handler SIGINT
 
 	echo "#" > "$LOG_TEMPFILE"
 	echo "# This is the log of your delivery" >> "$LOG_TEMPFILE"
@@ -549,87 +627,128 @@ function deliver
 		fi
 	fi
 
-	VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
+	if [[ $FLAGS_rollback != $FLAGS_TRUE ]]; then
+		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
-	local TAG_TO_PUSH=""
-	if [[ "$VERSION_SHA" = "" ]]; then
-		echo "Ref $VERSION not found." >&2
-		confirm_or_exit "Tag current HEAD ?"
-		VERSION_SHA=`git rev-parse HEAD`
-		echo "Tagging current HEAD" >&2
-		git tag $VERSION
-		TAG_TO_PUSH=$VERSION
+		local TAG_TO_PUSH=""
+		if [[ "$VERSION_SHA" = "" ]]; then
+			echo "Ref $VERSION not found." >&2
+			confirm_or_exit "Tag current HEAD ?"
+			VERSION_SHA=`git rev-parse HEAD`
+			echo "Tagging current HEAD" >&2
+			git tag $VERSION
+			TAG_TO_PUSH=$VERSION
+		fi
 	fi
 
 	remote_status "$REMOTE" &> /dev/null
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
+		echo "RSTATUS_CODE : $RSTATUS_CODE"
 		echo "No version delivered yet on $REMOTE" >&2
+		if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
+			echo "Cannot rollback"
+			exit 24
+		fi
 	else
-		RSTATUS=`remote_status "$REMOTE"`
-		PREVIOUS_VERSION_SHA="${RSTATUS:0:40}"
-		echo "Current version on $REMOTE is $RSTATUS" >&2
+		RSTATUS=`remote_status "$REMOTE" 1`
+		local version_line=`echo "$RSTATUS" | head -n +2 | tail -n 1`
+		PREVIOUS_VERSION_SHA="${version_line:3:43}"
+		echo "Current version on $REMOTE:"
+		echo "$RSTATUS" >&2
 	fi
 
 	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
-	HUMAN_VERSION="${VERSION_SHA:0:6}"
-	if [[ $VERSION != $VERSION_SHA ]]; then
-		HUMAN_VERSION="$HUMAN_VERSION"_"$VERSION"
-	fi
-	DELIVERY_BASENAME="$DELIVERY_DATE"_"$HUMAN_VERSION"
-	DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_BASENAME"
 
-	local BRANCHES=`git branch --contains $VERSION`
-	if [[ "$BRANCHES" = "" ]]; then
-		echo "ERROR : Can't deliver a commit that does not belong to a local branch"
-		exit 16
-	fi
-	
-	local BRANCH=`echo "$BRANCHES" | grep '^* ' | tr -d ' *'`
-	if [[ "$BRANCH" = "" ]]; then
-		BRANCH=`echo "$BRANCHES" | head -n 1 | tr -d ' '`
+	trap delivery_sigint_handler SIGINT
+
+	if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
+		local ROLLBACK_TO_VERSION="$VERSION"
+		if [[ "$VERSION" = "" ]]; then
+				ROLLBACK_TO_VERSION="previous"
+		fi
+		DELIVERY_PATH=`run_remote "cd \"$REMOTE_PATH/delivered/$ROLLBACK_TO_VERSION\" && pwd -P" 2>&1`
+		if [[ $? -gt 0 ]]; then
+			if [[ "$VERSION" = "" ]]; then
+				echo "No previous version found; cannot rollback"
+			else
+				echo "Delivery $VERSION not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
+			fi
+			exit 25
+		fi
+		local DELIVERY_INFOS
+		DELIVERY_INFOS=`run_remote "cd \"$DELIVERY_PATH\" && git log -n 1 --skip 1 --pretty=format:%H && echo "" && git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1" 2>&1`
+		exit_if_error 26 "Error getting information on version to rollback to."
+		VERSION_SHA=`echo "$DELIVERY_INFOS" | head -n 1`
+		local ROLLBACK_TARGET_INFO=`echo "$DELIVERY_INFOS" | tail -n 1`
+		DELIVERY_BASENAME=`basename "$DELIVERY_PATH"`
+		echo "Rolling back the 'current' symlink to the delivery $DELIVERY_BASENAME ($VERSION_SHA), delivered $ROLLBACK_TARGET_INFO"
+	else
+		HUMAN_VERSION="${VERSION_SHA:0:6}"
+		if [[ $VERSION != $VERSION_SHA ]]; then
+			HUMAN_VERSION="$HUMAN_VERSION"_"$VERSION"
+		fi
+		DELIVERY_BASENAME="$DELIVERY_DATE"_"$HUMAN_VERSION"
+		DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_BASENAME"
+
+		local BRANCHES=`git branch --contains $VERSION`
+		if [[ "$BRANCHES" = "" ]]; then
+			echo "ERROR : Can't deliver a commit that does not belong to a local branch"
+			exit 16
+		fi
+		
+		local BRANCH=`echo "$BRANCHES" | grep '^* ' | tr -d ' *'`
+		if [[ "$BRANCH" = "" ]]; then
+			BRANCH=`echo "$BRANCHES" | head -n 1 | tr -d ' '`
+		fi
+
+		DELIVERY_STAGE="pre-delivery"
+		run_stage_scripts
+
+		if git tag -l | grep '^'"$VERSION"'$' &> /dev/null; then
+			run "git push \"$REMOTE\" tag $VERSION"
+			exit_if_error 13
+		fi
+		echo "Pushing necessary commits to remote"
+		#TODO: Can we push just what's needed and not the whole branch ?
+		run "git push \"$REMOTE\" $BRANCH" 2>&1 | indent 1
+		exit_if_error 14
+
+		# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
+
+		echo "Creating new delivery clone"
+		run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\"" | indent 1
+
+		exit_if_error 5 "Error cloning repo to delivered folder on remote"
+
+		echo "Checking out files" | indent 1
+		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 | indent 1
+		exit_if_error 15 "Error creating tracking branch on remote clone"
+		
+		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
+
+		exit_if_error 6 "Error checking out remote clone"
+		
+		run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1
+		
+		exit_if_error 7 "Error initializing submodules"
+
+		DELIVERY_STAGE="post-checkout"
+		run_stage_scripts
+
+		# Commit after the post-checkouts have run and might have changed a few things (added production database passwords for instance).
+		# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
+
+		local DELIVERED_BY_NAME=`git config --get user.name`
+		local DELIVERED_BY_EMAIL=`git config --get user.email`
+		run_remote "cd \"$DELIVERY_PATH\" && GIT_COMMITTER_NAME=\"$DELIVERED_BY_NAME\" GIT_COMMITTER_EMAIL=\"$DELIVERED_BY_EMAIL\" git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
+
+		echo "Switching the 'current' symlink to the newly delivered version."
+		# Using a symlink makes our delivery atomic.
 	fi
 
-	DELIVERY_STAGE="pre-delivery"
+	DELIVERY_STAGE="pre-symlink"
 	run_stage_scripts
-
-	if git tag -l | grep '^'"$VERSION"'$' &> /dev/null; then
-		run "git push \"$REMOTE\" tag $VERSION"
-		exit_if_error 13
-	fi
-	#TODO: Can we push just what's needed and not the whole branch ?
-	run "git push \"$REMOTE\" $BRANCH"
-	exit_if_error 14
-
-	# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
-
-	run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\""
-
-	exit_if_error 5 "Error cloning repo to delivered folder on remote"
-
-	run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }"
-	exit_if_error 15 "Error creating tracking branch on remote clone"
-	
-	run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION"
-
-	exit_if_error 6 "Error checking out remote clone"
-	
-	run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive"
-	
-	exit_if_error 7 "Error initializing submodules"
-
-	DELIVERY_STAGE="post-checkout"
-	run_stage_scripts
-
-	# Commit after the post-checkouts have run and might have changed a few things (added production database passwords for instance).
-	# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
-
-	local DELIVERED_BY_NAME=`git config --get user.name`
-	local DELIVERED_BY_EMAIL=`git config --get user.email`
-	run_remote "cd \"$DELIVERY_PATH\" && GIT_COMMITTER_NAME=\"$DELIVERED_BY_NAME\" GIT_COMMITTER_EMAIL=\"$DELIVERED_BY_EMAIL\" git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
-
-	echo "Switching the 'current' symlink to the newly delivered version."
-	# Using a symlink makes our delivery atomic.
 
 	#TODO: ask for confirmation before switch, with an option to see the complete diff through $PAGER since the last delivery + option to check this diff against the ones generated by running the same update on other environements
 
@@ -640,6 +759,7 @@ function deliver
 			exit 0"
 
 	SYMLINK_SWITCH_STATUS=$?
+
 	if [[ $SYMLINK_SWITCH_STATUS -gt 0 ]]; then
 		echo "Error switching symlinks"
 		rollback "pre-symlink"
@@ -667,12 +787,14 @@ function deliver
 			GPG_OPT=" -s"
 		fi
 	fi
-	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION"
+	echo "Tagging delivery commit"
+	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"  2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
-	echo "Delivery complete."
+    echo -e "\E[32mDelivery complete."
+	tput sgr0
 	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
@@ -711,18 +833,18 @@ function rollback
 	run_stage_scripts "$DELIVERY_STAGE"
 	
 	if [[ $SYMLINK_SWITCH_STATUS != "" ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
-		local SYMLINK_ROLLBACK
-		if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
-			SYMLINK_ROLLBACK="if test -L \"$REMOTE_PATH/delivered/previous\"; then mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; else rm -rf \"$REMOTE_PATH/delivered/current\"; fi"
-		elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
-			SYMLINK_ROLLBACK="rm -f \"$REMOTE_PATH/delivered/new\""
-		fi
-		if [[ $SYMLINK_SWITCH_STATUS -lt 3 ]]; then
-			SYMLINK_ROLLBACK="$SYMLINK_ROLLBACK ; rm -f \"$REMOTE_PATH/delivered/previous\"; test -L \"$REMOTE_PATH/delivered/preprevious\" && mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/previous\""
-		fi
-		SYMLINK_ROLLBACK="$SYMLINK_ROLLBACK ; test -L \"$REMOTE_PATH/delivered/prepreprevious\" && mv \"$REMOTE_PATH/delivered/prepreprevious\"  \"$REMOTE_PATH/delivered/preprevious\""
+			local symlink_rollback
+			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
+				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; else rm -rf \"$REMOTE_PATH/delivered/current\"; fi"
+			elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
+				symlink_rollback="rm -f \"$REMOTE_PATH/delivered/new\""
+			fi
+			if [[ $SYMLINK_SWITCH_STATUS -lt 3 ]]; then
+				symlink_rollback="$symlink_rollback ; rm -f \"$REMOTE_PATH/delivered/previous\"; test -L \"$REMOTE_PATH/delivered/preprevious\" && mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/previous\""
+			fi
+			symlink_rollback="$symlink_rollback ; test -L \"$REMOTE_PATH/delivered/prepreprevious\" && mv \"$REMOTE_PATH/delivered/prepreprevious\"  \"$REMOTE_PATH/delivered/preprevious\""
 
-		run_remote "$SYMLINK_ROLLBACK"
+			run_remote "$symlink_rollback"
 	fi
 
 	DELIVERY_STAGE="rollback-post-symlink"
