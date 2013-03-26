@@ -311,46 +311,46 @@ function run_stage_scripts
 			else
 				SHELL='bash'
 			fi
-			{ $SHELL | indent 2 >&2; } <<EOS
-export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
-export REPO_ROOT="$REPO_ROOT"
-export DELIVERY_DATE="$DELIVERY_DATE"
-export DELIVERY_PATH="$DELIVERY_PATH"
-export VERSION="$VERSION"
-export VERSION_SHA="$VERSION_SHA"
-export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
-export REMOTE_SERVER="$REMOTE_SERVER"
-export REMOTE_PATH="$REMOTE_PATH"
-export REMOTE="$REMOTE"
-export LAST_STAGE_REACHED="$LAST_STAGE_REACHED"
-export IS_ROLLBACK="$IS_ROLLBACK"
-export FAILED_SCRIPT="$FAILED_SCRIPT"
-export FAILED_SCRIPT_EXIT_STATUS="$FAILED_SCRIPT_EXIT_STATUS"
-
-function run_remote
-	{
-	COMMAND="\$*"
-	if [[ "$REMOTE_SERVER" = "" ]]; then
-		bash -c "\$COMMAND"
-	else
-		ssh "$REMOTE_SERVER" "\$COMMAND"
-	fi
-	}
-
-export -f run_remote
-
-`cat "$SCRIPT_PATH"`
-EOS
-			local SCRIPT_RESULT=$?
-			if [[ $SCRIPT_RESULT -gt 0 ]]; then
+			local script_result
+			{ $SHELL | indent 2 >&2; script_result=${PIPESTATUS[0]}; } <<-EOS
+				export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
+				export REPO_ROOT="$REPO_ROOT"
+				export DELIVERY_DATE="$DELIVERY_DATE"
+				export DELIVERY_PATH="$DELIVERY_PATH"
+				export VERSION="$VERSION"
+				export VERSION_SHA="$VERSION_SHA"
+				export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
+				export REMOTE_SERVER="$REMOTE_SERVER"
+				export REMOTE_PATH="$REMOTE_PATH"
+				export REMOTE="$REMOTE"
+				export LAST_STAGE_REACHED="$LAST_STAGE_REACHED"
+				export IS_ROLLBACK="$IS_ROLLBACK"
+				export FAILED_SCRIPT="$FAILED_SCRIPT"
+				export FAILED_SCRIPT_EXIT_STATUS="$FAILED_SCRIPT_EXIT_STATUS"
+				
+				function run_remote
+					{
+					COMMAND="\$*"
+					if [[ "$REMOTE_SERVER" = "" ]]; then
+						bash -c "\$COMMAND"
+					else
+						ssh "$REMOTE_SERVER" "\$COMMAND"
+					fi
+					}
+				
+				export -f run_remote
+				
+				`cat "$SCRIPT_PATH"`
+			EOS
+			if [[ $script_result -gt 0 ]]; then
 				echo "" >&2
-				echo -e "\E[31m"
-				echo "  Script returned with status $SCRIPT_RESULT" >&2
+				echo -ne "\E[31m"
+				echo "Script returned with status $script_result" | indent 1 >&2
 				tput sgr0
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
-					FAILED_SCRIPT_EXIT_STATUS="$SCRIPT_RESULT"
+					FAILED_SCRIPT_EXIT_STATUS="$script_result"
 					rollback
 				else
 					echo -e "\E[31m"
@@ -641,7 +641,6 @@ function deliver
 	remote_status "$REMOTE" &> /dev/null
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
-		echo "RSTATUS_CODE : $RSTATUS_CODE"
 		echo "No version delivered yet on $REMOTE" >&2
 		if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
 			echo "Cannot rollback"
@@ -707,27 +706,33 @@ function deliver
 			exit_if_error 13
 		fi
 		echo "Pushing necessary commits to remote"
-		run "git push \"$REMOTE\" $BRANCH" 2>&1 | indent 1
-		exit_if_error 14
+		{ run "git push \"$REMOTE\" $BRANCH" 2>&1 || exit 14 ; } | indent 1
 
 		# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
 
 		echo "Creating new delivery clone"
-		run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\"" | indent 1
+		{
+			run_remote "git clone --reference \"$REMOTE_PATH\" --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\"" ;
 
-		exit_if_error 5 "Error cloning repo to delivered folder on remote"
+			exit_if_error 5 "Error cloning repo to delivered folder on remote" ;
+		} | indent 1
+
 
 		echo "Checking out files" | indent 1
-		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 | indent 1
-		exit_if_error 15 "Error creating tracking branch on remote clone"
+		{
+			run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 ;
+			exit_if_error 15 "Error creating tracking branch on remote clone" ;
+		}| indent 1
 		
-		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
-
-		exit_if_error 6 "Error checking out remote clone"
+		{
+			run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1 ;
+			exit_if_error 6 "Error checking out remote clone" ;
+		}
 		
-		run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1
-		
-		exit_if_error 7 "Error initializing submodules"
+		{
+			run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1 ;
+			exit_if_error 7 "Error initializing submodules"
+		}
 
 		DELIVERY_STAGE="post-checkout"
 		run_stage_scripts

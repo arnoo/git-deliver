@@ -168,10 +168,13 @@ testRunScripts()
 	{
 	cd "$ROOT_DIR/test_repo"
 	mkdir -p ".deliver/scripts/foo"
-	echo "echo -n 'L:' ; test \"\$SSH_CONNECTION\" = \"\" && echo -n 'OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/01-bar.sh"
-	echo "echo -n ',R:' ; test \"\$SSH_CONNECTION\" = \"\" || echo -n 'OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/02-bar.remote.sh"
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="'$SSH_TEST_USER@$SSH_TEST_HOST'" REMOTE_PROTO="ssh" DELIVERY_STAGE="foo" run_stage_scripts' | bash`
-	assertEquals "L:OK,R:OK" "$A"
+	echo "test \"\$SSH_CONNECTION\" = \"\" && echo 'L:OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/01-bar.sh"
+	echo "test \"\$SSH_CONNECTION\" = \"\" || echo 'R:OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/02-bar.remote.sh"
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; REMOTE_SERVER="'$SSH_TEST_USER@$SSH_TEST_HOST'" REMOTE_PROTO="ssh" DELIVERY_STAGE="foo" run_stage_scripts' | bash 2>&1 | grep OK`
+	echo "$A" | grep "L:OK" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "R:OK" &> /dev/null
+	assertEquals 0 $?
 	}
 
 testHelp1()
