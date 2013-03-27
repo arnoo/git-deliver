@@ -12,7 +12,7 @@ assertTrueEcho()
 initDeliver()
 	{
 	cd "$ROOT_DIR/test_repo"
-	"$ROOT_DIR"/deliver.sh --batch --init $* > /dev/null 2>&1 
+	"$ROOT_DIR"/deliver.sh --init --batch $* > /dev/null 2>&1 
 	}
 
 initWithOrigin()
@@ -216,7 +216,7 @@ testInitPreset()
 testInitBadPreset()
 	{
 	cd "$ROOT_DIR/test_repo"
-	A=`"$ROOT_DIR"/deliver.sh --batch --init foo 2>&1`
+	A=`"$ROOT_DIR"/deliver.sh --init --batch foo 2>&1`
 	assertEquals 19 $? 
 	echo "$A" | grep "could not find preset" > /dev/null 2>&1
 	assertEquals 0 $?
@@ -248,7 +248,7 @@ testInitNonExistingRemoteLocal()
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initDeliver
 		cd "$ROOT_DIR"/test_repo
-		"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir
+		"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote "$ROOT_DIR"/test_new_remote_dir
 		cd "$ROOT_DIR"/test_new_remote_dir
 		assertEquals 0 $?
 		assertTrueEcho "[ -d delivered ]"
@@ -265,7 +265,7 @@ testInitNonExistingRemoteSsh()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d "$SSH_TEST_PATH"/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
@@ -276,7 +276,7 @@ testInitNonExistingRemoteSsh2()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
@@ -287,7 +287,7 @@ testInitNonExistingRemoteSsh3()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
@@ -298,10 +298,10 @@ testInitAlreadyInitRemoteSsh()
 	{
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d $SSH_TEST_PATH/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
 	assertEquals 18 $?
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
 	git remote remove new_remote
@@ -312,7 +312,7 @@ testInitNonSshRemote()
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
 	git remote add git git://user@host/path/a/b
-	"$ROOT_DIR"/deliver.sh --batch --init-remote git 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch git 2>&1 > /dev/null
 	assertEquals 17 $?
 	}
 
@@ -322,7 +322,7 @@ testInitNonExistingRemoteDirExisting()
 		initDeliver
 		cd "$ROOT_DIR"/test_repo
 		mkdir "$ROOT_DIR/test_new_remote_dir"
-		"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_new_remote_dir
 		assertEquals 0 $?
 		assertTrueEcho "[ -d delivered ]"
@@ -342,7 +342,7 @@ testInitNonExistingRemoteDirExistingSsh()
 	SSH_NEW_DIR="$SSH_TEST_PATH/test_new_remote_dir"
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir \"$SSH_NEW_DIR\""
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_NEW_DIR" 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_NEW_DIR" 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_NEW_DIR\" && test -d delivered && test -d refs"
 	assertEquals 0 $?
@@ -357,7 +357,7 @@ testInitNonExistingRemoteDirFileExisting()
 		initDeliver
 		cd "$ROOT_DIR"/test_repo
 		touch "$ROOT_DIR/test_new_remote_dir"
-		"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir
+		"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote "$ROOT_DIR"/test_new_remote_dir
 		assertEquals 10 $?
 		assertFalse "[ -d \"$ROOT_DIR\"/test_new_remote_dir/delivered ]"
 		rm -rf "$ROOT_DIR"/test_new_remote_dir
@@ -374,7 +374,7 @@ testInitNonExistingRemoteDirFileExistingSsh()
 	SSH_NEW_DIR="$SSH_TEST_PATH/test_new_remote_dir"
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "touch \"$SSH_NEW_DIR\""
 
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_NEW_DIR" 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_NEW_DIR" 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "test -d \"$SSH_NEW_DIR/delivered\""
 	assertEquals 1 $?
@@ -390,7 +390,7 @@ testInitNonExistingRemoteDirExistingNonEmpty()
 		cd "$ROOT_DIR"/test_repo
 		mkdir "$ROOT_DIR/test_new_remote_dir"
 		touch "$ROOT_DIR/test_new_remote_dir/file1"
-		"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote "$ROOT_DIR"/test_new_remote_dir 2>&1 > /dev/null
 		assertEquals 9 $?
 		assertFalse "[ -d \"$ROOT_DIR\"/test_new_remote_dir/delivered ]"
 		rm -rf "$ROOT_DIR"/test_new_remote_dir
@@ -409,7 +409,7 @@ testInitNonExistingRemoteDirExistingNonEmptySsh()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir \"$SSH_NEW_DIR\" && touch \"$SSH_NEW_DIR/file1\""
 
 
-	"$ROOT_DIR"/deliver.sh --batch --init-remote new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_NEW_DIR" 2>&1 > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_NEW_DIR" 2>&1 > /dev/null
 	assertEquals 9 $?
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "test -d \"$SSH_NEW_DIR/delivered\""
@@ -440,7 +440,7 @@ testBasicDeliverMaster()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
 		echo "$A"
 		echo "$A" | grep "No version delivered yet on origin" &> /dev/null
@@ -470,7 +470,7 @@ testBasicDeliverMaster()
 testBasicDeliverMasterSsh()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
 	echo "$A"
 	echo "$A" | grep "No version delivered yet on origin" > /dev/null
@@ -489,7 +489,7 @@ testBasicDeliverNonHeadSha1OnMaster()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse master^` 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
@@ -506,7 +506,7 @@ testBasicDeliverNonHeadSha1OnMaster()
 testBasicDeliverNonHeadSha1OnMasterSsh()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse master^` 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
@@ -522,7 +522,7 @@ testBasicDeliverNonHeadTag()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin older 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
@@ -539,7 +539,7 @@ testBasicDeliverNonHeadTag()
 testBasicDeliverNonHeadTagSsh()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin older 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
@@ -555,7 +555,7 @@ testBasicDeliverNonMasterBranch()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin branch 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
@@ -572,7 +572,7 @@ testBasicDeliverNonMasterBranch()
 testBasicDeliverNonMasterBranchSsh()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin branch 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
@@ -588,7 +588,7 @@ testBasicDeliverNonHeadSha1OtherBranch()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse branch^` 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
@@ -605,7 +605,7 @@ testBasicDeliverNonHeadSha1OtherBranch()
 testBasicDeliverNonHeadSha1OtherBranchSsh()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin `git rev-parse branch^` 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
@@ -621,7 +621,7 @@ testBasicDeliverNonHeadTagOtherBranch()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin branch_non_head 2>&1 > /dev/null
 		cd "$ROOT_DIR"/test_remote
 		assertEquals 0 $?
@@ -638,7 +638,7 @@ testBasicDeliverNonHeadTagOtherBranch()
 testBasicDeliverNonHeadTagOtherBranch()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin branch_non_head 2>&1 > /dev/null
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
@@ -653,7 +653,7 @@ testBasicDeliverStatus()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
 		initWithOrigin
-		"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 		"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 		STATUS=`"$ROOT_DIR"/deliver.sh --status origin 2>&1 | head -n +2 | tail -n 1`
 		assertEquals `git rev-parse master` "${STATUS:3:43}"
@@ -665,7 +665,7 @@ testBasicDeliverStatus()
 testBasicDeliverStatusSsh()
 	{
 	initWithSshOrigin
-	"$ROOT_DIR"/deliver.sh --batch --init-remote origin > /dev/null
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	STATUS=`"$ROOT_DIR"/deliver.sh --status origin | head -n +2 | tail -n 1`
 	assertEquals `git rev-parse master` "${STATUS:3:43}"
@@ -694,7 +694,7 @@ testLocalGC()
 		ln -s "$ROOT_DIR"/test_remote/delivered/a "$ROOT_DIR"/test_remote/delivered/current
 		ln -s "$ROOT_DIR"/test_remote/delivered/b "$ROOT_DIR"/test_remote/delivered/previous
 		ln -s "$ROOT_DIR"/test_remote/delivered/c "$ROOT_DIR"/test_remote/delivered/preprevious
-		GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
+		GC=`"$ROOT_DIR"/deliver.sh --gc --batch origin`
 		echo "$GC" | grep "1 version(s) removed" > /dev/null
 		assertEquals 0 $?
 		echo "GC: $GC"
@@ -704,7 +704,7 @@ testLocalGC()
 		assertTrueEcho "[ -d c ]"
 		assertTrueEcho "[ ! -d d ]"
 		cd "$ROOT_DIR"/test_repo
-		GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
+		GC=`"$ROOT_DIR"/deliver.sh --gc --batch origin`
 		echo "$GC" | grep "0 version(s) removed" > /dev/null
 		assertEquals 0 $?
 		echo "$GC" | grep '0 B freed' > /dev/null
@@ -727,7 +727,7 @@ testSshGC()
 	
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir -p \"$SSH_TEST_PATH\"/test_remote/delivered && cd \"$SSH_TEST_PATH\"/test_remote/delivered && rm -rf * && mkdir a && echo \"ABCDEFG\" >> a/f && echo \"ABCDEFG\" >> a/g && cp -r a b && cp -r a c && cp -r a d && ln -s a current && ln -s b previous && ln -s c preprevious"
 
-	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
+	GC=`"$ROOT_DIR"/deliver.sh --gc --batch origin`
 	echo "$GC" | grep "1 version(s) removed" > /dev/null
 	assertEquals 0 $?
 	echo "GC: $GC"
@@ -735,7 +735,7 @@ testSshGC()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote/delivered && test -d a && test -d b && test -d c && test ! -d d"
 	assertEquals 0 $?
 
-	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin`
+	GC=`"$ROOT_DIR"/deliver.sh --gc --batch origin`
 	echo "$GC" | grep "0 version(s) removed" > /dev/null
 	assertEquals 0 $?
 	echo "$GC" | grep '0 B freed' > /dev/null
@@ -893,10 +893,10 @@ testFullRollbackNoPreviousSsh()
 	{
 	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
-	"$ROOT_DIR"/deliver.sh --batch --rollback origin
+	"$ROOT_DIR"/deliver.sh --rollback --batch origin
 	assertEquals 24 $?
 	"$ROOT_DIR"/deliver.sh --batch origin master
-	"$ROOT_DIR"/deliver.sh --batch --rollback origin
+	"$ROOT_DIR"/deliver.sh --rollback --batch origin
 	assertEquals 25 $?
 	}
 
@@ -917,7 +917,7 @@ testFullRollbackSsh()
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^` "$SSH_SHA1";
 
-	"$ROOT_DIR"/deliver.sh --batch --rollback origin
+	"$ROOT_DIR"/deliver.sh --rollback --batch origin
 
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^` "$SSH_SHA1";
@@ -930,10 +930,10 @@ testFullRollbackNonExistentVersionSsh()
 	{
 	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
-	"$ROOT_DIR"/deliver.sh --batch --rollback origin foo
+	"$ROOT_DIR"/deliver.sh --rollback --batch origin foo
 	assertEquals 24 $?
 	"$ROOT_DIR"/deliver.sh --batch origin master
-	"$ROOT_DIR"/deliver.sh --batch --rollback origin foo
+	"$ROOT_DIR"/deliver.sh --rollback --batch origin foo
 	assertEquals 25 $?
 	}
 
@@ -957,7 +957,7 @@ testFullRollbackVersionSsh()
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/preprevious/.git log -n 1 --skip 1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^^` "$SSH_SHA1";
 
-	"$ROOT_DIR"/deliver.sh --batch --rollback origin "$ROLLBACK_TO"
+	"$ROOT_DIR"/deliver.sh --rollback --batch origin "$ROLLBACK_TO"
 
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^^` "$SSH_SHA1";

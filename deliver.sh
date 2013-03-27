@@ -46,6 +46,7 @@ fi
 GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$GIT_DELIVER_PATH/lib/shflags"
+_flags_warn() { echo "Git-deliver: $@" | sed 's/getopt: //'  >&2; exit_with_help; }
 
 function confirm_or_exit
 	{
@@ -284,7 +285,7 @@ function init
         done
 	mkdir -p "$REPO_ROOT/.deliver/scripts"
 	for STAGE in dependencies init-remote pre-delivery post-checkout pre-symlink post-symlink rollback-pre-symlink rollback-post-symlink; do
-		mkdir "$REPO_ROOT/.deliver/scripts/$STAGE"
+		mkdir -p "$REPO_ROOT/.deliver/scripts/$STAGE"
 		echo -e "Put your $STAGE Bash scripts in this folder with a .sh extension.\n\nSee https://github.com/arnoo/git-deliver for help." >> "$REPO_ROOT/.deliver/scripts/$STAGE/README"
 	done
 	echo "Setting up core preset" >&2
@@ -343,7 +344,6 @@ function run_stage_scripts
 				`cat "$SCRIPT_PATH"`
 			EOS
 			if [[ $script_result -gt 0 ]]; then
-				echo "" >&2
 				echo -ne "\E[31m"
 				echo "Script returned with status $script_result" | indent 1 >&2
 				tput sgr0
@@ -571,12 +571,8 @@ function deliver
 	fi
 	local REMOTE="$1"
 
-	IS_ROLLBACK="True"
-	if [[ $FLAGS_rollback != $FLAGS_TRUE ]]; then
-		IS_ROLLBACK="False"
-		if [[ $2 = "" ]]; then
-			exit_with_help
-		fi
+	if [[ ! $IS_ROLLBACK ]] && [[ $2 = "" ]]; then
+		exit_with_help
 	fi
 	local VERSION="$2"
 
@@ -718,7 +714,7 @@ function deliver
 		} | indent 1
 
 
-		echo "Checking out files" | indent 1
+		echo "Checking out files..." | indent 1
 		{
 			run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 ;
 			exit_if_error 15 "Error creating tracking branch on remote clone" ;
@@ -772,7 +768,7 @@ function deliver
 	if [[ $FLAGS_batch -ne $FLAGS_TRUE ]]; then
 		local GEDITOR=`git var GIT_EDITOR`
 		if [[ "$GEDITOR" = "" ]]; then
-		        GEDITOR="vi"
+			GEDITOR="vi"
 		fi
 		$GEDITOR "$LOG_TEMPFILE"
 	fi
@@ -849,8 +845,10 @@ function rollback
 	run_stage_scripts "$DELIVERY_STAGE"
 	}
 
+
+# commands
+
 DEFINE_boolean 'source' false 'Used for tests : define functions but don''t do anything.'
-DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
 DEFINE_boolean 'init' false 'Initialize this repository'
 DEFINE_boolean 'init-remote' false 'Initialize a remote'
 DEFINE_boolean 'list-presets' false 'List presets available for init'
@@ -858,20 +856,51 @@ DEFINE_boolean 'status' false 'Query repository and remotes status'
 DEFINE_boolean 'gc' false 'Garbage collection : remove all delivered version on remote except last 3'
 DEFINE_boolean 'rollback' false 'Initiate a rollback'
 
+# real flags
+
+DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
+
+
 # parse the command-line
-FLAGS "$@" || exit 1
+FLAGS "$@"
 eval set -- "${FLAGS_ARGV}"
 
+matched_cmd=0
+
 if [[ $FLAGS_init -eq $FLAGS_TRUE ]]; then
-	init "$@"
-elif [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
-	init_remote "$@"
-elif [[ $FLAGS_list_presets -eq $FLAGS_TRUE ]]; then
-	list_presets "$@"
-elif [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
-	remote_status "$@" 
-elif [[ $FLAGS_gc -eq $FLAGS_TRUE ]]; then
-	remote_gc "$@"
-elif [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
-	deliver "$@"
+   fn="init"
+   matched_cmd=$(( $matched_cmd + 1 ))
 fi
+if [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
+   fn="init_remote"
+   matched_cmd=$(( $matched_cmd + 1 ))
+fi
+if [[ $FLAGS_list_presets -eq $FLAGS_TRUE ]]; then
+   fn="list_presets"
+   matched_cmd=$(( $matched_cmd + 1 ))
+fi
+if [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
+   fn="remote_status"
+   matched_cmd=$(( $matched_cmd + 1 ))
+fi
+if [[ $FLAGS_gc -eq $FLAGS_TRUE ]]; then
+   fn="remote_gc"
+   matched_cmd=$(( $matched_cmd + 1 ))
+fi
+if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
+   IS_ROLLBACK=true
+   fn="deliver"
+   matched_cmd=$(( $matched_cmd + 1 ))
+fi
+	
+if [[ $matched_cmd = 1 ]]; then
+	$fn "$@"
+elif [[ $matched_cmd = 0 ]]; then
+	if [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
+		deliver "$@"
+	fi
+elif [[ $matched_cmd -gt 1 ]]; then
+	echo "You can't have multiple git-deliver 'command' flags on the same command line"
+	exit_with_help
+fi
+
