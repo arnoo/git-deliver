@@ -88,8 +88,11 @@ function exit_with_help
 
 function indent
 	{
-	local level=$(( $1 + 1 ))
-	local prefix=`seq -s "   " $level | sed 's/[0-9]//g'`
+	local level=$1
+	local prefix=""
+	for (( i=0; $i < $level; i=$i+1 )); do
+		prefix="$prefix   "
+	done
 	sed -e "s/^/$prefix/"
 	}
 
@@ -113,8 +116,11 @@ function remote_status
 		run_remote "bash" <<EOS
 			function indent
 				{
-				local level=\$(( \$1 + 1))
-				local prefix=\`seq -s "   " \$level | sed 's/[0-9]//g'\`
+				local level=\$1
+				local prefix=""
+				for (( i=0; \$i < \$level; i=\$i+1 )); do
+					prefix="\$prefix   "
+				done
 				sed -e "s/^/\$prefix/"
 				}
 			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
