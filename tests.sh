@@ -748,9 +748,9 @@ testSshGC()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_TEST_PATH\"/test_remote"
 	}
 
-testRollbackPreDelivery()
+testRollbackPreDeliverySsh()
 	{
-	initWithOrigin
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
 	echo "exit 1" > "$ROOT_DIR/test_repo/.deliver/scripts/pre-delivery/00-fail.sh"
 	echo "echo \"PRE_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-pre-symlink/00-info.sh"
@@ -769,13 +769,14 @@ testRollbackPreDelivery()
 	assertNotSame 0 $?
 	echo "$A" | grep "Rolling back" &> /dev/null
 	assertEquals 0 $?
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ ! -e delivered/current ]"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "test ! -e \"$SSH_TEST_PATH\"/test_remote/delivered/current"
+	assertEquals 0 $?
 	}
 
-testRollbackPostCheckout()
+testRollbackPostCheckoutSsh()
 	{
-	initWithOrigin
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
 	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-checkout/00-fail.sh"
 	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
@@ -796,13 +797,14 @@ testRollbackPostCheckout()
 	assertNotSame 0 $?
 	echo "$A" | grep "Rolling back" &> /dev/null
 	assertEquals 0 $?
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ ! -e delivered/current ]"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote/delivered && test ! -e current"
+	assertEquals 0 $?
 	}
 
-testRollbackPostSymlinkNoPrevious()
+testRollbackPostSymlinkNoPreviousSsh()
 	{
-	initWithOrigin
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
 	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
 	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
@@ -823,65 +825,83 @@ testRollbackPostSymlinkNoPrevious()
 	assertEquals 0 $?
 	echo "$A" | grep "Rolling back" &> /dev/null
 	assertEquals 0 $?
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ ! -e delivered/current ]"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote/delivered && test ! -e current"
+	assertEquals 0 $?
 	}
 
-testRollbackPostSymlinkWithPrevious()
+testRollbackPostSymlinkWithPreviousSsh()
 	{
-	initWithOrigin
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
 	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
-	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
-	touch "$ROOT_DIR/test_remote/delivered/a/f"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir -p \"$SSH_TEST_PATH\"/test_remote/delivered/a && ln -s \"$SSH_TEST_PATH\"/test_remote/delivered/a \"$SSH_TEST_PATH\"/test_remote/delivered/current && touch \"$SSH_TEST_PATH\"/test_remote/delivered/a/f"
+
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ -e delivered/current/f ]"
-	assertTrueEcho "[ ! -e delivered/previous ]"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote/delivered && test -e current/f && test ! -e previous"
+	assertEquals 0 $?
 	}
 
-testRollbackPostSymlinkWith2Previous()
+testRollbackPostSymlinkWith2PreviousSsh()
 	{
-	initWithOrigin
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
 	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
-	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
-	touch "$ROOT_DIR/test_remote/delivered/a/f"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
-	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
-	touch "$ROOT_DIR/test_remote/delivered/b/g"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "bash" <<-EOS
+		mkdir -p "$SSH_TEST_PATH/test_remote/delivered/a"
+		ln -s "$SSH_TEST_PATH/test_remote/delivered/a" "$SSH_TEST_PATH/test_remote/delivered/current"
+		touch "$SSH_TEST_PATH/test_remote/delivered/a/f"
+		mkdir -p "$SSH_TEST_PATH/test_remote/delivered/b"
+		ln -s "$SSH_TEST_PATH/test_remote/delivered/b" "$SSH_TEST_PATH/test_remote/delivered/previous"
+		touch "$SSH_TEST_PATH/test_remote/delivered/b/g"
+	EOS
+
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ -e delivered/current/f ]"
-	assertTrueEcho "[ -e delivered/previous/g ]"
-	assertTrueEcho "[ ! -e delivered/preprevious ]"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "bash" <<-EOS
+		cd "$SSH_TEST_PATH"/test_remote/
+		test -e delivered/current/f && \ 
+		test -e delivered/previous/g && \
+		test ! -e delivered/preprevious
+	EOS
+
+	assertEquals 0 $?
 	}
 
-testRollbackPostSymlinkWith3Previous()
+testRollbackPostSymlinkWith3PreviousSsh()
 	{
-	initWithOrigin
+	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
 	echo "exit 22" > "$ROOT_DIR/test_repo/.deliver/scripts/post-symlink/00-fail.sh"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/a"
-	ln -s "$ROOT_DIR/test_remote/delivered/a" "$ROOT_DIR/test_remote/delivered/current"
-	touch "$ROOT_DIR/test_remote/delivered/a/f"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/b"
-	ln -s "$ROOT_DIR/test_remote/delivered/b" "$ROOT_DIR/test_remote/delivered/previous"
-	touch "$ROOT_DIR/test_remote/delivered/b/g"
-	mkdir -p "$ROOT_DIR/test_remote/delivered/c"
-	ln -s "$ROOT_DIR/test_remote/delivered/c" "$ROOT_DIR/test_remote/delivered/preprevious"
-	touch "$ROOT_DIR/test_remote/delivered/c/h"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "bash" <<-EOS
+		mkdir -p "$SSH_TEST_PATH/test_remote/delivered/a"
+		ln -s "$SSH_TEST_PATH/test_remote/delivered/a" "$SSH_TEST_PATH/test_remote/delivered/current"
+		touch "$SSH_TEST_PATH/test_remote/delivered/a/f"
+		mkdir -p "$SSH_TEST_PATH/test_remote/delivered/b"
+		ln -s "$SSH_TEST_PATH/test_remote/delivered/b" "$SSH_TEST_PATH/test_remote/delivered/previous"
+		touch "$SSH_TEST_PATH/test_remote/delivered/b/g"
+		mkdir -p "$SSH_TEST_PATH/test_remote/delivered/c"
+		ln -s "$SSH_TEST_PATH/test_remote/delivered/c" "$SSH_TEST_PATH/test_remote/delivered/preprevious"
+		touch "$SSH_TEST_PATH/test_remote/delivered/c/h"
+	EOS
+
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1
-	cd "$ROOT_DIR"/test_remote/
-	assertTrueEcho "[ -e delivered/current/f ]"
-	assertTrueEcho "[ -e delivered/previous/g ]"
-	assertTrueEcho "[ -e delivered/preprevious/h ]"
-	assertTrueEcho "[ ! -e delivered/prepreprevious ]"
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "bash" <<-EOS
+		cd "$SSH_TEST_PATH"/test_remote/
+		test -e delivered/current/f && \
+		test -e delivered/previous/g && \
+		test -e delivered/preprevious/h && \
+		test ! -e delivered/prepreprevious
+	EOS
+	assertEquals 0 $?
 	}
 
-testFullRollbackNoRemote()
+testFullRollbackNoRemoteSsh()
 	{
 	initWithSshOrigin
 	cd "$ROOT_DIR/test_repo"
