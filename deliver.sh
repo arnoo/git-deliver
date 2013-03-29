@@ -511,7 +511,7 @@ function init_remote
 			fi
 		fi
 	else
-		run_remote "mkdir \"$REMOTE_PATH\" &> /dev/null"
+		run_remote "mkdir -p \"$REMOTE_PATH\" &> /dev/null"
 		exit_if_error 12 "Error creating root directory on remote"
 	fi
 	if $NEED_INIT; then
@@ -520,7 +520,7 @@ function init_remote
 			    git config --bool receive.autogc false"
 		exit_if_error 10 "Error initializing repository on remote"
 	fi
-	run_remote "mkdir \"$REMOTE_PATH\"/delivered"
+	run_remote "mkdir \"$REMOTE_PATH\"/delivered &> /dev/null"
 	exit_if_error 11 "Error creating 'delivered' directory in remote root"
 	DELIVERY_STAGE="init-remote"
 	run_stage_scripts
