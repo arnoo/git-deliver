@@ -17,6 +17,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+[[ -t 1 ]] || USECOLOR=false;
+
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
 	echo "ERROR : not a git repo" >&2
@@ -66,7 +68,12 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || { echo -ne "\E[31m" && echo "$2" && echo -ne "\033[0m" && exit $1; }
+	if [[ $? -gt 0 ]]; then
+		[[ $USECOLOR == true ]] && echo -ne "\E[31m"
+		echo "$2"
+		[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+		exit $1
+	fi
 	}
 
 function exit_with_help
@@ -361,19 +368,19 @@ function run_stage_scripts
 				`cat "$SCRIPT_PATH"`
 			EOS
 			if [[ $script_result -gt 0 ]]; then
-				echo -ne "\E[31m"
+				[[ $USECOLOR == true ]] && echo -ne "\E[31m"
 				echo "Script returned with status $script_result" | indent 1 >&2
-				echo -ne "\033[0m" 
+				[[ $USECOLOR == true ]] && echo -ne "\033[0m" 
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
 					FAILED_SCRIPT_EXIT_STATUS="$script_result"
 					rollback
 				else
-					echo -e "\E[31m"
+					[[ $USECOLOR == true ]] && echo -e "\E[31m"
 					echo "A script failed during rollback, manual intervention is likely necessary"
 					echo "Delivery log : $LOG_TEMPFILE"
-					echo -ne "\033[0m" 
+					[[ $USECOLOR == true ]] && echo -ne "\033[0m" 
 					exit 23
 				fi
 				exit
@@ -806,7 +813,9 @@ function deliver
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
-    echo -e "\E[32mDelivery complete.\033[0m"
+    [[ $USECOLOR == true ]] && echo -ne "\E[32m"
+	echo "Delivery complete."
+	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
 	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
@@ -876,12 +885,24 @@ DEFINE_boolean 'rollback' false 'Initiate a rollback'
 # real flags
 
 DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
+DEFINE_boolean 'color' false 'Use color even if the output does not seem to go to a terminal'
+#TODO:
+#DEFINE_boolean 'nocolor' false 'Don''t output color'
 
 
 # parse the command-line
 FLAGS "$@"
 eval set -- "${FLAGS_ARGV}"
 
+if [[ $FLAGS_color -eq $FLAGS_TRUE ]]; then
+   USECOLOR=true
+fi
+#if [[ $FLAGS_nocolor -eq $FLAGS_TRUE ]]; then
+#   USECOLOR=false
+#fi
+
+
+# extract the command flag and make sure we only have one
 matched_cmd=0
 
 if [[ $FLAGS_init -eq $FLAGS_TRUE ]]; then

@@ -986,4 +986,22 @@ testFullRollbackVersionSsh()
 	assertEquals `git rev-parse master` "$SSH_SHA1";
 	}
 
+testDefaultNoColor()
+	{
+	A=`echo 'source deliver.sh --source; bash -c "exit 2"; exit_if_error 1 "test"' | bash`
+	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
+	assertNotSame 0 $?
+	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
+	assertNotSame 0 $?
+	}
+
+testColor()
+	{
+	A=`echo 'source deliver.sh --color --source; bash -c "exit 2"; exit_if_error 1 "test"' | bash`
+	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
+	assertEquals 0 $?
+	}
+
 . lib/shunit2
