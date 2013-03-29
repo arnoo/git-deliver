@@ -66,7 +66,7 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || { echo -e "\E[31m" && echo "$2" && echo -e "\033[0m" && exit $1; }
+	[[ $? -eq 0 ]] || { echo -ne "\E[31m" && echo "$2" && echo -ne "\033[0m" && exit $1; }
 	}
 
 function exit_with_help
@@ -101,8 +101,13 @@ function remote_status
 	local REMOTE="$1"
 	local SHORT="$2"
 	if [[ "$REMOTE" = '' ]]; then
+		local first_remote=true
 		for R in `git remote`; do
-			echo ""
+			if $first_remote; then
+				first_remote=false
+			else
+				echo ""
+			fi
 			echo "Remote $R :"
 			remote_status "$R" 1
 		done
@@ -113,7 +118,7 @@ function remote_status
 			return 1
 		fi
 
-		run_remote "bash" <<EOS
+		run_remote "bash" <<-EOS
 			function indent
 				{
 				local level=\$1
@@ -123,14 +128,10 @@ function remote_status
 				done
 				sed -e "s/^/\$prefix/"
 				}
+
 			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
 				echo "Not a Git-deliver remote" | indent 1
 				exit 1
-			fi
-			cd "$REMOTE_PATH"/delivered/current 2> /dev/null
-			if [[ \$? -gt 0 ]]; then
-				echo "No delivered version" | indent 1
-				exit 2
 			fi
 
 			function version_info () {
@@ -138,11 +139,15 @@ function remote_status
 				local dir_resolved
 				dir_resolved=\`cd "$REMOTE_PATH/delivered/\$dir" &> /dev/null && pwd -P && cd - &> /dev/null\` 
 				if [[ \$? -gt 0 ]]; then
-					return
+					return 2
 				fi
+
 				dir_resolved=\`basename "\$dir_resolved"\`
 
 				if [[ "$SHORT" != "1" ]]; then
+					if ! \$first_delivery; then
+						echo ""
+					fi
 					echo -n "\$dir"
 					if [[ "\$dir" = "\$dir_resolved" ]]; then
 						echo ""
@@ -150,67 +155,73 @@ function remote_status
 						echo " (\$dir_resolved)"
 					fi
 				fi
+
 				local short_sha=\${dir_resolved:20:6}
-				local latest_sha=\`git log --pretty=format:%H -n 1\`
-				local previous_sha=\`git log --pretty=format:%H -n 1 --skip 1\`
-				local branch=\`git rev-parse --abbrev-ref HEAD\`
-
-				if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
-					local version=\$previous_sha
-					local delivery_info=\`git show --pretty=format:'delivered %aD%nby %aN <%aE>' _delivered\`
-					return=3
+				local latest_sha
+				cd "$REMOTE_PATH/delivered/\$dir"
+				latest_sha=\`git log --pretty=format:%H -n 1 2>&1\`
+				if [[ \$? -gt 0 ]]; then
+					latest_sha="Unkwnown"
 				else
-					local version=\$latest_sha
-					local delivery_info="* not delivered with git-deliver *"
-					return=4
+					local previous_sha=\`git log --pretty=format:%H -n 1 --skip 1 2>&1\`
+					local branch=\`git rev-parse --abbrev-ref HEAD 2>&1\`
+					if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
+						local version=\$previous_sha
+						local delivery_info=\`git show --pretty=format:'delivered %aD%nby %aN <%aE>' _delivered\`
+						return=3
+					else
+						local version=\$latest_sha
+						local delivery_info="* not delivered with git-deliver *"
+						return=4
+					fi
+
+					local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered-' | tr "\\n" ", "\`
+
+					if [[ "\$tags" = "" ]]; then
+						echo "\$version" | indent 1
+					else
+						echo "\$version (\$tags)" | indent 1
+					fi
+
+					if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
+						echo "* plus uncommitted changes *" | indent 1
+					fi
+
+					echo "\$delivery_info" | indent 1
+
+					return \$return
 				fi
-
-				local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered-' | tr "\\n" ", "\`
-
-				if [[ "\$tags" = "" ]]; then
-					echo "\$version" | indent 1
-				else
-					echo "\$version (\$tags)" | indent 1
-				fi
-
-				if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
-					echo "* plus uncommitted changes *" | indent 1
-				fi
-
-				echo "\$delivery_info" | indent 1
-
-				return \$return
 			}
 
+			first_delivery=true
 			curinfo=\`version_info "current"\`
 			RETURN=\$?
 			if [[ \$RETURN -lt 3 ]]; then
-				echo "No version currently delivered"
+				echo "No version currently delivered" | indent 1
 			else
 				echo "\$curinfo"
 			fi
+			first_delivery=false
 
 			if [[ "$SHORT" != "1" ]]; then
-				echo ""
 				version_info "previous"
-				echo ""
 				version_info "preprevious"
 				curver=\`{ cd "$REMOTE_PATH/delivered/current" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
 				prever=\`{ cd "$REMOTE_PATH/delivered/previous" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
 				preprever=\`{ cd "$REMOTE_PATH/delivered/preprevious" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
-				for rep in \$(find "$REMOTE_PATH/delivered/" -mindepth 1 -maxdepth 1 -type d | sort -r); do
-					if [ "\$rep" != "\$curver" ] &&
+				for rep in "$REMOTE_PATH/delivered/"*; do
+					if [ ! -L "\$rep" ] &&
+					   [ "\$rep" != "\$curver" ] &&
 					   [ "\$rep" != "\$prever" ] &&
 					   [ "\$rep" != "\$preprever" ]; then
-						echo ""
 						version_info "\$rep"
 					fi
 				done
 			fi
 
 			exit \$RETURN
-EOS
-	return $?
+		EOS
+		return $?
 	fi
 	}
 
@@ -352,7 +363,7 @@ function run_stage_scripts
 			if [[ $script_result -gt 0 ]]; then
 				echo -ne "\E[31m"
 				echo "Script returned with status $script_result" | indent 1 >&2
-				echo -e "\033[0m" 
+				echo -ne "\033[0m" 
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
@@ -362,7 +373,7 @@ function run_stage_scripts
 					echo -e "\E[31m"
 					echo "A script failed during rollback, manual intervention is likely necessary"
 					echo "Delivery log : $LOG_TEMPFILE"
-					echo -e "\033[0m" 
+					echo -ne "\033[0m" 
 					exit 23
 				fi
 				exit
@@ -794,8 +805,7 @@ function deliver
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
-    echo -e "\E[32mDelivery complete."
-	echo -e "\033[0m" 
+    echo -e "\E[32mDelivery complete.\033[0m"
 	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 

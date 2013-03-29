@@ -2,7 +2,7 @@
 
 SSH_TEST_USER="arno"
 SSH_TEST_HOST="localhost"
-SSH_TEST_PATH="/tmp"
+SSH_TEST_PATH="/tmp/"
 
 assertTrueEcho()
 	{
@@ -266,7 +266,7 @@ testInitNonExistingRemoteSsh()
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
 	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir
-	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d "$SSH_TEST_PATH"/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
+	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d \"$SSH_TEST_PATH\"/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
 	git remote remove new_remote
