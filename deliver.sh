@@ -66,7 +66,7 @@ function confirm_or_exit
 
 function exit_if_error
 	{
-	[[ $? -eq 0 ]] || { echo -e "\E[31m" && echo "$2" && tput sgr0 && exit $1; }
+	[[ $? -eq 0 ]] || { echo -e "\E[31m" && echo "$2" && echo -e "\033[0m" && exit $1; }
 	}
 
 function exit_with_help
@@ -352,7 +352,7 @@ function run_stage_scripts
 			if [[ $script_result -gt 0 ]]; then
 				echo -ne "\E[31m"
 				echo "Script returned with status $script_result" | indent 1 >&2
-				tput sgr0
+				echo -e "\033[0m" 
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
@@ -362,7 +362,7 @@ function run_stage_scripts
 					echo -e "\E[31m"
 					echo "A script failed during rollback, manual intervention is likely necessary"
 					echo "Delivery log : $LOG_TEMPFILE"
-					tput sgr0
+					echo -e "\033[0m" 
 					exit 23
 				fi
 				exit
@@ -795,7 +795,7 @@ function deliver
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
     echo -e "\E[32mDelivery complete."
-	tput sgr0
+	echo -e "\033[0m" 
 	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
