@@ -437,6 +437,7 @@ function remote_info
 			REMOTE_PATH="$REPO_ROOT/$REMOTE_URL"
 		fi
 	fi
+	REMOTE_PATH=`echo "$REMOTE_PATH" | sed 's#//#/#g'`
 	}
 
 function run
