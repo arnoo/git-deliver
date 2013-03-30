@@ -166,9 +166,10 @@ function remote_status
 				local short_sha=\${dir_resolved:20:6}
 				local latest_sha
 				cd "$REMOTE_PATH/delivered/\$dir"
-				latest_sha=\`git log --pretty=format:%H -n 1 2>&1\`
+				latest_sha=\`git --git-dir=.git log --pretty=format:%H -n 1 2>&1\`
 				if [[ \$? -gt 0 ]]; then
-					latest_sha="Unkwnown"
+					delivery_info="Unknown"
+					return=4
 				else
 					local previous_sha=\`git log --pretty=format:%H -n 1 --skip 1 2>&1\`
 					local branch=\`git rev-parse --abbrev-ref HEAD 2>&1\`
@@ -194,10 +195,10 @@ function remote_status
 						echo "* plus uncommitted changes *" | indent 1
 					fi
 
-					echo "\$delivery_info" | indent 1
-
-					return \$return
 				fi
+
+				echo "\$delivery_info" | indent 1
+				return \$return
 			}
 
 			first_delivery=true

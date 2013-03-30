@@ -679,6 +679,15 @@ testStatusNonSshRemote()
 	assertEquals "Not a Git-deliver remote" "$STATUS"
 	}
 
+testStatusNonGit()
+	{
+	initWithSshOrigin
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "mkdir -p \"$SSH_TEST_PATH\"/test_remote/delivered && cd \"$SSH_TEST_PATH\"/test_remote/delivered && rm -rf * && mkdir a && ln -s a current"
+	local status=`"$ROOT_DIR"/deliver.sh --status origin`
+	local expected=`echo -e "current (a)\n   Unknown"`
+	assertEquals "$expected" "$status"
+	}
+
 testLocalGC()
 	{
 	if [[ "$OSTYPE" != "msys" ]]; then
