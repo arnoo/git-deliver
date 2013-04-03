@@ -796,7 +796,7 @@ function deliver
 		if [[ "$GEDITOR" = "" ]]; then
 			GEDITOR="vi"
 		fi
-		$GEDITOR "$LOG_TEMPFILE"
+		bash -c "$GEDITOR \"$LOG_TEMPFILE\""
 	fi
 
 	# TAG the delivered version here and on the origin remote
