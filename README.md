@@ -102,9 +102,9 @@ Switches back to a previously delivered version on `<REMOTE>`. This is like a re
 
 Initialise this repository for git-deliver, optionally including stage scripts for `[presets]`
 
-    git deliver --init-remote <REMOTE_NAME> [REMOTE_URL]
+    git deliver --init-remote [--shared=...] <REMOTE_NAME> [REMOTE_URL]
 
-Initialize Git remote `<REMOTE_NAME>` for git-deliver. The remote needs to be bare. If it does not exist yet, it can be created at `[REMOTE_URL]`. If the remote exists but does not point to a bare repository, the repository will be created.
+Initialize Git remote `<REMOTE_NAME>` for git-deliver. The remote needs to be bare. If it does not exist yet, it can be created at `[REMOTE_URL]`. If the remote exists but does not point to a bare repository, the repository will be created. The shared parameter, if supplied, is then passed as is to git init (see "man git-init").
 
     git deliver --list-presets
 

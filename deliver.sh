@@ -83,7 +83,7 @@ function exit_with_help
 	echo "  git deliver --rollback <REMOTE> [DELIVERY]"
 	echo "  git deliver --gc <REMOTE>"
 	echo "  git deliver --init [PRESETS]"
-	echo "  git deliver --init-remote <REMOTE_NAME> <REMOTE_URL>"
+	echo "  git deliver --init-remote [--shared=...] <REMOTE_NAME> <REMOTE_URL>"
 	echo "  git deliver --list-presets"
 	echo "  git deliver --status [REMOTE]"
 	if [[ "$1" = "" ]]; then
@@ -517,7 +517,7 @@ function init_remote
 	fi
 	if $NEED_INIT; then
 		run_remote "cd \"$REMOTE_PATH\" && \
-			    git init --bare \"$REMOTE_PATH\" && \
+			    git init --shared=$FLAGS_shared --bare \"$REMOTE_PATH\" && \
 			    git config --bool receive.autogc false"
 		exit_if_error 10 "Error initializing repository on remote"
 	fi
@@ -892,6 +892,7 @@ DEFINE_boolean 'rollback' false 'Initiate a rollback'
 # real flags
 
 DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
+DEFINE_string 'shared' "false" 'When initializing a remote, pass '
 DEFINE_boolean 'color' false 'Use color even if the output does not seem to go to a terminal'
 #TODO:
 #DEFINE_boolean 'nocolor' false 'Don''t output color'
