@@ -218,11 +218,13 @@ function remote_status
 				prever=\`{ cd "$REMOTE_PATH/delivered/previous" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
 				preprever=\`{ cd "$REMOTE_PATH/delivered/preprevious" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
 				for rep in "$REMOTE_PATH/delivered/"*; do
-					if [ ! -L "\$rep" ] &&
-					   [ "\$rep" != "\$curver" ] &&
-					   [ "\$rep" != "\$prever" ] &&
-					   [ "\$rep" != "\$preprever" ]; then
-						version_info "\$rep"
+					if [ ! -L "\$rep" ]; then
+						rep=\`{ cd "\$rep" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+						if   [ "\$rep" != "\$curver" ] &&
+							 [ "\$rep" != "\$prever" ] &&
+							 [ "\$rep" != "\$preprever" ]; then
+							version_info "\$rep"
+						fi
 					fi
 				done
 			fi
@@ -548,15 +550,17 @@ function remote_gc
 		DELETED=0
 		FREED_BYTES=0
 		for rep in \"$REMOTE_PATH/delivered/\"*; do
-			if [ ! -L \"\$rep\" ] &&
-			   [ \"\$rep\" != \"\$CURVER\" ] &&
-			   [ \"\$rep\" != \"\$PREVER\" ] &&
-			   [ \"\$rep\" != \"\$PREPREVER\" ]; then
-				echo \"Removing \$rep\"
-				FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
-				rm -rf \"\$rep\" && \
-				DELETED=\$((\$DELETED + 1)) && \
-			   	FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW))
+			if [ ! -L \"\$rep\" ]; then
+				rep=\`{ cd \"\$rep\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+			    if [ \"\$rep\" != \"\$CURVER\" ] &&
+			 	   [ \"\$rep\" != \"\$PREVER\" ] &&
+			   	   [ \"\$rep\" != \"\$PREPREVER\" ]; then
+					echo \"Removing \$rep\"
+					FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
+					rm -rf \"\$rep\" && \
+					DELETED=\$((\$DELETED + 1)) && \
+			   		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW))
+				fi
 			fi
 		done
 		if [[ \$FREED_BYTES = 0 ]]; then
