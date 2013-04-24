@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SSH_TEST_USER="arno"
+SSH_TEST_USER=$USER
 SSH_TEST_HOST="localhost"
 SSH_TEST_PATH="/tmp/deliver test/"
 
@@ -75,7 +75,7 @@ tearDown()
 	{
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
 	cd "$ROOT_DIR/test_repo"
-	git remote remove origin 2> /dev/null
+	git remote rm origin 2> /dev/null
 	rm -rf "$ROOT_DIR/test_remote"
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_remote
 	cd "$ROOT_DIR"
@@ -153,15 +153,15 @@ testRemoteInfo()
 	else
 		assertEquals "local++++++/path/a b c" "$A"
 	fi
-	git remote remove unix
-	git remote remove relative
-	git remote remove win
-	git remote remove ssh
-	git remote remove git
-	git remote remove scp
-	git remote remove scp_no_user
-	git remote remove http
-	git remote remove space
+	git remote rm unix
+	git remote rm relative
+	git remote rm win
+	git remote rm ssh
+	git remote rm git
+	git remote rm scp
+	git remote rm scp_no_user
+	git remote rm http
+	git remote rm space
 	}
 
 testRunScripts()
@@ -255,7 +255,7 @@ testInitNonExistingRemoteLocal()
 		assertTrueEcho "[ -d refs ]"
 		cd "$ROOT_DIR"/test_repo
 		rm -rf "$ROOT_DIR"/test_new_remote_dir
-		git remote remove new_remote
+		git remote rm new_remote
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -269,7 +269,7 @@ testInitNonExistingRemoteSsh()
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d \"$SSH_TEST_PATH\"/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testInitNonExistingRemoteSsh2()
@@ -280,7 +280,7 @@ testInitNonExistingRemoteSsh2()
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d \"$SSH_TEST_PATH\"/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testInitNonExistingRemoteSsh3()
@@ -291,7 +291,7 @@ testInitNonExistingRemoteSsh3()
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d \"$SSH_TEST_PATH\"/{test_new_remote_dir,test_new_remote_dir/delivered,test_new_remote_dir/refs} | wc -l`
 	assertEquals 3 $A
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testInitAlreadyInitRemoteSsh()
@@ -304,7 +304,7 @@ testInitAlreadyInitRemoteSsh()
 	"$ROOT_DIR"/deliver.sh --init-remote --batch new_remote sSh://$SSH_TEST_USER@$SSH_TEST_HOST"$SSH_TEST_PATH"/test_new_remote_dir 2>&1 > /dev/null
 	assertEquals 18 $?
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_new_remote_dir
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testInitNonSshRemote()
@@ -329,7 +329,7 @@ testInitNonExistingRemoteDirExisting()
 		assertTrueEcho "[ -d refs ]"
 		rm -rf "$ROOT_DIR"/test_new_remote_dir
 		cd "$ROOT_DIR"/test_repo
-		git remote remove new_remote
+		git remote rm new_remote
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -348,7 +348,7 @@ testInitNonExistingRemoteDirExistingSsh()
 	assertEquals 0 $?
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_NEW_DIR\""
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testInitNonExistingRemoteDirFileExisting()
@@ -361,7 +361,7 @@ testInitNonExistingRemoteDirFileExisting()
 		assertEquals 10 $?
 		assertFalse "[ -d \"$ROOT_DIR\"/test_new_remote_dir/delivered ]"
 		rm -rf "$ROOT_DIR"/test_new_remote_dir
-		git remote remove new_remote
+		git remote rm new_remote
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -380,7 +380,7 @@ testInitNonExistingRemoteDirFileExistingSsh()
 	assertEquals 1 $?
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -f \"$SSH_NEW_DIR\""
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testInitNonExistingRemoteDirExistingNonEmpty()
@@ -394,7 +394,7 @@ testInitNonExistingRemoteDirExistingNonEmpty()
 		assertEquals 9 $?
 		assertFalse "[ -d \"$ROOT_DIR\"/test_new_remote_dir/delivered ]"
 		rm -rf "$ROOT_DIR"/test_new_remote_dir
-		git remote remove new_remote
+		git remote rm new_remote
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -416,7 +416,7 @@ testInitNonExistingRemoteDirExistingNonEmptySsh()
 	assertEquals 1 $?
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_NEW_DIR\""
-	git remote remove new_remote
+	git remote rm new_remote
 	}
 
 testDeliverNonSshRemote()
