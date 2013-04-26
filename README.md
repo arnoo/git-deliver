@@ -29,18 +29,20 @@ In your .gitconfig, add this line in the `[alias]` section:
 Where `<path_to_clone>` is the path to the root of the git clone you just made.
 
 
-Note that Git-deliver has only been tested on Windows (msys) and Linux so far.
-
-
 Windows
 -------
 
 To use Git-deliver on Windows, you'll need to copy the libintl-8.dll and getopt.exe from the "msys" folder of the git-deliver clone to your "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin". These are files from the MinGW project (http://www.mingw.org/) which are included with Git-deliver for convenience.
 
+OSX
+---
+
+OSX users need to install GNU getopt from Macports (`port install getopt`)
+
 BSD
 ---
 
-BSD users need to install GNU getopts (cd /usr/ports/misc/getopt/ && sudo make install)
+BSD users need to install GNU getopt (`cd /usr/ports/misc/getopt/ && sudo make install`)
 
 
 A simple example (TL;DR)
