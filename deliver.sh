@@ -565,7 +565,7 @@ function remote_gc
 			HUMAN_FREED_BYTES=\`echo \$FREED_BYTES | awk '{x = \$0;
 								     split(\"B KB MB GB TB PB\", type);
 								     for(i=5;y < 1;i--)
-									 y = x / (2**(10*i));
+									 y = x / (2^(10*i));
 								     print y \" \" type[i+2];
 								     }'\`
 		fi
