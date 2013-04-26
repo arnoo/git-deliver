@@ -660,7 +660,7 @@ function deliver
 		fi
 	fi
 
-	remote_status "$REMOTE" &> /dev/null
+	RSTATUS=`remote_status "$REMOTE" 1`
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
@@ -669,7 +669,6 @@ function deliver
 			exit 24
 		fi
 	else
-		RSTATUS=`remote_status "$REMOTE" 1`
 		local version_line=`echo "$RSTATUS" | head -n +2 | tail -n 1`
 		PREVIOUS_VERSION_SHA="${version_line:3:43}"
 		echo "Current version on $REMOTE:"
