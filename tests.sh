@@ -461,7 +461,7 @@ testBasicDeliverMaster()
 		assertTrueEcho "[ -L delivered/current ]"
 		assertTrueEcho "[ -d delivered/`readlink \"$ROOT_DIR\"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse master` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse master` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -479,7 +479,7 @@ testBasicDeliverMasterSsh()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH/test_remote\" && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 
 	cd "$ROOT_DIR"/test_repo
 	assertEquals `git rev-parse master` $SSH_SHA1;
@@ -497,7 +497,7 @@ testBasicDeliverNonHeadSha1OnMaster()
 		assertTrueEcho "[ -L delivered/current ]"
 		assertTrueEcho "[ -d delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse master^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse master^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -512,7 +512,7 @@ testBasicDeliverNonHeadSha1OnMasterSsh()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 
 	cd "$ROOT_DIR"/test_repo
 	assertEquals `git rev-parse master^` $SSH_SHA1;
@@ -530,7 +530,7 @@ testBasicDeliverNonHeadTag()
 		assertTrueEcho "[ -L delivered/current ]"
 		assertTrueEcho "[ -d delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse older` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse older` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -545,7 +545,7 @@ testBasicDeliverNonHeadTagSsh()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 
 	cd "$ROOT_DIR"/test_repo
 	assertEquals `git rev-parse older` $SSH_SHA1;
@@ -563,7 +563,7 @@ testBasicDeliverNonMasterBranch()
 		assertTrueEcho "[ -L delivered/current ]"
 		assertTrueEcho "[ -d delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse branch` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse branch` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -578,7 +578,7 @@ testBasicDeliverNonMasterBranchSsh()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 
 	cd "$ROOT_DIR"/test_repo
 	assertEquals `git rev-parse branch` $SSH_SHA1;
@@ -596,7 +596,7 @@ testBasicDeliverNonHeadSha1OtherBranch()
 		assertTrueEcho "[ delivered/current ]"
 		assertTrueEcho "[ delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse branch^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse branch^` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -611,7 +611,7 @@ testBasicDeliverNonHeadSha1OtherBranchSsh()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 
 	assertEquals `git rev-parse branch^` "$SSH_SHA1";
 
@@ -629,7 +629,7 @@ testBasicDeliverNonHeadTagOtherBranch()
 		assertTrueEcho "[ delivered/current ]"
 		assertTrueEcho "[ delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
 		cd "$ROOT_DIR"/test_repo
-		assertEquals `git rev-parse branch_non_head` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H`;
+		assertEquals `git rev-parse branch_non_head` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
 	else
 		echo "Test won't be run (msys)"
 	fi
@@ -644,7 +644,7 @@ testBasicDeliverNonHeadTagOtherBranch()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
 	assertEquals 0 $?
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 
 	assertEquals `git rev-parse branch_non_head` "$SSH_SHA1";
 	}
@@ -935,23 +935,23 @@ testFullRollbackSsh()
 	cd "$ROOT_DIR/test_repo"
 	"$ROOT_DIR"/deliver.sh --batch origin master^
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^` "$SSH_SHA1";
 
 	"$ROOT_DIR"/deliver.sh --batch origin master
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master` "$SSH_SHA1";
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^` "$SSH_SHA1";
 
 	"$ROOT_DIR"/deliver.sh --rollback --batch origin
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^` "$SSH_SHA1";
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master` "$SSH_SHA1";
 	}
 
@@ -977,21 +977,21 @@ testFullRollbackVersionSsh()
 	"$ROOT_DIR"/deliver.sh --batch origin master^
 	"$ROOT_DIR"/deliver.sh --batch origin master
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master` "$SSH_SHA1";
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^` "$SSH_SHA1";
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/preprevious/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/preprevious/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^^` "$SSH_SHA1";
 
 	"$ROOT_DIR"/deliver.sh --rollback --batch origin "$ROLLBACK_TO"
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master^^` "$SSH_SHA1";
 
-	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip 1 --pretty=format:%H"`
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master` "$SSH_SHA1";
 	}
 
