@@ -171,11 +171,11 @@ function remote_status
 					delivery_info="Unknown"
 					return=4
 				else
-					local previous_sha=\`git log --pretty=format:%H -n 1 --skip 1 2>&1\`
-					local branch=\`git rev-parse --abbrev-ref HEAD 2>&1\`
+					local previous_sha=\`git log --pretty=format:%H -n 1 --skip=1 2>&1\`
+					local branch=\`git rev-parse --symbolic-full-name --abbrev-ref HEAD 2>&1\`
 					if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
 						local version=\$previous_sha
-						local delivery_info=\`git show --pretty=format:'delivered %aD%nby %aN <%aE>' _delivered\`
+						local delivery_info=\`git show --pretty=format:'delivered %aD%nby %aN <%aE>' _delivered 2>&1 | head -n 2\`
 						return=3
 					else
 						local version=\$latest_sha
@@ -695,7 +695,7 @@ function deliver
 			exit 25
 		fi
 		local DELIVERY_INFOS
-		DELIVERY_INFOS=`run_remote "cd \"$DELIVERY_PATH\" && git log -n 1 --skip 1 --pretty=format:%H && echo "" && git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1" 2>&1`
+		DELIVERY_INFOS=`run_remote "cd \"$DELIVERY_PATH\" && git log -n 1 --skip=1 --pretty=format:%H && echo "" && git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1" 2>&1`
 		exit_if_error 26 "Error getting information on version to rollback to."
 		VERSION_SHA=`echo "$DELIVERY_INFOS" | head -n 1`
 		local ROLLBACK_TARGET_INFO=`echo "$DELIVERY_INFOS" | tail -n 1`
