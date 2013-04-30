@@ -467,6 +467,20 @@ testBasicDeliverMaster()
 	fi
 	}
 
+testDeliverNotFastForwardSsh()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin &> /dev/null
+	"$ROOT_DIR"/deliver.sh --batch origin master &> /dev/null
+	git reset master^
+	echo "asdsdf" >> a
+	git commit -am "new master"
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	assertEquals 14 $?
+	echo "$A" | grep "failed to push"
+	assertEquals 0 $?
+	}
+
 testBasicDeliverMasterSsh()
 	{
 	initWithSshOrigin

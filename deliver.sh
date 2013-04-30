@@ -727,7 +727,10 @@ function deliver
 			exit_if_error 13
 		fi
 		echo "Pushing necessary commits to remote"
-		{ run "git push \"$REMOTE\" $BRANCH" 2>&1 || exit 14 ; } | indent 1
+		run "git push \"$REMOTE\" $BRANCH" 2>&1 | indent 1
+		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
+			exit 14 ;
+		fi
 
 		# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
 
