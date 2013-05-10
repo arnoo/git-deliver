@@ -735,28 +735,30 @@ function deliver
 		# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
 
 		echo "Creating new delivery clone"
-		{
-			run_remote "git clone --shared --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\" && echo '../../../../objects' > \"$DELIVERY_PATH\"/.git/objects/info/alternates"
-
-			exit_if_error 5 "Error cloning repo to delivered folder on remote" ;
-		} | indent 1
-
+		run_remote "git clone --shared --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\" && echo '../../../../objects' > \"$DELIVERY_PATH\"/.git/objects/info/alternates"
+		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
+			echo "Error cloning repo to delivered folder on remote" ;
+			exit 5
+		fi
 
 		echo "Checking out files..." | indent 1
-		{
-			run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 ;
-			exit_if_error 15 "Error creating tracking branch on remote clone" ;
-		}| indent 1
+		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 | indent 1
+		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
+			echo "Error creating tracking branch on remote clone" ;
+			exit 15
+		fi
 		
-		{
-			run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1 ;
-			exit_if_error 6 "Error checking out remote clone" ;
-		}
+		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
+		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
+			echo "Error checking out remote clone"
+			exit 6
+		fi
 		
-		{
-			run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1 ;
-			exit_if_error 7 "Error initializing submodules"
-		}
+		run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1
+		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
+			echo "Error initializing submodules"
+			exit 7
+		fi
 
 		DELIVERY_STAGE="post-checkout"
 		run_stage_scripts

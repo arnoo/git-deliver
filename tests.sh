@@ -76,6 +76,7 @@ tearDown()
 	rm -rf "$ROOT_DIR/test_repo/.deliver"
 	cd "$ROOT_DIR/test_repo"
 	git remote rm origin 2> /dev/null
+
 	rm -rf "$ROOT_DIR/test_remote"
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_remote
 	cd "$ROOT_DIR"
@@ -497,6 +498,39 @@ testBasicDeliverMasterSsh()
 
 	cd "$ROOT_DIR"/test_repo
 	assertEquals `git rev-parse master` $SSH_SHA1;
+	}
+
+testDeliverMasterSshBadSubmodule()
+	{
+	initWithSshOrigin
+	MASTER=`git rev-parse master`
+	git submodule add "$ROOT_DIR"/.git badsub
+	sed -i 's/url\s*=.*$/url = \/sdfswds/' .gitmodules
+	git commit -am "Submodule with bad URL"
+	
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	assertEquals 7 $?
+
+	git config -f .git/config --remove-section submodule.badsub
+	git config -f .gitmodules --remove-section submodule.badsub
+	rm -rf badsub
+	rm -rf .git/modules/badsub
+
+	git reset --hard $MASTER
+	}
+
+testDeliverMasterSshDeliveredNotWritable()
+	{
+	initWithSshOrigin
+
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "chmod -w \"$SSH_TEST_PATH\"/test_remote/delivered/"`
+	
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	assertEquals 5 $?
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "chmod +w \"$SSH_TEST_PATH\"/test_remote/delivered/"`
 	}
 
 testBasicDeliverNonHeadSha1OnMaster()
