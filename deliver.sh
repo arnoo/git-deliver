@@ -699,7 +699,7 @@ function deliver
 		VERSION_SHA=`echo "$DELIVERY_INFOS" | head -n 1`
 		local ROLLBACK_TARGET_INFO=`echo "$DELIVERY_INFOS" | tail -n 1`
 		DELIVERY_BASENAME=`basename "$DELIVERY_PATH"`
-		echo "Rolling back the 'current' symlink to the delivery $DELIVERY_BASENAME ($VERSION_SHA), delivered $ROLLBACK_TARGET_INFO"
+		SYMLINK_MSG="Rolling back the 'current' symlink to the delivery $DELIVERY_BASENAME ($VERSION_SHA), delivered $ROLLBACK_TARGET_INFO"
 	else
 		HUMAN_VERSION="${VERSION_SHA:0:6}"
 		if [[ $VERSION != $VERSION_SHA ]]; then
@@ -768,12 +768,14 @@ function deliver
 		local DELIVERED_BY_EMAIL=`git config --get user.email`
 		run_remote "cd \"$DELIVERY_PATH\" && GIT_COMMITTER_NAME=\"$DELIVERED_BY_NAME\" GIT_COMMITTER_EMAIL=\"$DELIVERED_BY_EMAIL\" git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
 
-		echo "Switching the 'current' symlink to the newly delivered version."
+		SYMLINK_MSG="Switching the 'current' symlink to the newly delivered version."
 		# Using a symlink makes our delivery atomic.
 	fi
 
 	DELIVERY_STAGE="pre-symlink"
 	run_stage_scripts
+
+	echo "$SYMLINK_MSG"
 
 	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && { mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/prepreprevious\"  || exit 5 ; } ; \
 		    test -L \"$REMOTE_PATH/delivered/previous\" && { mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" || exit 4 ; } ; \
