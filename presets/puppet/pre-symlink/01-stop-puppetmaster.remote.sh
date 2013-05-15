@@ -5,10 +5,31 @@ STATUS="$IS status"
 STOP="$IS stop"
 START="$IS start"
 
-# 1 = no right to do this
+if [ ! -f /var/run/puppet/master.pid ];
+then
+    echo "Puppetmaster is not running."
+    exit 0
+fi
+
+# initial test on pid, because some times sudo return code in the what is document below
+# 1 = not running
 # 0 = running
-# 3 = stopped
-/usr/bin/sudo -n $STATUS >/dev/null
+ps -p `cat /var/run/puppet/master.pid` >/dev/null
+case $? in
+  1)
+    echo "Puppetmaster is not running."
+    exit 0
+    ;;
+  0)
+    echo "Puppetmaster is running. Try to stop it..."
+    ;;
+  *)
+    echo "Unexpected return code from ps, aborting."
+    exit 2
+    ;;
+esac
+
+/usr/bin/sudo -n $STOP >/dev/null
 
 case $? in
   1)
@@ -16,26 +37,14 @@ case $? in
     exit 1
     ;;
   0)
-    echo "Puppetmaster is running. Try to stop it..."
-    ;;
-  3)
-    echo "Puppetmaster is not running."
+    echo "Puppetmaster is now stopped."
     exit 0
     ;;
   *)
-    echo "Unexpected return code from $STATUS, aborting."
+    echo "Unexpected return code from $STOP, aborting."
     exit 2
     ;;
 esac
 
-/usr/bin/sudo -n $STOP >/dev/null
 
-if [ $? -ne 0 ]; then
-  echo "Error running $STOP, aborting."
-  exit 3
-fi
-
-echo "Puppetmaster is now stopped."
-
-exit 0
 
