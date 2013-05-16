@@ -1,2 +1,2 @@
 DEPENDENCIES=php,js
-DESCRIPTION="Base delivery hooks for a Drupal project"
+DESCRIPTION="Base delivery hooks for a Drupal project (dummy)"
