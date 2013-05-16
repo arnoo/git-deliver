@@ -15,8 +15,9 @@ fi
 
 /usr/bin/sudo -n $START >/dev/null
 
-if [ $? -ne 0 ]; then
-  echo "Error running $START, aborting."
+res=$?
+if [ $res -ne 0 ]; then
+  echo "Error running $START (status $res), aborting."
   exit 3
 fi
 
