@@ -13,7 +13,7 @@ then
     fi
 fi
 
-/usr/bin/sudo -n $START
+/usr/bin/sudo -n $START >/dev/null
 
 res=$?
 if [ $res -ne 0 ]; then
