@@ -17,12 +17,12 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+USECOLOR=true;
 [[ -t 1 ]] || USECOLOR=false;
 
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 if [[ $? -gt 0 ]]; then
-	echo "ERROR : not a git repo" >&2
-	exit 1
+	exit_with_error 1 "ERROR : not a git repo"
 fi
 if [[ "$REPO_ROOT" = ".git" ]]; then
 	REPO_ROOT=`pwd`
@@ -69,11 +69,18 @@ function confirm_or_exit
 function exit_if_error
 	{
 	if [[ $? -gt 0 ]]; then
-		[[ $USECOLOR == true ]] && echo -ne "\E[31m"
-		echo "$2"
-		[[ $USECOLOR == true ]] && echo -ne "\033[0m"
-		exit $1
+		exit_with_error $1 $2
 	fi
+	}
+
+function exit_with_error
+	{
+	local code=$1
+	local msg=$2
+	[[ $USECOLOR == true ]] && echo -ne "\E[31m"
+	echo "$msg"
+	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	exit $code
 	}
 
 function exit_with_help
@@ -254,13 +261,11 @@ function check_preset
 		local DESCRIPTION="ERROR"
 		local INFO_PATH="$GIT_DELIVER_PATH/presets/$PRESET/info"
 		if [[ ! -f "$INFO_PATH" ]]; then
-			echo "ERROR : Info file for preset $PRESET not found." >&2
-			exit 21
+			exit_with_error 21 "ERROR : Info file for preset $PRESET not found." >&2
 		fi
 		source "$INFO_PATH"
 		if [[ "$DESCRIPTION" = "ERROR" ]] || [[ "$DESCRIPTION" = "" ]]; then
-			echo "ERROR : Missing description for preset $PRESET" >&2
-			exit 20
+			exit_with_error 20 "ERROR : Missing description for preset $PRESET" >&2
 		fi
 		local OLDIFS=$IFS
 		IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
@@ -268,8 +273,7 @@ function check_preset
 			check_preset "$DEP"
 		done
 	else
-		echo "ERROR : could not find preset $PRESET" >&2
-		exit 19
+		exit_with_error 19 "ERROR : could not find preset $PRESET" >&2
 	fi
 	}
 
@@ -280,7 +284,7 @@ function init_preset
 	if echo "$INIT_PRESETS" | grep ",$PRESET," > /dev/null; then
 		return
 	fi
-	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET" ] || { echo "Preset not found : $PRESET" && exit 19; }
+	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET" ] || exit_with_error 10 "Preset not found : $PRESET"
 	[ -d "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies ] && cp -ri "$GIT_DELIVER_PATH"/presets/"$PRESET"/dependencies "$REPO_ROOT"/.deliver/scripts/dependencies/"$PRESET"
 	local PRESET_SCRIPT
 	for PRESET_STAGE_DIR in "$GIT_DELIVER_PATH/presets/$PRESET"/*; do
@@ -484,14 +488,12 @@ function init_remote
 	remote_info "$REMOTE" true "$INIT_URL"
 	
 	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
-		echo "Git-deliver can only work with SSH or 'local' remotes"
-		exit 17
+		exit_with_error 17 "Git-deliver can only work with SSH or 'local' remotes"
 	fi
 	
 	run_remote "{ test -d \"$REMOTE_PATH\"/refs && test -d \"$REMOTE_PATH\"/delivered ; } &> /dev/null"
 	if [[ $? = 0 ]]; then
-		echo "This remote looks like it has already been setup for git-deliver."
-		exit 18
+		exit_with_error 18 "This remote looks like it has already been setup for git-deliver."
 	fi
 	
 
@@ -500,14 +502,12 @@ function init_remote
 	if [[ $? = 0 ]]; then
 		run_remote "test -d \"$REMOTE_PATH\" &> /dev/null"
 		if [[ $? -gt 0 ]]; then
-			echo "ERROR: Remote path points to a file"
-			exit 10
+			exit_with_error 10 "ERROR: Remote path points to a file"
 		else
 			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l"` != "0" ]]; then
 				git fetch "$REMOTE" &> /dev/null
 				if [[ $? -gt 0 ]]; then
-					echo "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
-					exit 9
+					exit_with_error 9 "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
 				else
 					NEED_INIT=false
 				fi
@@ -539,8 +539,7 @@ function remote_gc
 	local REMOTE="$1"
 	remote_info "$REMOTE"
 	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
-		echo "$REMOTE is not a Git-deliver remote"
-		exit 17
+		exit_with_error 17 "$REMOTE is not a Git-deliver remote"
 	fi
 	LOG_TEMPFILE=`make_temp_file`
 	local GC_SCRIPT="
@@ -629,15 +628,13 @@ function deliver
 	remote_info "$REMOTE"
 	
 	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
-		echo "Git-deliver can only work with SSH or 'local' remotes"
-		exit 17
+		exit_with_error 17 "Git-deliver can only work with SSH or 'local' remotes"
 	fi
 
 	check_git_version "$REMOTE"
 
 	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
-		echo "ERROR : Remote does not look like a bare git repo" >&2
-		exit 1
+		exit_with_error 1 "ERROR : Remote does not look like a bare git repo" >&2
 	fi
 
 	# If this projet has init-remote scripts, check that the remote has been init. Otherwise, we don't really care, as it's just a matter of creating the 'delivered' directory
@@ -645,8 +642,7 @@ function deliver
 	if [[ -e "$REPO_ROOT"/.deliver/scripts/init-remote ]] && test -n "$(find "$REPO_ROOT/.deliver/scripts/init-remote" -maxdepth 1 -name '*.sh' -print)"; then
 		run_remote "test -d \"$REMOTE_PATH\"/delivered"
 		if [[ $? -gt 0 ]]; then
-			echo "ERROR : Remote has not been init" >&2
-			exit 22
+			exit_with_error 22 "ERROR : Remote has not been init" >&2
 		fi
 	fi
 
@@ -669,8 +665,7 @@ function deliver
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 		if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
-			echo "Cannot rollback"
-			exit 24
+			exit_with_error 24 "Cannot rollback"
 		fi
 	else
 		local version_line=`echo "$RSTATUS" | head -n +2 | tail -n 1`
@@ -691,11 +686,10 @@ function deliver
 		DELIVERY_PATH=`run_remote "cd \"$REMOTE_PATH/delivered/$ROLLBACK_TO_VERSION\" && pwd -P" 2>&1`
 		if [[ $? -gt 0 ]]; then
 			if [[ "$VERSION" = "" ]]; then
-				echo "No previous version found; cannot rollback"
+				exit_with_error 25 "No previous version found; cannot rollback"
 			else
-				echo "Delivery $VERSION not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
+				exit_with_error 25 "Delivery $VERSION not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
 			fi
-			exit 25
 		fi
 		local DELIVERY_INFOS
 		DELIVERY_INFOS=`run_remote "cd \"$DELIVERY_PATH\" && git log -n 1 --skip=1 --pretty=format:%H && echo "" && git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1" 2>&1`
@@ -714,8 +708,7 @@ function deliver
 
 		local BRANCHES=`git branch --contains $VERSION`
 		if [[ "$BRANCHES" = "" ]]; then
-			echo "ERROR : Can't deliver a commit that does not belong to a local branch"
-			exit 16
+			exit_with_error 16 "ERROR : Can't deliver a commit that does not belong to a local branch"
 		fi
 		
 		local BRANCH=`echo "$BRANCHES" | grep '^* ' | tr -d ' *'`
@@ -741,27 +734,23 @@ function deliver
 		echo "Creating new delivery clone"
 		run_remote "git clone --shared --no-checkout \"$REMOTE_PATH\" \"$DELIVERY_PATH\" && echo '../../../../objects' > \"$DELIVERY_PATH\"/.git/objects/info/alternates"
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
-			echo "Error cloning repo to delivered folder on remote" ;
-			exit 5
+			exit_with_error 5 "Error cloning repo to delivered folder on remote" ;
 		fi
 
 		echo "Checking out files..." | indent 1
 		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
-			echo "Error creating tracking branch on remote clone" ;
-			exit 15
+			exit_with_error 15 "Error creating tracking branch on remote clone" ;
 		fi
 		
 		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
-			echo "Error checking out remote clone"
-			exit 6
+			exit_with_error 6 "Error checking out remote clone"
 		fi
 		
 		run_remote "cd \"$DELIVERY_PATH\" && git submodule update --init --recursive" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
-			echo "Error initializing submodules"
-			exit 7
+			exit_with_error 7 "Error initializing submodules"
 		fi
 
 		DELIVERY_STAGE="post-checkout"
@@ -839,9 +828,7 @@ function delivery_sigint_handler
 		FAILED_SCRIPT_EXIT_STATUS=0
 		rollback
 	else
-		echo "Delivery aborted during rollback, manual intervention is likely necessary"
-		echo "Delivery log : $LOG_TEMPFILE"
-		exit 23
+		exit_with_error 23 "Delivery aborted during rollback, manual intervention is likely necessary\nDelivery log : $LOG_TEMPFILE"
 	fi
 }
 
@@ -850,8 +837,7 @@ function check_git_version
 	REMOTE_GIT_VERSION=`run_remote "git --version 2> /dev/null"`
 	
 	if [[ $? = 127 ]]; then
-		echo "ERROR: Git needs to be installed and in \$PATH on the remote"
-		exit 11
+		exit_with_error 11 "ERROR: Git needs to be installed and in \$PATH on the remote"
 	else
 		echo -n ""
 	fi
