@@ -55,7 +55,6 @@ The example below assumes that the server is accessible with SSH. You'll want to
 To setup your project for Git-deliver, in your project directory, run:
 
     git deliver --init
-    git add .deliver && git commit # to track and share delivery files
 
 Create a bare repository on the server where you want the project delivered, and add it as a remote in your local Git project, or ask Git-deliver to do it:
 
@@ -114,13 +113,13 @@ How it works
 
 To get started, you'd run `git deliver --init` in your Git working folder. This would create an empty ".deliver" folder next to the ".git" one. You'd then be able to create scripts in this folder to customize the delivery process should you want to. You could keep the .deliver folder under version control and share it with your team that way.
 
-If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like `git deliver --init rails rails-pgsql` would copy both the "rails" scripts and the "rails-pgsql" scripts, both of which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running `git deliver --list-presets`.
+If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like `git deliver --init rails` would copy the "rails" scripts, which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running `git deliver --list-presets`.
 
-Note that presets are pretty much inexistent right now; I very much welcome contributions in this area.
+Note that although the mechanisms are there, presets themselves are pretty much inexistent right now; I very much welcome contributions in this area.
 
-Once our working copy is ready, if you have "init-remote" scripts, you'll need to run `git deliver --init-remote <remote>` to run those. They might be used to install external dependencies on the remote. If you don't have "init-remote" scripts, remote initialization is not needed.
+Once our working copy is ready, if you have "init-remote" scripts, you'll need to run `git deliver --init-remote <remote>` to run those. They might be used to install external dependencies on the remote. If you don't have "init-remote" scripts, remote initialization is not needed (Git-deliver will warn you at the first delivery, if you forget to initialize a remote that requires it).
 
-A delivery is then initiated by running `git deliver <remote> <ref>`. Here's the timeline of what happens:
+A delivery is initiated by running `git deliver <remote> <ref>`. Here's the timeline of what happens:
 
 * We run preliminary checks. By default, we just check the available disk space on the remote, but you can create "pre-delivery" scripts to add checks.
 
