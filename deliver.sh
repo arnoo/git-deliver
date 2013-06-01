@@ -809,6 +809,7 @@ function deliver
 	fi
 	echo "Tagging delivery commit"
 	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"  2>&1 | indent 1
+	run "git push \"$REMOTE\" refs/tags/\"$TAG_NAME\"" 2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
