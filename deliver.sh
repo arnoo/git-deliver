@@ -69,7 +69,7 @@ function confirm_or_exit
 function exit_if_error
 	{
 	if [[ $? -gt 0 ]]; then
-		exit_with_error $1 $2
+		exit_with_error $1 "$2"
 	fi
 	}
 
@@ -523,12 +523,26 @@ function init_remote
 			    git config --bool receive.autogc false"
 		exit_if_error 10 "Error initializing repository on remote"
 	fi
-	run_remote "mkdir \"$REMOTE_PATH\"/delivered &> /dev/null"
-	exit_if_error 11 "Error creating 'delivered' directory in remote root"
+
+	create_delivered_dir_if_needed
+
 	DELIVERY_STAGE="init-remote"
 	run_stage_scripts
 	echo "Remote is ready to receive deliveries"
 	IN_INIT=""
+	}
+
+function create_delivered_dir_if_needed
+	{
+	run_remote "if [[ ! -d \"$REMOTE_PATH\"/delivered ]]; then \
+					mkdir \"$REMOTE_PATH\"/delivered || exit 1
+					stat -c %A \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w'
+					if [[ $? -eq 0 ]]; then
+						chgrp \`stat -c %G \"$REMOTE_PATH/objects\"\` \"$REMOTE_PATH/delivered\" && \
+						chmod g+w \"$REMOTE_PATH/delivered\"
+					fi
+				fi"
+	exit_if_error 11 "Error creating 'delivered' directory in remote root"
 	}
 
 function remote_gc
@@ -548,6 +562,7 @@ function remote_gc
 		PREPREVER=\`{ cd \"$REMOTE_PATH/delivered/preprevious\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
 		DELETED=0
 		FREED_BYTES=0
+		STATUS=0
 		for rep in \"$REMOTE_PATH/delivered/\"*; do
 			if [ ! -L \"\$rep\" ]; then
 				rep=\`{ cd \"\$rep\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
@@ -558,7 +573,8 @@ function remote_gc
 					FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
 					rm -rf \"\$rep\" && \
 					DELETED=\$((\$DELETED + 1)) && \
-			   		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW))
+			   		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW)) || \
+					STATUS=27
 				fi
 			fi
 		done
@@ -572,9 +588,12 @@ function remote_gc
 								     print y \" \" type[i+2];
 								     }'\`
 		fi
-		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\" "
+		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\"
+		exit \$STATUS"
 	run_remote "$GC_SCRIPT"
+	local status=$?
 	rm -f "$LOG_TEMPFILE"
+	exit $status
 	}
 
 function make_temp_file
@@ -729,6 +748,8 @@ function deliver
 			exit 14 ;
 		fi
 
+		create_delivered_dir_if_needed
+
 		# Checkout the files in a new directory. We actually do a full clone of the remote's bare repository in a new directory for each delivery. Using a working copy instead of just the files allows the status of the files to be checked easily. The git objects are shared with the base repository.
 
 		echo "Creating new delivery clone"
@@ -762,6 +783,9 @@ function deliver
 		local DELIVERED_BY_NAME=`git config --get user.name`
 		local DELIVERED_BY_EMAIL=`git config --get user.email`
 		run_remote "cd \"$DELIVERY_PATH\" && GIT_COMMITTER_NAME=\"$DELIVERED_BY_NAME\" GIT_COMMITTER_EMAIL=\"$DELIVERED_BY_EMAIL\" git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
+
+		run_remote "stat -c %A \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w' && chgrp -R \`stat -c %G \"$REMOTE_PATH/objects\"\` \"$DELIVERY_PATH\" && chmod -R g+w \"$DELIVERY_PATH\""
+
 
 		SYMLINK_MSG="Switching the 'current' symlink to the newly delivered version."
 		# Using a symlink makes our delivery atomic.

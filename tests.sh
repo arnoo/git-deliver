@@ -2,6 +2,9 @@
 
 SSH_TEST_USER=$USER
 SSH_TEST_HOST="localhost"
+SSH_TEST_GROUP=git
+SSH_TEST_USER_SAME_GROUP=bob
+SSH_TEST_USER_NOT_SAME_GROUP=alice
 SSH_TEST_PATH="/tmp/deliver test/"
 
 assertTrueEcho()
@@ -26,8 +29,15 @@ initWithOrigin()
 
 initWithSshOrigin()
 	{
+	local shared=""
+	if [[ $# = 0 ]]; then
+		shared="false"
+	else
+		shared="$1"
+	fi
+	shift
 	cd "$ROOT_DIR/test_repo"
-	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_TEST_PATH\"/test_remote ; mkdir -p \"$SSH_TEST_PATH\"/test_remote && cd \"$SSH_TEST_PATH\"/test_remote && git init --bare"
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_TEST_PATH\"/test_remote ; mkdir -p \"$SSH_TEST_PATH\"/test_remote && cd \"$SSH_TEST_PATH\"/test_remote && git init --bare --shared=$shared && chgrp -R $SSH_TEST_GROUP \"$SSH_TEST_PATH\"/test_remote"
 	git remote add origin "$SSH_TEST_USER@$SSH_TEST_HOST:$SSH_TEST_PATH/test_remote" 
 	initDeliver $*
 	}
@@ -839,7 +849,6 @@ testRollbackPostCheckoutSsh()
 	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
 	echo "echo \"POST_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
 	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
-	echo "$A"
 	echo "$A" | grep "Script returned with status 22" &> /dev/null
 	assertEquals 0 $?
 	echo "$A" | grep "POST_FAILED_SCRIPT:00-fail" &> /dev/null
@@ -1041,6 +1050,53 @@ testFullRollbackVersionSsh()
 
 	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/previous/.git log -n 1 --skip=1 --pretty=format:%H"`
 	assertEquals `git rev-parse master` "$SSH_SHA1";
+	}
+
+testGroupPermissionsNotShared()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	assertEquals 0 $?
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "stat -c %A $SSH_TEST_GROUP \"$SSH_TEST_PATH\"/test_remote" | cut -c 6 | grep 'w'
+	assertEquals 1 $?
+	}
+
+testGroupPermissions()
+	{
+	initWithSshOrigin "group"
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "chgrp $SSH_TEST_GROUP \"$SSH_TEST_PATH\"/test_remote"
+	cd "$ROOT_DIR/test_repo"
+	git remote add origin_same_group "$SSH_TEST_USER_SAME_GROUP@$SSH_TEST_HOST:$SSH_TEST_PATH/test_remote"
+	git remote add origin_not_same_group "$SSH_TEST_USER_NOT_SAME_GROUP@$SSH_TEST_HOST:$SSH_TEST_PATH/test_remote"
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	assertEquals 0 $?
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	assertEquals 0 $?
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	assertEquals 0 $?
+	"$ROOT_DIR"/deliver.sh --batch origin_same_group master
+	assertEquals 0 $?
+	"$ROOT_DIR"/deliver.sh --batch origin_not_same_group master
+	assertEquals 5 $?
+	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin_not_same_group`
+	assertEquals 27 $?
+	echo "$GC"
+	echo "$GC" | grep "0 version(s) removed" > /dev/null
+	assertEquals 0 $?
+	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin_same_group`
+	assertEquals 0 $?
+	echo "$GC"
+	echo "$GC" | grep "1 version(s) removed" > /dev/null
+	assertEquals 0 $?
+	"$ROOT_DIR"/deliver.sh --batch origin master
+	assertEquals 0 $?
+	"$ROOT_DIR"/deliver.sh --batch origin_same_group master
+	assertEquals 0 $?
+	GC=`"$ROOT_DIR"/deliver.sh --gc origin`
+	assertEquals 0 $?
+	echo "$GC"
+	echo "$GC" | grep "2 version(s) removed" > /dev/null
+	assertEquals 0 $?
 	}
 
 testDefaultNoColor()
