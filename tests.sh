@@ -102,6 +102,32 @@ testPath2Unix()
 	assertEquals "/C/A/b/C" "$A"
 	}
 
+testExitIfError()
+	{
+	A=`echo 'source deliver.sh --source; bash -c "exit 2"; exit_if_error 1 "test"' | bash`
+	assertEquals 1 $?
+	echo "$A" | grep "test" &> /dev/null
+	assertEquals 0 $?
+	}
+
+testDefaultcolor()
+	{
+	A=`echo 'source deliver.sh --source; echo_red "test"' | bash`
+	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
+	assertNotSame 0 $?
+	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
+	assertNotSame 0 $?
+	}
+
+testExplicitcolor()
+	{
+	A=`echo 'source deliver.sh --color --source; echo_red "test"' | bash`
+	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
+	assertEquals 0 $?
+	}
+
 testRunRemoteLocal()
 	{
 	cd "$ROOT_DIR"
@@ -1096,24 +1122,6 @@ testGroupPermissions()
 	assertEquals 0 $?
 	echo "$GC"
 	echo "$GC" | grep "2 version(s) removed" > /dev/null
-	assertEquals 0 $?
-	}
-
-testDefaultNoColor()
-	{
-	A=`echo 'source deliver.sh --source; bash -c "exit 2"; exit_if_error 1 "test"' | bash`
-	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
-	assertNotSame 0 $?
-	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
-	assertNotSame 0 $?
-	}
-
-testColor()
-	{
-	A=`echo 'source deliver.sh --color --source; bash -c "exit 2"; exit_if_error 1 "test"' | bash`
-	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
-	assertEquals 0 $?
-	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
 	assertEquals 0 $?
 	}
 

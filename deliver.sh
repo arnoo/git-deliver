@@ -50,6 +50,22 @@ GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$GIT_DELIVER_PATH/lib/shflags"
 _flags_warn() { echo "Git-deliver: $@" | sed 's/getopt: //'  >&2; exit_with_help; }
 
+function echo_green
+	{
+	local msg="$1"
+    [[ $USECOLOR == true ]] && echo -ne "\E[32m"
+	echo "$msg"
+	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	}
+
+function echo_red
+	{
+	local msg="$1"
+	[[ $USECOLOR == true ]] && echo -ne "\E[31m"
+	echo "$msg"
+	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	}
+
 function confirm_or_exit
 	{
 	if [[ $FLAGS_batch -eq $FLAGS_TRUE ]]; then
@@ -69,22 +85,24 @@ function confirm_or_exit
 function exit_if_error
 	{
 	if [[ $? -gt 0 ]]; then
-		exit_with_error $1 "$2"
+		local code=$1
+		local msg="$2"
+		exit_with_error $code "$msg"
 	fi
 	}
 
 function exit_with_error
 	{
 	local code=$1
-	local msg=$2
-	[[ $USECOLOR == true ]] && echo -ne "\E[31m"
-	echo "$msg"
-	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	local msg="$2"
+	echo_red "$msg"
 	exit $code
 	}
 
 function exit_with_help
 	{
+	local code=$1
+
 	echo "Usage : "
 	echo "  git deliver <REMOTE> <VERSION>"
 	echo "  git deliver --rollback <REMOTE> [DELIVERY]"
@@ -93,10 +111,11 @@ function exit_with_help
 	echo "  git deliver --init-remote [--shared=...] <REMOTE_NAME> <REMOTE_URL>"
 	echo "  git deliver --list-presets"
 	echo "  git deliver --status [REMOTE]"
-	if [[ "$1" = "" ]]; then
+
+	if [[ "$code" = "" ]]; then
 		exit 1;
 	else
-		exit $1
+		exit $code
 	fi
 	}
 
@@ -375,19 +394,15 @@ function run_stage_scripts
 				`cat "$SCRIPT_PATH"`
 			EOS
 			if [[ $script_result -gt 0 ]]; then
-				[[ $USECOLOR == true ]] && echo -ne "\E[31m"
-				echo "Script returned with status $script_result" | indent 1 >&2
-				[[ $USECOLOR == true ]] && echo -ne "\033[0m" 
+				echo_red "Script returned with status $script_result" | indent 1 >&2
 				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
 					FAILED_SCRIPT_EXIT_STATUS="$script_result"
 					rollback
 				else
-					[[ $USECOLOR == true ]] && echo -e "\E[31m"
-					echo "A script failed during rollback, manual intervention is likely necessary"
-					echo "Delivery log : $LOG_TEMPFILE"
-					[[ $USECOLOR == true ]] && echo -ne "\033[0m" 
+					echo_red "A script failed during rollback, manual intervention is likely necessary"
+					echo_red "Delivery log : $LOG_TEMPFILE"
 					exit 23
 				fi
 				exit
@@ -528,7 +543,7 @@ function init_remote
 
 	DELIVERY_STAGE="init-remote"
 	run_stage_scripts
-	echo "Remote is ready to receive deliveries"
+	echo_green "Remote is ready to receive deliveries"
 	IN_INIT=""
 	}
 
@@ -838,9 +853,7 @@ function deliver
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
-    [[ $USECOLOR == true ]] && echo -ne "\E[32m"
-	echo "Delivery complete."
-	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	echo_green "Delivery complete."
 	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
 	}
 
