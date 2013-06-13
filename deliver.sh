@@ -385,7 +385,7 @@ function run_stage_scripts
 					if [[ "$REMOTE_SERVER" = "" ]]; then
 						bash -c "\$COMMAND"
 					else
-						ssh "$REMOTE_SERVER" "\$COMMAND"
+						"$GIT_SSH" "$REMOTE_SERVER" "\$COMMAND"
 					fi
 					}
 				
@@ -412,6 +412,24 @@ function run_stage_scripts
 	else
 		echo "No scripts for stage $DELIVERY_STAGE" >&2
 	fi
+	}
+
+function ssh_cleanup
+	{
+	# Call the ssh wrapper with only our PID as argument to kill the master SSH connection
+	"$GIT_SSH"
+	rm -f "$GIT_SSH"
+	}
+
+SSH_INIT_DONE=false
+function ssh_init
+	{
+	[[ "$SSH_INIT_DONE" == true ]] && return
+	SSH_INIT_DONE=true
+	export GIT_SSH="/tmp/git_deliver_ssh_wrapper_$$.sh"
+	echo -e "#!/bin/bash\n\n\"$GIT_DELIVER_PATH\"/deliver_ssh_wrapper.sh $$ \"\$@\"" > "$GIT_SSH"
+	chmod +x "$GIT_SSH"
+	trap ssh_cleanup EXIT
 	}
 
 function remote_info
@@ -467,6 +485,9 @@ function remote_info
 		fi
 	fi
 	REMOTE_PATH=`echo "$REMOTE_PATH" | sed 's#//#/#g'`
+	if [[ "$REMOTE_PROTO" == "ssh" ]]; then 
+		ssh_init
+	fi
 	}
 
 function run
@@ -486,9 +507,9 @@ function run_remote
 		bash -c "$COMMAND"
 	else
 		if [[ "$LOG_TEMPFILE" != "" ]]; then
-			echo "running ssh \"$REMOTE_SERVER\" \"$COMMAND\"" >> "$LOG_TEMPFILE"
+			echo "running "$GIT_SSH" \"$REMOTE_SERVER\" \"$COMMAND\"" >> "$LOG_TEMPFILE"
 		fi
-		ssh "$REMOTE_SERVER" "$COMMAND"
+		"$GIT_SSH" "$REMOTE_SERVER" "$COMMAND"
 	fi
 	}
 
@@ -503,7 +524,7 @@ function init_remote
 	remote_info "$REMOTE" true "$INIT_URL"
 	
 	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
-		exit_with_error 17 "Git-deliver can only work with SSH or 'local' remotes"
+		exit_with_error 17 "Git-deliver can only work with ssh or 'local' remotes"
 	fi
 	
 	run_remote "{ test -d \"$REMOTE_PATH\"/refs && test -d \"$REMOTE_PATH\"/delivered ; } &> /dev/null"
@@ -662,7 +683,7 @@ function deliver
 	remote_info "$REMOTE"
 	
 	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
-		exit_with_error 17 "Git-deliver can only work with SSH or 'local' remotes"
+		exit_with_error 17 "Git-deliver can only work with ssh or 'local' remotes"
 	fi
 
 	check_git_version "$REMOTE"
@@ -695,6 +716,7 @@ function deliver
 	fi
 
 	RSTATUS=`remote_status "$REMOTE" 1`
+
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
