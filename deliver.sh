@@ -217,7 +217,8 @@ function remote_status
 						echo "\$version (\$tags)" | indent 1
 					fi
 
-					if [[ \`git diff-index HEAD | wc -l\` != "0" ]]; then
+					git diff-index HEAD --quiet --exit-code 
+					if [[ \$? -gt "0" ]]; then
 						echo "* plus uncommitted changes *" | indent 1
 					fi
 
