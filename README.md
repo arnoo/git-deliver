@@ -34,6 +34,8 @@ Windows
 
 To use Git-deliver on Windows, you'll need to copy the libintl-8.dll and getopt.exe from the "msys" folder of the git-deliver clone to your "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin". These are files from the MinGW project (http://www.mingw.org/) which are included with Git-deliver for convenience.
 
+You'll most likely want to setup SSH public key authentication with your remotes to avoid typing your SSH password multiple times. See http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication for instructions. This is because SSH client bundled with msys is pretty old and does not support connection multiplexing (at least not with privilege separation enabled on the server). 
+
 OSX
 ---
 
@@ -50,7 +52,7 @@ A simple example (TL;DR)
 
 Let's assume for this example that you have a simple project for which a delivery just means copying files.
 
-The example below assumes that the server is accessible with SSH. You'll want to setup SSH public key authentication, as Git-deliver will open lots of SSH connections (this should change in future versions). See http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication for instructions.
+The example below assumes that the server is accessible with SSH.
 
 To setup your project for Git-deliver, in your project directory, run:
 
