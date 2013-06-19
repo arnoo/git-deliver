@@ -125,7 +125,7 @@ A delivery is initiated by running `git deliver <remote> <ref>`. Here's the time
 
 * The commit to deliver is pushed to the remote, and the remote repository cloned in the delivered folder. "post-checkout" scripts are then run.
 
-* Your scripts might change the delivered files (add production passwords for instance). We therefore do a commit in the clone repository, to save the delivered state. We then run the "pre-symlink" scripts.
+* Your scripts might change the delivered files. We therefore do a commit in the clone repository, to save the delivered state. If the repository you are delivering to is a shared one, the files are given group write permissions and made to belong to the same group as the "objetcs" folder in the repository. We then run the "pre-symlink" scripts.
 
 * We change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts.
 
