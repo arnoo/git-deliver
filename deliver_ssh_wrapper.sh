@@ -22,12 +22,19 @@
 ## This is a Wrapper script for ssh that creates a control master
 ## in the background if one isn't already started.
 
+
 master_id=$1
 shift
 
 if [[ $# == 0 ]]; then
 	ssh -q -S ${master_id} -O exit not_used &> /dev/null
 	exit
+fi
+
+## OpenSSH as included in the current msys install does not support
+## multiplexing with privilege separation -> forget it
+if [[ "$OSTYPE" == "msys" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_4.6p1" ]]; then
+	exec ssh "$@"
 fi
 
 ## optstring assembled from `man ssh`
@@ -44,7 +51,7 @@ args=(${opts#*--})
 host=`eval echo ${args[0]}`
 
 ## if the master isn't running, start it in the background
-ssh -S $master_id -q -O check not_used 2>/dev/null || { SSH_OPTION=`ssh -V 2>&1 | awk 'BEGIN {FS="_"} $2>=5.6 { print "-o ControlPersist=5m"}'` ; ssh $SSH_OPTION -S $master_id -MNf $host > /dev/null ; }
+ssh -S $master_id -q -O check not_used 2>/dev/null || { SSH_OPTION=`ssh -V 2>&1 | awk 'BEGIN {FS="_"} $2>=5.6 { print "-o ControlPersist=5m"}'` ; ssh $SSH_OPTION -S $master_id -MNf $host > /dev/null || exit 255; }
 
 ## replace ourselves with the reall ssh call
 exec ssh -S $master_id "$@"
