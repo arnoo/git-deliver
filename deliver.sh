@@ -687,7 +687,7 @@ function deliver
 		exit_with_error 17 "Git-deliver can only work with ssh or 'local' remotes"
 	fi
 
-	check_git_version "$REMOTE"
+	check_git_version_and_ssh_connectivity "$REMOTE"
 
 	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
 		exit_with_error 1 "ERROR : Remote does not look like a bare git repo" >&2
@@ -893,14 +893,15 @@ function delivery_sigint_handler
 	fi
 }
 
-function check_git_version
+function check_git_version_and_ssh_connectivity
 	{
 	REMOTE_GIT_VERSION=`run_remote "git --version 2> /dev/null"`
-	
-	if [[ $? = 127 ]]; then
+	local code=$?
+
+	if [[ $code = 127 ]]; then
 		exit_with_error 11 "ERROR: Git needs to be installed and in \$PATH on the remote"
-	else
-		echo -n ""
+	elif [[ $code = 255 ]]; then
+		exit_with_error 28 "ERROR: Could not open SSH connection"
 	fi
 	}
 
