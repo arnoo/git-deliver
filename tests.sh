@@ -236,7 +236,6 @@ testInit()
 	assertTrueEcho "[ -d .deliver/scripts ]"
 	assertTrueEcho "[ -d .deliver/scripts/pre-delivery ]"
 	assertTrueEcho "[ -f .deliver/scripts/pre-delivery/01-core-disk-space.sh ]"
-	assertTrueEcho "[ -f .deliver/scripts/pre-delivery/01-core-mem-free.sh ]"
 	assertTrueEcho "[ -d .deliver/scripts/init-remote ]"
 	assertTrueEcho "[ -d .deliver/scripts/post-checkout ]"
 	assertTrueEcho "[ -d .deliver/scripts/post-symlink ]"
