@@ -11,7 +11,7 @@ The git clones share their metadata with the main repository for the remote, to 
 
 The current version's clone is used through a "current" symlink, which is switched once the new version is ready, to make the delivery "atomic".
 
-A delivery is done in stages. Between each stage, Bash scripts can be run to adapt the delivery process to the project.
+A delivery is done in stages. At each stage, Bash scripts can be run, that can be tailored to the project. Commonly used script sets can be shared in the form of "presets".
 
 
 Installation
@@ -171,3 +171,13 @@ Git-deliver is usable as-is, but is a work in progress. I consider it a working 
 See https://github.com/arnoo/git-deliver/issues?state=open for known bugs and planned enhancements/features.
 
 Code contributions are welcome, particularly in the form of stage script presets.
+
+
+Help fund the project
+=====================
+
+Git-deliver is on Indiegogo : 
+
+http://www.indiegogo.com/projects/git-deliver
+
+You can also donate Bitcoins to fund future developments. Send them to 1MtSVmn4uZ98iEFjHLkHSbqxwmbyvEoqAJ
