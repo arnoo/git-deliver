@@ -5,6 +5,14 @@ Git-deliver is a GPL licensed delivery system based on Git.
 
 It uses "git push" combined with SSH as a way of delivering a project (as of a specific Git commit) to various environments (Git remotes) simply and securely. It also helps keeping track of what is delivered on which server.
 
+Compared to a regular Git push/checkout, Git-deliver :
+  * makes the delivery atomic
+  * structures the delivery process in stages and handles errors while maintaining availability
+  * archives delivered versions and automates rollback
+  * logs everything
+  * provides an easy way of knowing what is delivered where, checking integrity and knowing when and by whom a version was delivered.
+  * intends to provide pre-baked delivery recipes for common development environments
+
 Each delivery remote is a bare Git repository, in the root of which Git-deliver creates a "delivered" folder. This folder will contain one non-bare clone of the base repository for each delivery.
 
 The git clones share their metadata with the main repository for the remote, to avoid excessive space usage / copy time.
