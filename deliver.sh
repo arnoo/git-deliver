@@ -648,7 +648,31 @@ function make_temp_file
 		echo "$TEMPFILE"
 	fi
 	}
-	
+
+function get_branch_for_version
+    {
+	# branches containing version
+	local ELIGIBLE_BRANCHES=`git branch --contains $1 | tr -d ' *'`
+
+	# "real" branches, in .git/refs/heads
+	local REAL_BRANCHES=`echo "$ELIGIBLE_BRANCHES" | xargs -n 1 -I {} find .git/refs/heads -name "{}" -printf "%f\n"`
+
+	# if version is a branch, picks it
+	local BRANCH=`echo "$REAL_BRANCHES" | grep "^$1$" | head -n 1`
+
+	# else, tries master if eligible
+	if [[ "$BRANCH" == "" ]]; then
+		BRANCH=`echo "$REAL_BRANCHES" | grep "master" | head -n 1`
+	fi
+
+	# else, picks first eligible branch
+	if [[ "$BRANCH" == "" ]]; then
+		BRANCH=`echo "$REAL_BRANCHES" | head -n 1`
+	fi
+
+	echo "$BRANCH"
+    }
+
 function deliver
 	{
 	if [[ $3 != "" ]] || [[ $1 = "" ]]; then
@@ -763,28 +787,7 @@ function deliver
 		DELIVERY_BASENAME="$DELIVERY_DATE"_"$HUMAN_VERSION"
 		DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_BASENAME"
 
-		local BRANCHES=`git branch --contains $VERSION`
-		if [[ "$BRANCHES" = "" ]]; then
-			exit_with_error 16 "ERROR : Can't deliver a commit that does not belong to a local branch"
-		fi
-
-		# Try master first
-		local BRANCH=`echo "$BRANCHES" | grep 'master' | tr -d ' *'`
-
-		# Try version
-		if [[ "$BRANCH" = "" ]]; then
-			BRANCH=`echo "$BRANCHES" | grep \`echo $VERSION\` | tr -d ' *'`
-		fi
-
-		# Try current branch
-		if [[ "$BRANCH" = "" ]]; then
-			BRANCH=`echo "$BRANCHES" | grep -v '^* (detached' | grep -v '^* (no branch' | grep '^* ' | tr -d ' *'`
-		fi
-
-		# First branch containing version
-		if [[ "$BRANCH" = "" ]]; then
-			BRANCH=`echo "$BRANCHES" | grep -v '^* (detached' | grep -v '^* (no branch' | head -n 1 | tr -d ' '`
-		fi
+		local BRANCH=`get_branch_for_version $VERSION`
 
 		DELIVERY_STAGE="pre-delivery"
 		run_stage_scripts
