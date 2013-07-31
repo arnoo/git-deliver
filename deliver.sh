@@ -767,10 +767,23 @@ function deliver
 		if [[ "$BRANCHES" = "" ]]; then
 			exit_with_error 16 "ERROR : Can't deliver a commit that does not belong to a local branch"
 		fi
-		
-		local BRANCH=`echo "$BRANCHES" | grep '^* ' | tr -d ' *'`
+
+		# Try master first
+		local BRANCH=`echo "$BRANCHES" | grep 'master' | tr -d ' *'`
+
+		# Try version
 		if [[ "$BRANCH" = "" ]]; then
-			BRANCH=`echo "$BRANCHES" | head -n 1 | tr -d ' '`
+			BRANCH=`echo "$BRANCHES" | grep \`echo $VERSION\` | tr -d ' *'`
+		fi
+
+		# Try current branch
+		if [[ "$BRANCH" = "" ]]; then
+			BRANCH=`echo "$BRANCHES" | grep -v '^* (detached' | grep -v '^* (no branch' | grep '^* ' | tr -d ' *'`
+		fi
+
+		# First branch containing version
+		if [[ "$BRANCH" = "" ]]; then
+			BRANCH=`echo "$BRANCHES" | grep -v '^* (detached' | grep -v '^* (no branch' | head -n 1 | tr -d ' '`
 		fi
 
 		DELIVERY_STAGE="pre-delivery"
