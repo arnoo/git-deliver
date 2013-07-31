@@ -655,7 +655,7 @@ function get_branch_for_version
 	local ELIGIBLE_BRANCHES=`git branch --contains $1 | tr -d ' *'`
 
 	# "real" branches, in .git/refs/heads
-	local REAL_BRANCHES=`echo "$ELIGIBLE_BRANCHES" | xargs -n 1 -I {} find .git/refs/heads -name "{}" -printf "%f\n"`
+	local REAL_BRANCHES=`echo "$ELIGIBLE_BRANCHES" | xargs -n 1 -i{} find .git/refs/heads -name "{}" -printf "%f\n"`
 
 	# if version is a branch, picks it
 	local BRANCH=`echo "$REAL_BRANCHES" | grep "^$1$" | head -n 1`
