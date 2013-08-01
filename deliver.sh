@@ -788,6 +788,9 @@ function deliver
 		DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_BASENAME"
 
 		local BRANCH=`get_branch_for_version $VERSION`
+		if [[ "$BRANCH" == "" ]]; then
+			exit_with_error 2 "No branch found for ref $VERSION"
+		fi
 
 		DELIVERY_STAGE="pre-delivery"
 		run_stage_scripts
