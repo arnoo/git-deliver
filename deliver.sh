@@ -650,7 +650,7 @@ function make_temp_file
 	}
 
 function get_branch_for_version
-    {
+	{
 	# branches containing version
 	local ELIGIBLE_BRANCHES=`git branch --contains $1 | tr -d ' *'`
 
@@ -671,7 +671,7 @@ function get_branch_for_version
 	fi
 
 	echo "$BRANCH"
-    }
+	}
 
 function deliver
 	{
