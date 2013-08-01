@@ -535,9 +535,29 @@ testBasicDeliverMasterSsh()
 	assertEquals `git rev-parse master` $SSH_SHA1;
 	}
 
+testBasicDeliverMasterFromDetachedHeadSsh()
+	{
+	initWithSshOrigin
+	git checkout master^
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	echo "$A"
+	echo "$A" | grep "No version delivered yet on origin" > /dev/null
+	assertEquals 0 $?
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH/test_remote\" && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
+	assertEquals 0 $?
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
+
+	cd "$ROOT_DIR"/test_repo
+	assertEquals `git rev-parse master` $SSH_SHA1;
+	}
+
 testDeliverMasterSshBadSubmodule()
 	{
 	initWithSshOrigin
+	git checkout master
 	MASTER=`git rev-parse master`
 	git submodule add "$ROOT_DIR"/.git badsub
 	sed -i 's/url\s*=.*$/url = \/sdfswds/' .gitmodules

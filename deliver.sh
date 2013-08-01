@@ -652,25 +652,31 @@ function make_temp_file
 function get_branch_for_version
 	{
 	# branches containing version
-	local ELIGIBLE_BRANCHES=`git branch --contains $1 | tr -d ' *'`
+	local eligible_branches=`git branch --contains $1 | tr -d '^ *' | tr -d '^ '`
 
 	# "real" branches, in .git/refs/heads
-	local REAL_BRANCHES=`echo "$ELIGIBLE_BRANCHES" | xargs -n 1 -i{} find .git/refs/heads -name "{}" -printf "%f\n"`
+	local real_branches=`echo "$eligible_branches" | xargs -n 1 -i{} find .git/refs/heads -name "{}" -printf "%f\n"`
 
 	# if version is a branch, picks it
-	local BRANCH=`echo "$REAL_BRANCHES" | grep "^$1$" | head -n 1`
+	local branch=`echo "$real_branches" | grep "^$1$" | head -n 1`
+
+	# else, tries currently checked-out branch if eligible
+	local current_branch=`git rev-parse --symbolic-full-name --abbrev-ref HEAD`
+	if [[ "$branch" == "" ]]; then
+		branch=`echo "$real_branches" | grep "^$current_branch$" | head -n 1`
+	fi
 
 	# else, tries master if eligible
-	if [[ "$BRANCH" == "" ]]; then
-		BRANCH=`echo "$REAL_BRANCHES" | grep "master" | head -n 1`
+	if [[ "$branch" == "" ]]; then
+		branch=`echo "$real_branches" | grep "^master$" | head -n 1`
 	fi
 
 	# else, picks first eligible branch
-	if [[ "$BRANCH" == "" ]]; then
-		BRANCH=`echo "$REAL_BRANCHES" | head -n 1`
+	if [[ "$branch" == "" ]]; then
+		branch=`echo "$real_branches" | head -n 1`
 	fi
 
-	echo "$BRANCH"
+	echo "$branch"
 	}
 
 function deliver
@@ -789,7 +795,7 @@ function deliver
 
 		local BRANCH=`get_branch_for_version $VERSION`
 		if [[ "$BRANCH" == "" ]]; then
-			exit_with_error 2 "No branch found for ref $VERSION"
+			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a local branch to be deliverable"
 		fi
 
 		DELIVERY_STAGE="pre-delivery"
