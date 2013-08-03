@@ -20,8 +20,6 @@
 USECOLOR=true;
 [[ -t 1 ]] || USECOLOR=false;
 
-REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
-
 function exit_with_error
 	{
 	local code=$1
@@ -29,6 +27,8 @@ function exit_with_error
 	echo_red "$msg"
 	exit $code
 	}
+
+REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
 
 if [[ $? -gt 0 ]]; then
 	exit_with_error 1 "ERROR : not a git repo"
