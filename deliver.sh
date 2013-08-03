@@ -20,7 +20,16 @@
 USECOLOR=true;
 [[ -t 1 ]] || USECOLOR=false;
 
+function exit_with_error
+	{
+	local code=$1
+	local msg="$2"
+	echo_red "$msg"
+	exit $code
+	}
+
 REPO_ROOT=`git rev-parse --git-dir 2> /dev/null` # for some reason, --show-toplevel returns nothing
+
 if [[ $? -gt 0 ]]; then
 	exit_with_error 1 "ERROR : not a git repo"
 fi
@@ -89,14 +98,6 @@ function exit_if_error
 		local msg="$2"
 		exit_with_error $code "$msg"
 	fi
-	}
-
-function exit_with_error
-	{
-	local code=$1
-	local msg="$2"
-	echo_red "$msg"
-	exit $code
 	}
 
 function exit_with_help
