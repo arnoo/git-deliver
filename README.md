@@ -47,7 +47,9 @@ You'll most likely want to setup SSH public key authentication with your remotes
 OSX
 ---
 
-OSX users need to install GNU getopt from Macports (`port install getopt`)
+OSX users need to install GNU getopt from Macports (`port install getopt`).
+
+It can also be done with Homebrew (`brew install gnu-getopts`) but because it clashes with the system getopt, Homebrew does not symlink it to /usr/local. As a result you will need to also add `FLAGS\_GETOPT\_CMD="/usr/local/Cellar/gnu-getopt/\<VERSION\>/bin/getopt"` to your environment.
 
 BSD
 ---
