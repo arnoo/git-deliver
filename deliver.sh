@@ -20,6 +20,22 @@
 USECOLOR=true;
 [[ -t 1 ]] || USECOLOR=false;
 
+function echo_green
+	{
+	local msg="$1"
+    [[ $USECOLOR == true ]] && echo -ne "\E[32m"
+	echo "$msg"
+	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	}
+
+function echo_red
+	{
+	local msg="$1"
+	[[ $USECOLOR == true ]] && echo -ne "\E[31m"
+	echo "$msg"
+	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+	}
+
 function exit_with_error
 	{
 	local code=$1
@@ -58,22 +74,6 @@ GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$GIT_DELIVER_PATH/lib/shflags"
 _flags_warn() { echo "Git-deliver: $@" | sed 's/getopt: //'  >&2; exit_with_help; }
-
-function echo_green
-	{
-	local msg="$1"
-    [[ $USECOLOR == true ]] && echo -ne "\E[32m"
-	echo "$msg"
-	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
-	}
-
-function echo_red
-	{
-	local msg="$1"
-	[[ $USECOLOR == true ]] && echo -ne "\E[31m"
-	echo "$msg"
-	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
-	}
 
 function confirm_or_exit
 	{
@@ -1016,7 +1016,7 @@ if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
    fn="deliver"
    matched_cmd=$(( $matched_cmd + 1 ))
 fi
-	
+
 if [[ $matched_cmd = 1 ]]; then
 	$fn "$@"
 elif [[ $matched_cmd = 0 ]]; then
