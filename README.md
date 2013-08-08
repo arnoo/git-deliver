@@ -36,6 +36,13 @@ In your .gitconfig, add this line in the `[alias]` section:
 
 Where `<path_to_clone>` is the path to the root of the git clone you just made.
 
+If you receive an error such as:
+
+	fatal: cannot exec 'git-deliver': Permission denied
+
+Then Git has found a file or directory in your PATH called 'git-deliver' that it cannot execute. <br>
+Note that cloning this repo into your PATH with result in the above error, so either move it to outside of your PATH or rename it.
+
 
 Windows
 -------
