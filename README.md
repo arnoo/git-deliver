@@ -41,7 +41,7 @@ If you receive an error such as:
 	fatal: cannot exec 'git-deliver': Permission denied
 
 Then Git has found a file or directory in your PATH called 'git-deliver' that it cannot execute. <br>
-Note that cloning this repo into your PATH with result in the above error, so either move it to outside of your PATH or rename it.
+Note that cloning this repo into your PATH will result in the above error, so either move it to outside of your PATH or rename it.
 
 
 Windows
