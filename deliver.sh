@@ -677,6 +677,11 @@ function get_branch_for_version
 		branch=`echo "$real_branches" | head -n 1`
 	fi
 
+	# else, pick first eligible branch from remotes
+	if [[ "$branch" == "" ]]; then
+		branch=`git branch -a --contains $1  | grep -o "[a-z]\\+/[a-z]\\+" | grep -v remotes | head -n 1`
+	fi
+
 	echo "$branch"
 	}
 
@@ -796,7 +801,7 @@ function deliver
 
 		local BRANCH=`get_branch_for_version $VERSION`
 		if [[ "$BRANCH" == "" ]]; then
-			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a local branch to be deliverable"
+			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a branch to be deliverable"
 		fi
 
 		DELIVERY_STAGE="pre-delivery"
@@ -823,7 +828,8 @@ function deliver
 		fi
 
 		echo "Checking out files..." | indent 1
-		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$BRANCH" || git checkout -b $BRANCH origin/$BRANCH ; }" 2>&1 | indent 1
+		local DELIVERY_BRANCH=`cat $BRANCH | cut -d"/" -f2`
+		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$DELIVERY_BRANCH" || git checkout -b $DELIVERY_BRANCH origin/$DELIVERY_BRANCH ; }" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit_with_error 15 "Error creating tracking branch on remote clone" ;
 		fi
