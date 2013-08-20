@@ -828,7 +828,7 @@ function deliver
 		fi
 
 		echo "Checking out files..." | indent 1
-		local DELIVERY_BRANCH=`cat $BRANCH | cut -d"/" -f2`
+		local DELIVERY_BRANCH=`echo $BRANCH | cut -d"/" -f2`
 		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$DELIVERY_BRANCH" || git checkout -b $DELIVERY_BRANCH origin/$DELIVERY_BRANCH ; }" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit_with_error 15 "Error creating tracking branch on remote clone" ;
