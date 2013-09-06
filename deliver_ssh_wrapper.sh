@@ -37,7 +37,7 @@ if [[ "$OSTYPE" == "msys" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_4.6p1
 	exec ssh "$@"
 fi
 
-## Same with cygwin (on the TODO list since forever)
+## Same with cygwin
 if [[ "$OSTYPE" == "cygwin" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_6.2p2" ]]; then
 	exec ssh "$@"
 fi
