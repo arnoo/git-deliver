@@ -37,6 +37,11 @@ if [[ "$OSTYPE" == "msys" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_4.6p1
 	exec ssh "$@"
 fi
 
+## Same with cygwin
+if [[ "$OSTYPE" == "cygwin" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_6.2p2" ]]; then
+	exec ssh "$@"
+fi
+
 ## optstring assembled from `man ssh`
 optstring="+1246AaCfgKkMNnqsTtVvXxYb:c:D:e:F:i:L:l:m:O:o:p:R:S:w:z"
 ## get ssh options
