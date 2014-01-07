@@ -679,7 +679,7 @@ function get_branch_for_version
 
 	# else, pick first eligible branch from remotes
 	if [[ "$branch" == "" ]]; then
-		branch=`git branch -a --contains $1  | grep -o "[a-z]\\+/[a-z]\\+" | grep -v remotes | head -n 1`
+		branch=`git branch -a --contains $1  | grep -o "[a-z]\\+/[a-z]\\+$" | grep -v remotes | head -n 1`
 	fi
 
 	echo "$branch"
