@@ -198,8 +198,4 @@ Code contributions are welcome, particularly in the form of stage script presets
 Help fund the project
 =====================
 
-Git-deliver is on Indiegogo : 
-
-http://www.indiegogo.com/projects/git-deliver
-
-You can also donate Bitcoins to fund future developments. Send them to 1MtSVmn4uZ98iEFjHLkHSbqxwmbyvEoqAJ
+You can donate Bitcoins to fund future developments. Send them to 1MtSVmn4uZ98iEFjHLkHSbqxwmbyvEoqAJ
