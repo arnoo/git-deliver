@@ -31,14 +31,9 @@ if [[ $# == 0 ]]; then
 	exit
 fi
 
-## OpenSSH as included in the current msys install does not support
+## OpenSSH as included in the current msys or cygwin installs does not support
 ## multiplexing with privilege separation -> forget it
-if [[ "$OSTYPE" == "msys" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_4.6p1" ]]; then
-	exec ssh "$@"
-fi
-
-## Same with cygwin
-if [[ "$OSTYPE" == "cygwin" ]] && [[ `ssh -V 2>&1 | cut -d, -f1` == "OpenSSH_6.2p2" ]]; then
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]]; then
 	exec ssh "$@"
 fi
 
