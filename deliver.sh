@@ -73,6 +73,7 @@ fi
 GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$GIT_DELIVER_PATH/lib/shflags"
+flags_help() { exit_with_help; }
 _flags_warn() { echo "Git-deliver: $@" | sed 's/getopt: //'  >&2; exit_with_help; }
 
 function confirm_or_exit
@@ -976,7 +977,7 @@ DEFINE_boolean 'rollback' false 'Initiate a rollback'
 # real flags
 
 DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
-DEFINE_string 'shared' "false" 'When initializing a remote, pass '
+DEFINE_string 'shared' "false" 'When initializing a remote, this value will be used for the --shared argument to git init'
 DEFINE_boolean 'color' false 'Use color even if the output does not seem to go to a terminal'
 #TODO:
 #DEFINE_boolean 'nocolor' false 'Don''t output color'
