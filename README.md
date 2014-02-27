@@ -58,6 +58,8 @@ GNU/Linux users should be set after following the "all platforms" instructions.
 OSX
 ---
 
+git-deliver needs to be adapted to work correctly on OSX. There are a few issues, among which the incompatible mktemp version (see issue 52).
+
 OSX users need to install GNU getopt from Macports (`port install getopt`).
 
 It can also be done with Homebrew (`brew install gnu-getopts`) but because it clashes with the system getopt, Homebrew does not symlink it to /usr/local. As a result you will need to also add `FLAGS\_GETOPT\_CMD="/usr/local/Cellar/gnu-getopt/\<VERSION\>/bin/getopt"` to your environment.
