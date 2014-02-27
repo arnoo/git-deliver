@@ -111,6 +111,7 @@ function exit_with_help
 	echo "  git deliver --init [PRESETS]"
 	echo "  git deliver --init-remote [--shared=...] <REMOTE_NAME> <REMOTE_URL>"
 	echo "  git deliver --list-presets"
+	echo "  git deliver --update-presets [PRESETS]"
 	echo "  git deliver --status [REMOTE]"
 
 	if [[ "$code" = "" ]]; then
@@ -330,6 +331,7 @@ function init_preset
 function init
 	{
 	local PRESETS="$1"
+	[ -d "$REPO_ROOT/.deliver/scripts" ] && exit_with_error 22 "Already initialized"
 	IFS=',' read -ra PRESETS <<< "$PRESETS"
 	for PRESET_DIR in "${PRESETS[@]}"; do
 		local PRESET=`basename "$PRESET_DIR"`
@@ -348,6 +350,15 @@ function init
 		echo "Setting up $PRESET preset" >&2
 		init_preset $PRESET
 	done
+	}
+
+
+function update-presets
+	{
+		[ -d "$REPO_ROOT/.deliver/scripts" ] || exit_with_error 22 "No preset found. You should run --init instead."
+		confirm_or_exit "This will overwrite all scripts. Do you wish to continue?"
+		rm -rf "$REPO_ROOT/.deliver/scripts"
+		init "$1"
 	}
 
 function run_stage_scripts
@@ -967,6 +978,7 @@ function rollback
 
 DEFINE_boolean 'source' false 'Used for tests : define functions but don''t do anything.'
 DEFINE_boolean 'init' false 'Initialize this repository'
+DEFINE_boolean 'update-presets' false 'Update scripts to match git deliver presets'
 DEFINE_boolean 'init-remote' false 'Initialize a remote'
 DEFINE_boolean 'list-presets' false 'List presets available for init'
 DEFINE_boolean 'status' false 'Query repository and remotes status'
@@ -1007,6 +1019,10 @@ if [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
 fi
 if [[ $FLAGS_list_presets -eq $FLAGS_TRUE ]]; then
    fn="list_presets"
+   matched_cmd=$(( $matched_cmd + 1 ))
+fi
+if [[ $FLAGS_update_presets -eq $FLAGS_TRUE ]]; then
+   fn="update-presets"
    matched_cmd=$(( $matched_cmd + 1 ))
 fi
 if [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
