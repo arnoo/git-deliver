@@ -963,6 +963,10 @@ function rollback
 	run_stage_scripts "$DELIVERY_STAGE"
 	}
 
+getopt -T &> /dev/null
+test $? -eq 4
+exit_if_error 27 "The getopt binary git-deliver has found is not GNU getopt"
+
 
 # commands
 
