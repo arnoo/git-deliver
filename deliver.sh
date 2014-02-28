@@ -637,17 +637,19 @@ function remote_gc
 
 function make_temp_file
 	{
+	local tempdir
+	local tempfile
+	tempdir="$TMPDIR"
+	if [[ "$tempdir" = "" ]]; then
+		tempdir="/tmp"
+	fi
 	which mktemp &> /dev/null
 	if [[ $? = 0 ]]; then
-		mktemp
+		mktemp "$tempdir/git-deliver-XXXXXXXXXX"
 	else
-		TEMPDIR="$TMPDIR"
-		if [[ "$TEMPDIR" = "" ]]; then
-			TEMPDIR="/tmp"
-		fi
-		TEMPFILE="$TEMPDIR"/git-deliver-$$.$RANDOM
-		touch "$TEMPFILE"
-		echo "$TEMPFILE"
+		tempfile="$tempdir"/git-deliver-$$.$RANDOM
+		touch "$tempfile"
+		echo "$tempfile"
 	fi
 	}
 
