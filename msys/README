@@ -1,4 +1,0 @@
-These files need to be copied in the Git installation folder for git-deliver to work with msysgit.
-
-They are binaries from the MinGW project, licensed under the Gnu General Public License.
-See http://www.mingw.org/ for more information and for source code.

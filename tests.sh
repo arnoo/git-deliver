@@ -1138,12 +1138,12 @@ testGroupPermissions()
 	assertEquals 0 $?
 	"$ROOT_DIR"/deliver.sh --batch origin_not_same_group master
 	assertEquals 5 $?
-	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin_not_same_group`
+	GC=`"$ROOT_DIR"/deliver.sh --gc --batch origin_not_same_group`
 	assertEquals 27 $?
 	echo "$GC"
 	echo "$GC" | grep "0 version(s) removed" > /dev/null
 	assertEquals 0 $?
-	GC=`"$ROOT_DIR"/deliver.sh --batch --gc origin_same_group`
+	GC=`"$ROOT_DIR"/deliver.sh --gc --batch origin_same_group`
 	assertEquals 0 $?
 	echo "$GC"
 	echo "$GC" | grep "1 version(s) removed" > /dev/null

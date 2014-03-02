@@ -40,15 +40,12 @@ fi
 ## optstring assembled from `man ssh`
 optstring="+1246AaCfgKkMNnqsTtVvXxYb:c:D:e:F:i:L:l:m:O:o:p:R:S:w:z"
 ## get ssh options
-opts=`getopt -- "$optstring" "$@"`
-
-## the non-option args follow "--"
-## convert to an array of IFS separated strings
-args=(${opts#*--})
+while getopts "$optstring" optchar; do
+	true
+done
 
 ## the host is the first non-option arg
-## use eval to process the quoted strings returned by getopt
-host=`eval echo ${args[0]}`
+host="${!OPTIND}"
 
 ## if the master isn't running, start it in the background
 ssh -S $master_id -q -O check not_used 2>/dev/null || { SSH_OPTION=`ssh -V 2>&1 | awk 'BEGIN {FS="_"} $2>=5.6 { print "-o ControlPersist=5m"}'` ; ssh $SSH_OPTION -S $master_id -MNf $host > /dev/null || exit 255; }

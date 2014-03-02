@@ -72,13 +72,9 @@ fi
 
 GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-source "$GIT_DELIVER_PATH/lib/shflags"
-flags_help() { exit_with_help; }
-_flags_warn() { echo "Git-deliver: $@" | sed 's/getopt: //'  >&2; exit_with_help; }
-
 function confirm_or_exit
 	{
-	if [[ $FLAGS_batch -eq $FLAGS_TRUE ]]; then
+	if [[ $FLAGS_batch == true ]]; then
 		exit 2
 	fi
 	if [[ "$1" = "" ]]; then
@@ -576,7 +572,7 @@ function create_delivered_dir_if_needed
 	run_remote "if [[ ! -d \"$REMOTE_PATH\"/delivered ]]; then \
 					mkdir \"$REMOTE_PATH\"/delivered || exit 1
 					stat -c %A \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w'
-					if [[ $? -eq 0 ]]; then
+					if [[ $? = 0 ]]; then
 						chgrp \`stat -c %G \"$REMOTE_PATH/objects\"\` \"$REMOTE_PATH/delivered\" && \
 						chmod g+w \"$REMOTE_PATH/delivered\"
 					fi
@@ -695,7 +691,7 @@ function deliver
 	fi
 	local REMOTE="$1"
 
-	if [[ ! $IS_ROLLBACK ]] && [[ $2 = "" ]]; then
+	if [[ $IS_ROLLBACK == false ]] && [[ $2 = "" ]]; then
 		exit_with_help
 	fi
 	local VERSION="$2"
@@ -741,7 +737,7 @@ function deliver
 		fi
 	fi
 
-	if [[ $FLAGS_rollback != $FLAGS_TRUE ]]; then
+	if [[ $IS_ROLLBACK == false  ]]; then
 		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
 		local TAG_TO_PUSH=""
@@ -760,7 +756,7 @@ function deliver
 	RSTATUS_CODE=$?
 	if [[ $RSTATUS_CODE -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
-		if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
+		if [[ $IS_ROLLBACK == true ]]; then
 			exit_with_error 24 "Cannot rollback"
 		fi
 	else
@@ -774,7 +770,7 @@ function deliver
 
 	trap delivery_sigint_handler SIGINT
 
-	if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
+	if [[ $IS_ROLLBACK == true ]]; then
 		local ROLLBACK_TO_VERSION="$VERSION"
 		if [[ "$VERSION" = "" ]]; then
 				ROLLBACK_TO_VERSION="previous"
@@ -887,7 +883,7 @@ function deliver
 
 	run_remote "test -L \"$REMOTE_PATH/delivered/prepreprevious\" && rm \"$REMOTE_PATH/delivered/prepreprevious\""
 
-	if [[ $FLAGS_batch -ne $FLAGS_TRUE ]]; then
+	if [[ $FLAGS_batch == false ]]; then
 		local GEDITOR=`git var GIT_EDITOR`
 		if [[ "$GEDITOR" = "" ]]; then
 			GEDITOR="vi"
@@ -965,79 +961,110 @@ function rollback
 	run_stage_scripts "$DELIVERY_STAGE"
 	}
 
-getopt -T &> /dev/null
-test $? -eq 4
-exit_if_error 27 "The getopt binary git-deliver has found is not GNU getopt"
-
-
-# commands
-
-DEFINE_boolean 'source' false 'Used for tests : define functions but don''t do anything.'
-DEFINE_boolean 'init' false 'Initialize this repository'
-DEFINE_boolean 'init-remote' false 'Initialize a remote'
-DEFINE_boolean 'list-presets' false 'List presets available for init'
-DEFINE_boolean 'status' false 'Query repository and remotes status'
-DEFINE_boolean 'gc' false 'Garbage collection : remove all delivered version on remote except last 3'
-DEFINE_boolean 'rollback' false 'Initiate a rollback'
-
-# real flags
-
-DEFINE_boolean 'batch' false 'Batch mode : never ask for anything, die if any information is missing' 'b'
-DEFINE_string 'shared' "false" 'When initializing a remote, this value will be used for the --shared argument to git init'
-DEFINE_boolean 'color' false 'Use color even if the output does not seem to go to a terminal'
-#TODO:
-#DEFINE_boolean 'nocolor' false 'Don''t output color'
-
-
-# parse the command-line
-FLAGS "$@"
-eval set -- "${FLAGS_ARGV}"
-
-if [[ $FLAGS_color -eq $FLAGS_TRUE ]]; then
-   USECOLOR=true
-fi
-#if [[ $FLAGS_nocolor -eq $FLAGS_TRUE ]]; then
-#   USECOLOR=false
-#fi
-
-
-# extract the command flag and make sure we only have one
-matched_cmd=0
-
-if [[ $FLAGS_init -eq $FLAGS_TRUE ]]; then
-   fn="init"
-   matched_cmd=$(( $matched_cmd + 1 ))
-fi
-if [[ $FLAGS_init_remote -eq $FLAGS_TRUE ]]; then
-   fn="init_remote"
-   matched_cmd=$(( $matched_cmd + 1 ))
-fi
-if [[ $FLAGS_list_presets -eq $FLAGS_TRUE ]]; then
-   fn="list_presets"
-   matched_cmd=$(( $matched_cmd + 1 ))
-fi
-if [[ $FLAGS_status -eq $FLAGS_TRUE ]]; then
-   fn="remote_status"
-   matched_cmd=$(( $matched_cmd + 1 ))
-fi
-if [[ $FLAGS_gc -eq $FLAGS_TRUE ]]; then
-   fn="remote_gc"
-   matched_cmd=$(( $matched_cmd + 1 ))
-fi
-if [[ $FLAGS_rollback -eq $FLAGS_TRUE ]]; then
-   IS_ROLLBACK=true
-   fn="deliver"
-   matched_cmd=$(( $matched_cmd + 1 ))
-fi
-
-if [[ $matched_cmd = 1 ]]; then
-	$fn "$@"
-elif [[ $matched_cmd = 0 ]]; then
-	if [[ $FLAGS_source -ne $FLAGS_TRUE ]]; then
-		deliver "$@"
+function validate_command
+	{
+	if [[ "$COMMAND" -ne "" ]]; then
+		echo_red "Unknown option : $COMMAND"
+		exit_with_help
 	fi
-elif [[ $matched_cmd -gt 1 ]]; then
-	echo "You can't have multiple git-deliver 'command' flags on the same command line"
-	exit_with_help
+	COMMAND="$OPTARG"
+	}
+
+function validate_option
+	{
+	if [[ $OPTIND = 2 ]]; then
+		echo_red "Unknown command : $OPTARG"
+		exit_with_help
+	fi
+	}
+
+FLAGS_batch=false
+IS_ROLLBACK=false
+
+COMMAND=""
+FN=""
+
+optspec=":h-:"
+while getopts "$optspec" optchar; do
+    case "${optchar}" in
+        -)
+            case "${OPTARG}" in
+				help)
+					exit_with_help
+					;;
+				batch)
+					FLAGS_batch=true
+					;;
+				color)
+					USECOLOR=true
+					;;
+				nocolor)
+					USECOLOR=false
+					;;
+				shared)
+					validate_option
+					if [[ "$COMMAND" -ne "--init" ]]; then
+						exit_with_error 27 "Uknown option '--shared' for command $COMMAND"
+					fi
+					FLAGS_shared="false"
+					;;
+				shared=*)
+					validate_option
+					if [[ "$COMMAND" -ne "--init" ]]; then
+						exit_with_error 27 "Uknown option '--shared' for command $COMMAND"
+					fi
+					FLAGS_shared=${OPTARG#*=}
+					;;
+				# COMMANDS
+				source)
+					validate_command
+					return
+					;;
+				init)
+					validate_command
+					FN="init"
+					;;
+				init-remote)
+					validate_command
+					FN="init_remote"
+					;;
+				list-presets)
+					validate_command
+					FN="list_presets"
+					;;
+				status)
+					validate_command
+					FN="remote_status"
+					;;
+				gc)
+					validate_command
+					FN="remote_gc"
+					;;
+				rollback)
+					validate_command
+					IS_ROLLBACK=true
+					FN="deliver"
+					;;
+				*)
+					if [[ $OPTIND -gt 1 ]]; then
+						echo_red "Unknown option : $OPTARG"
+					else
+						echo_red "Unknown command : $OPTARG"
+					fi
+					exit_with_help
+					;;
+            esac;;
+        h)
+			exit_with_help
+            ;;
+    esac
+done
+
+shift "$((OPTIND - 1))"
+
+if [[ "$FN" = "" ]]; then
+	deliver "$@"
+else
+	$FN "$@"
 fi
 
