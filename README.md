@@ -41,35 +41,12 @@ If you receive an error such as:
 	fatal: cannot exec 'git-deliver': Permission denied
 
 Then Git has found a file or directory in your PATH called 'git-deliver' that it cannot execute. <br>
-Note that cloning this repo into your PATH will result in the above error, so either move it to outside of your PATH or renameit.
-
-
-BSD
----
-
-BSD users need to install GNU getopt (`cd /usr/ports/misc/getopt/ && sudo make install`)
-
-
-GNU/Linux
----
-
-GNU/Linux users should be set after following the "all platforms" instructions.
-
-OSX
----
-
-git-deliver needs to be adapted to work correctly on OSX. There are a few issues, among which the incompatible mktemp version (see issue 52).
-
-OSX users need to install GNU getopt from Macports (`port install getopt`).
-
-It can also be done with Homebrew (`brew install gnu-getopts`) but because it clashes with the system getopt, Homebrew does not symlink it to /usr/local. As a result you will need to also add `FLAGS\_GETOPT\_CMD="/usr/local/Cellar/gnu-getopt/\<VERSION\>/bin/getopt"` to your environment.
+Note that cloning this repo into your PATH will result in the above error, so either move it to outside of your PATH or rename it.
 
 Windows
 -------
 
-To use Git-deliver on Windows, you'll need to copy the libintl-8.dll and getopt.exe from the "msys" folder of the git-deliver clone to your "C:\Program Files (x86)\Git\bin" or "C:\Program Files\Git\bin". These are files from the MinGW project (http://www.mingw.org/) which are included with Git-deliver for convenience.
-
-You'll most likely want to setup SSH public key authentication with your remotes to avoid typing your SSH password multiple times. See http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication for instructions. This is because SSH client bundled with msys is pretty old and does not support connection multiplexing (at least not with privilege separation enabled on the server). 
+To use Git-deliver on Windows, you'll most likely want to setup SSH public key authentication with your remotes to avoid typing your SSH password multiple times. See http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication for instructions. This is because the SSH client bundled with msys does not support connection multiplexing (at least not with privilege separation enabled on the server). 
 
 A simple example (TL;DR)
 ========================
