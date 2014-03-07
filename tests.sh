@@ -113,18 +113,18 @@ testExitIfError()
 testDefaultcolor()
 	{
 	A=`echo 'source deliver.sh --source; echo_red "test"' | bash`
-	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
+	echo "$A" | cat -v | grep -F "^[[31m" &> /dev/null
 	assertNotSame 0 $?
-	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
+	echo "$A" | cat -v | grep -F "^[[31m" &> /dev/null
 	assertNotSame 0 $?
 	}
 
 testExplicitcolor()
 	{
 	A=`echo 'source deliver.sh --color --source; echo_red "test"' | bash`
-	echo "$A" | xxd | grep "1b5b 3331 6d" &> /dev/null
+	echo "$A" | cat -v | grep -F "^[[31m" &> /dev/null
 	assertEquals 0 $?
-	echo "$A" | xxd | grep "1b5b 306d" &> /dev/null
+	echo "$A" | cat -v | grep -F "^[[31m" &> /dev/null
 	assertEquals 0 $?
 	}
 

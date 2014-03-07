@@ -18,22 +18,32 @@
 #
 
 USECOLOR=true;
-[[ -t 1 ]] || USECOLOR=false;
+if [[ -t 1 ]]; then
+  if [[ ! "$OSTYPE" == "msys" ]]; then
+          nb=`tput colors 2>&1`
+          if [[ -n "$nb" ]] && [[ $nb -lt 8 ]]; then
+                  USECOLOR=false;
+          fi
+  fi
+else
+  USECOLOR=false;
+fi
+
 
 function echo_green
 	{
 	local msg="$1"
-    [[ $USECOLOR == true ]] && echo -ne "\E[32m"
+    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\E[32m"; else tput setaf 2; fi }
 	echo "$msg"
-	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\033[0m"; else tput sgr0; fi }
 	}
 
 function echo_red
 	{
 	local msg="$1"
-	[[ $USECOLOR == true ]] && echo -ne "\E[31m"
+    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\E[31m"; else tput setaf 1; fi }
 	echo "$msg"
-	[[ $USECOLOR == true ]] && echo -ne "\033[0m"
+    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\033[0m"; else tput sgr0; fi }
 	}
 
 function exit_with_error
