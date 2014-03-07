@@ -581,9 +581,9 @@ function create_delivered_dir_if_needed
 	{
 	run_remote "if [[ ! -d \"$REMOTE_PATH\"/delivered ]]; then \
 					mkdir \"$REMOTE_PATH\"/delivered || exit 1
-					stat -c %A \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w'
+					ls -ld \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w'
 					if [[ $? = 0 ]]; then
-						chgrp \`stat -c %G \"$REMOTE_PATH/objects\"\` \"$REMOTE_PATH/delivered\" && \
+						chgrp \`ls -gd \"$REMOTE_PATH/objects\" | awk '{print \$3}'\` \"$REMOTE_PATH/delivered\" && \
 						chmod g+w \"$REMOTE_PATH/delivered\"
 					fi
 				fi"
@@ -863,7 +863,7 @@ function deliver
 		local DELIVERED_BY_EMAIL=`git config --get user.email`
 		run_remote "cd \"$DELIVERY_PATH\" && GIT_COMMITTER_NAME=\"$DELIVERED_BY_NAME\" GIT_COMMITTER_EMAIL=\"$DELIVERED_BY_EMAIL\" git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
 
-		run_remote "stat -c %A \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w' && chgrp -R \`stat -c %G \"$REMOTE_PATH/objects\"\` \"$DELIVERY_PATH\" && chmod -R g+w \"$DELIVERY_PATH\""
+		run_remote "ls -ld \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w' && chgrp -R \`ls -gd \"$REMOTE_PATH/objects\" | awk '{print \$3}'\` \"$DELIVERY_PATH\" && chmod -R g+w \"$DELIVERY_PATH\""
 
 
 		SYMLINK_MSG="Switching the 'current' symlink to the newly delivered version."

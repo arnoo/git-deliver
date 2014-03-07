@@ -1117,7 +1117,7 @@ testGroupPermissionsNotShared()
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --batch origin master
 	assertEquals 0 $?
-	ssh $SSH_TEST_USER@$SSH_TEST_HOST "stat -c %A $SSH_TEST_GROUP \"$SSH_TEST_PATH\"/test_remote" | cut -c 6 | grep 'w'
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "ls -ld $SSH_TEST_GROUP \"$SSH_TEST_PATH\"/test_remote" | cut -c 6 | grep 'w'
 	assertEquals 1 $?
 	}
 
