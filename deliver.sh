@@ -738,6 +738,11 @@ function deliver
 		exit_with_error 1 "ERROR : Remote does not look like a bare git repo" >&2
 	fi
 
+	run_remote "mv --version | grep -q GNU\  || which python &> /dev/null"
+	if [[ $? -ne 0 ]]; then
+		confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." >&2
+	fi
+
 	# If this projet has init-remote scripts, check that the remote has been init. Otherwise, we don't really care, as it's just a matter of creating the 'delivered' directory
 
 	if [[ -e "$REPO_ROOT"/.deliver/scripts/init-remote ]] && test -n "$(find "$REPO_ROOT/.deliver/scripts/init-remote" -maxdepth 1 -name '*.sh' -print)"; then
@@ -875,10 +880,17 @@ function deliver
 
 	echo "$SYMLINK_MSG"
 
-	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && { mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/prepreprevious\"  || exit 5 ; } ; \
+	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && { rm -f \"$REMOTE_PATH/delivered/prepreprevious\"; mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/prepreprevious\"  || exit 5 ; } ; \
 		    test -L \"$REMOTE_PATH/delivered/previous\" && { mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" || exit 4 ; } ; \
 		    test -L \"$REMOTE_PATH/delivered/current\" && { cp -d \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" || exit 3 ; } ; \
-		    cd \"$REMOTE_PATH\"/delivered && { ln -sfn \"$DELIVERY_BASENAME\" \"new\" || exit 2 ; } && { mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\" || exit 1 ; } ; \
+		    cd \"$REMOTE_PATH\"/delivered ; \
+			if ( mv --version | grep -q GNU\  ) ; then \
+				{ ln -sfn \"$DELIVERY_BASENAME\" \"new\" || exit 2 ; } && { mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\" || exit 1 ; } ; \
+			elif ( which python &> /dev/null ) ; then \
+				{ ln -sfn \"$DELIVERY_BASENAME\" \"new\" || exit 2 ; } && { python -c 'import os; os.rename(\"$REMOTE_PATH/delivered/new\",\"$REMOTE_PATH/delivered/current\");' || exit 1 ; } ; \
+			else \
+				ln -sfn \"$DELIVERY_BASENAME\" \"current\" || exit 2 ; \
+			fi ; \
 			exit 0"
 
 	SYMLINK_SWITCH_STATUS=$?
@@ -955,7 +967,15 @@ function rollback
 	if [[ $SYMLINK_SWITCH_STATUS != "" ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
 			local symlink_rollback
 			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
-				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; else rm -rf \"$REMOTE_PATH/delivered/current\"; fi"
+				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then \
+								  	  if ( mv --version | grep -q GNU\  ) ; then \
+										  mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; \
+									  elif ( which python &> /dev/null ) ; then \
+										  python -c 'import os; os.rename(\"$REMOTE_PATH/delivered/previous\",\"$REMOTE_PATH/delivered/current\");'; \
+									  else \
+										  rm -f  \"$REMOTE_PATH/delivered/current\" && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" ; \
+									  fi ; \
+								   else rm -f \"$REMOTE_PATH/delivered/current\"; fi"
 			elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
 				symlink_rollback="rm -f \"$REMOTE_PATH/delivered/new\""
 			fi
