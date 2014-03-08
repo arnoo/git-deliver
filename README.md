@@ -130,7 +130,7 @@ A delivery is initiated by running `git deliver <remote> <ref>`. Here's the time
 
 * Your scripts might change the delivered files. We therefore do a commit in the clone repository, to save the delivered state. If the repository you are delivering to is a shared one, the files are given group write permissions and made to belong to the same group as the "objetcs" folder in the repository. We then run the "pre-symlink" scripts.
 
-* We change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts.
+* We change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts. During the symlink update, the "current" symlink always exists and always points to a version of your software, unless you try to deliver to a system having neither GNU mv nor Python installed, in which case there will be a short time during which the "current" symlink will be missing (Git-deliver will warn you of this).
 
 * If any of the run scripts fails (has a non zero exit status) or if an internal git-deliver step fails, we'll stop the delivery there and initiate a rollback. To do this, we'll run the "rollback-pre-symlink" scripts, switch the symlinks back if necessary (if we went as far in the process as to change them in the first place), then run the "rollback-post-symlink" scripts.
 
