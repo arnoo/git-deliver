@@ -738,7 +738,7 @@ function deliver
 		exit_with_error 1 "ERROR : Remote does not look like a bare git repo" >&2
 	fi
 
-	run_remote "mv --version | grep -q GNU\  || which python &> /dev/null"
+	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
 	if [[ $? -ne 0 ]]; then
 		confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." >&2
 	fi
