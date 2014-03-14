@@ -321,7 +321,7 @@ function init_preset
 		[ "$PRESET_STAGE" = "dependencies" ] && continue
 		for SCRIPT_FILE in "$PRESET_STAGE_DIR"/*; do
 			local SCRIPT_NAME=`basename "$SCRIPT_FILE"`
-			local SCRIPT_SEQNUM=`echo $SCRIPT_NAME | sed -e 's/^\([0-9]\+\).*$/\1/'`
+			local SCRIPT_SEQNUM=`echo $SCRIPT_NAME | grep -o '^[0-9]\+'`
 			local SCRIPT_LABEL="${SCRIPT_NAME:$((${#SCRIPT_SEQNUM}+1))}"
 			cp -i "$SCRIPT_FILE" "$REPO_ROOT"/.deliver/scripts/$PRESET_STAGE/"$SCRIPT_SEQNUM-$PRESET-$SCRIPT_LABEL"
 		done
