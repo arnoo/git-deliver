@@ -549,7 +549,7 @@ function init_remote
 		if [[ $? -gt 0 ]]; then
 			exit_with_error 10 "ERROR: Remote path points to a file"
 		else
-			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l"` != "0" ]]; then
+			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l | tr -d ' '"` != "0" ]]; then
 				git fetch "$REMOTE" &> /dev/null
 				if [[ $? -gt 0 ]]; then
 					exit_with_error 9 "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
@@ -734,7 +734,7 @@ function deliver
 
 	check_git_version_and_ssh_connectivity "$REMOTE"
 
-	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l"` -lt "2" ]]; then
+	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l | tr -d ' '"` -lt "2" ]]; then
 		exit_with_error 1 "ERROR : Remote does not look like a bare git repo" >&2
 	fi
 
