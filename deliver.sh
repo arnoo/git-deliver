@@ -615,7 +615,12 @@ function remote_gc
 			 	   [ \"\$rep\" != \"\$PREVER\" ] &&
 			   	   [ \"\$rep\" != \"\$PREPREVER\" ]; then
 					echo \"Removing \$rep\"
-					FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
+				    if ( du --version 2>/dev/null | grep -q GNU\  ) ; then
+						FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
+					else
+						FREED_BYTES_NEW=\`du -s \"\$rep\" | awk '{printf \"%d\", \$1/512}'\`
+					fi
+
 					rm -rf \"\$rep\" && \
 					DELETED=\$((\$DELETED + 1)) && \
 			   		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW)) || \
@@ -665,7 +670,7 @@ function get_branch_for_version
 	local eligible_branches=`git branch --contains $1 | tr -d '^ *' | tr -d '^ '`
 
 	# "real" branches, in .git/refs/heads
-	local real_branches=`echo "$eligible_branches" | xargs -n 1 -I{} find .git/refs/heads -name "{}" -printf "%f\n"`
+	local real_branches=`echo "$eligible_branches" | xargs -n 1 -I{} find .git/refs/heads -name "{}" | xargs -I{} basename -a "{}"`
 
 	# if version is a branch, picks it
 	local branch=`echo "$real_branches" | grep "^$1$" | head -n 1`
@@ -884,7 +889,7 @@ function deliver
 		    test -L \"$REMOTE_PATH/delivered/previous\" && { mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" || exit 4 ; } ; \
 		    test -L \"$REMOTE_PATH/delivered/current\" && { cp -d \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" || exit 3 ; } ; \
 		    cd \"$REMOTE_PATH\"/delivered ; \
-			if ( mv --version | grep -q GNU\  ) ; then \
+			if ( mv --version 2>/dev/null | grep -q GNU\  ) ; then \
 				{ ln -sfn \"$DELIVERY_BASENAME\" \"new\" || exit 2 ; } && { mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\" || exit 1 ; } ; \
 			elif ( which python &> /dev/null ) ; then \
 				{ ln -sfn \"$DELIVERY_BASENAME\" \"new\" || exit 2 ; } && { python -c 'import os; os.rename(\"$REMOTE_PATH/delivered/new\",\"$REMOTE_PATH/delivered/current\");' || exit 1 ; } ; \
@@ -968,7 +973,7 @@ function rollback
 			local symlink_rollback
 			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
 				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then \
-								  	  if ( mv --version | grep -q GNU\  ) ; then \
+								  	  if ( mv --version 2>/dev/null | grep -q GNU\  ) ; then \
 										  mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; \
 									  elif ( which python &> /dev/null ) ; then \
 										  python -c 'import os; os.rename(\"$REMOTE_PATH/delivered/previous\",\"$REMOTE_PATH/delivered/current\");'; \
