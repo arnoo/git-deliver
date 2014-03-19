@@ -670,7 +670,7 @@ function get_branch_for_version
 	local eligible_branches=`git branch --contains $1 | tr -d '^ *' | tr -d '^ '`
 
 	# "real" branches, in .git/refs/heads
-	local real_branches=`echo "$eligible_branches" | xargs -n 1 -I{} find .git/refs/heads -name "{}" | xargs -I{} basename -a "{}"`
+	local real_branches=`echo "$eligible_branches" | xargs -n 1 find .git/refs/heads -name | xargs basename -a`
 
 	# if version is a branch, picks it
 	local branch=`echo "$real_branches" | grep "^$1$" | head -n 1`
