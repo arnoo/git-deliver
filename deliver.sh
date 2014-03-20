@@ -430,13 +430,12 @@ function ssh_cleanup
 	rm -f "$GIT_SSH"
 	}
 
-SSH_INIT_DONE=false
 function ssh_init
 	{
-	[[ "$SSH_INIT_DONE" == true ]] && return
-	SSH_INIT_DONE=true
-	export GIT_SSH="/tmp/git_deliver_ssh_wrapper_$$.sh"
-	echo -e "#!/bin/bash\n\n\"$GIT_DELIVER_PATH\"/deliver_ssh_wrapper.sh $$ \"\$@\"" > "$GIT_SSH"
+	local remote=$1
+	export GIT_SSH="/tmp/git_deliver_ssh_wrapper_$$_$remote.sh"
+	[[ -e "$GIT_SSH" ]] && return # init has already been done for this remote
+	echo -e "#!/bin/bash\n\n\"$GIT_DELIVER_PATH\"/deliver_ssh_wrapper.sh $$_$remote \"\$@\"" > "$GIT_SSH"
 	chmod +x "$GIT_SSH"
 	trap ssh_cleanup EXIT
 	}
@@ -495,7 +494,7 @@ function remote_info
 	fi
 	REMOTE_PATH=`echo "$REMOTE_PATH" | sed 's#//#/#g'`
 	if [[ "$REMOTE_PROTO" == "ssh" ]]; then 
-		ssh_init
+		ssh_init $REMOTE
 	fi
 	}
 
