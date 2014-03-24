@@ -666,33 +666,25 @@ function make_temp_file
 function get_branch_for_version
 	{
 	# branches containing version
-	local eligible_branches=`git branch --contains $1 | tr -d '^ *' | tr -d '^ '`
-
-	# "real" branches, in .git/refs/heads
-	local real_branches=`echo "$eligible_branches" | xargs -n 1 find .git/refs/heads -name | xargs -n 1 basename`
+	local eligible_branches=`git branch -a --contains $1 | tr -d '^ *' | tr -d '^ ' | sed 's/^remotes\///'`
 
 	# if version is a branch, picks it
-	local branch=`echo "$real_branches" | grep "^$1$" | head -n 1`
+	local branch=`echo "$eligible_branches" | grep "^$1$" | head -n 1`
 
 	# else, tries currently checked-out branch if eligible
 	local current_branch=`git rev-parse --symbolic-full-name --abbrev-ref HEAD`
 	if [[ "$branch" == "" ]]; then
-		branch=`echo "$real_branches" | grep "^$current_branch$" | head -n 1`
+		branch=`echo "$eligible_branches" | grep "^$current_branch$" | head -n 1`
 	fi
 
 	# else, tries master if eligible
 	if [[ "$branch" == "" ]]; then
-		branch=`echo "$real_branches" | grep "^master$" | head -n 1`
+		branch=`echo "$eligible_branches" | grep "^master$" | head -n 1`
 	fi
 
 	# else, picks first eligible branch
 	if [[ "$branch" == "" ]]; then
-		branch=`echo "$real_branches" | head -n 1`
-	fi
-
-	# else, pick first eligible branch from remotes
-	if [[ "$branch" == "" ]]; then
-		branch=`git branch -a --contains $1  | grep -o "[a-z]\\+/[a-z]\\+$" | grep -v remotes | head -n 1`
+		branch=`echo "$eligible_branches" | head -n 1`
 	fi
 
 	echo "$branch"
