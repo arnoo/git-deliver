@@ -803,9 +803,12 @@ testBasicDeliverStatusSsh()
 	{
 	initWithSshOrigin
 	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	git tag testtag
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	STATUS=`"$ROOT_DIR"/deliver.sh --status origin | head -n +2 | tail -n 1`
-	assertEquals `git rev-parse master` "${STATUS:3:43}"
+	assertEquals `git rev-parse master` "${STATUS:3:40}"
+	echo "$STATUS" | grep \(testtag\) > /dev/null
+	assertEquals 0 $?
 	}
 
 testStatusNonSshRemote()

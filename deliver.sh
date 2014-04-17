@@ -225,7 +225,7 @@ function remote_status
 						return=4
 					fi
 
-					local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//'\ | grep -v '^delivered-' | tr "\\n" ", "\`
+					local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//g' | grep -v '^delivered-' | tr "\\n" ","  | sed -e 's/,/, /g' -e 's/, $//g'\`
 
 					if [[ "\$tags" = "" ]]; then
 						echo "\$version" | indent 1
@@ -830,15 +830,18 @@ function deliver
 		DELIVERY_STAGE="pre-delivery"
 		run_stage_scripts
 
-		if git tag -l | grep '^'"$VERSION"'$' &> /dev/null; then
-			run "git push \"$REMOTE\" tag $VERSION"
-			exit_if_error 13
-		fi
 		echo "Pushing necessary commits to remote"
 		local DELIVERY_BRANCH=`echo $BRANCH | cut -d"/" -f2`
 		run "git push \"$REMOTE\" $BRANCH:$DELIVERY_BRANCH" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit 14 ;
+		fi
+
+		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d\  -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
+		if [[ "$tags" != "" ]]; then
+			echo "TAGS : $tags"
+			run "git push \"$REMOTE\" tag $tags"
+			exit_if_error 13
 		fi
 
 		create_delivered_dir_if_needed
