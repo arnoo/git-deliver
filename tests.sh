@@ -790,13 +790,13 @@ testStatusModifiedOrNot()
 	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
 	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
 	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-	echo "$STATUS" | grep "With uncomitted changes" > /dev/null
+	echo "$STATUS" | grep "uncommitted changes" > /dev/null
 	assertEquals 1 $?
 
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "echo 'new_line' >> \"$SSH_TEST_PATH\"/test_remote/delivered/current/a"
 	STATUS=`"$ROOT_DIR"/deliver.sh --status origin`
-	echo "$STATUS" | grep "With uncomitted changes" > /dev/null
-	assertEquals 1 $?
+	echo "$STATUS" | grep "uncommitted changes" > /dev/null
+	assertEquals 0 $?
 	}
 
 testBasicDeliverStatusSsh()
