@@ -911,15 +911,8 @@ function deliver
 
 	# TAG the delivered version here and on the origin remote
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
-	local GPG_OPT=""
-	which gpg &> /dev/null
-	if [[ $? = 0 ]] && [[ -d ~/.gnupg ]]; then
-		if ( gpg -K | grep "$DELIVERED_BY_EMAIL" ) || git config --get user.signingkey; then
-			GPG_OPT=" -s"
-		fi
-	fi
 	echo "Tagging delivery commit"
-	git tag $GPG_OPT -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"  2>&1 | indent 1
+	git tag -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"  2>&1 | indent 1
 	run "git push \"$REMOTE\" refs/tags/\"$TAG_NAME\"" 2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	if [[ "$TAG_TO_PUSH" != "" ]]; then
