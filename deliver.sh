@@ -839,7 +839,6 @@ function deliver
 
 		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d\  -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
 		if [[ "$tags" != "" ]]; then
-			echo "TAGS : $tags"
 			run "git push \"$REMOTE\" tag $tags"
 			exit_if_error 13
 		fi
