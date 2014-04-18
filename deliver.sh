@@ -19,6 +19,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+set -o nounset
+
 USECOLOR=true;
 if [[ -t 1 ]]; then
   if [[ ! "$OSTYPE" == "msys" ]]; then
@@ -117,7 +119,8 @@ function exit_if_error
 
 function exit_with_help
 	{
-	local code=$1
+	local code;
+	[[ $# -gt 0 ]] && code=$1
 
 	echo "Usage : "
 	echo "  git deliver <REMOTE> <VERSION>"
@@ -128,10 +131,10 @@ function exit_with_help
 	echo "  git deliver --list-presets"
 	echo "  git deliver --status [REMOTE]"
 
-	if [[ "$code" = "" ]]; then
-		exit 1;
-	else
+	if [[ -v code ]]; then
 		exit $code
+	else
+		exit 1;
 	fi
 	}
 
@@ -148,7 +151,8 @@ function indent
 function remote_status
 	{
 	local REMOTE="$1"
-	local SHORT="$2"
+	local SHORT=0
+	[[ $# -gt 1 ]] && SHORT="$2"
 	if [[ "$REMOTE" = '' ]]; then
 		local first_remote=true
 		for R in `git remote`; do
@@ -304,10 +308,12 @@ function check_preset
 			exit_with_error 20 "ERROR : Missing description for preset $PRESET"
 		fi
 		local OLDIFS=$IFS
-		IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
-		for DEP in "${DEPENDENCIES[@]}"; do
-			check_preset "$DEP"
-		done
+		if [[ -v DEPENDENCIES ]] && [[ "$DEPENDENCIES" != "" ]]; then
+			IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
+			for DEP in "${DEPENDENCIES[@]}"; do
+				check_preset "$DEP"
+			done
+		fi
 	else
 		exit_with_error 19 "ERROR : could not find preset $PRESET"
 	fi
@@ -335,21 +341,27 @@ function init_preset
 		done
 	done
 	INIT_PRESETS="$INIT_PRESETS$PRESET,"
-        source "$GIT_DELIVER_PATH/presets/$PRESET"/info
-	IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
-	for DEP in "${DEPENDENCIES[@]}"; do
-		init_preset "$DEP"
-	done
+	source "$GIT_DELIVER_PATH/presets/$PRESET"/info
+	if [[ -v DEPENDENCIES ]] && [[ "$DEPENDENCIES" != "" ]]; then
+		IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
+		for DEP in "${DEPENDENCIES[@]}"; do
+			init_preset "$DEP"
+		done
+	fi
 	}
 
 function init
 	{
-	local PRESETS="$1"
-	IFS=',' read -ra PRESETS <<< "$PRESETS"
-	for PRESET_DIR in "${PRESETS[@]}"; do
-		local PRESET=`basename "$PRESET_DIR"`
-		check_preset $PRESET
-        done
+	local PRESETS
+	[[ $# -gt 0 ]] && PRESETS="$1"
+
+	if [[ -v PRESETS ]]; then
+		IFS=',' read -ra PRESETS <<< "$PRESETS"
+		for PRESET_DIR in "${PRESETS[@]}"; do
+			local PRESET=`basename "$PRESET_DIR"`
+			check_preset $PRESET
+    	    done
+	fi
 	mkdir -p "$REPO_ROOT/.deliver/scripts"
 	for STAGE in dependencies init-remote pre-delivery post-checkout pre-symlink post-symlink rollback-pre-symlink rollback-post-symlink; do
 		mkdir -p "$REPO_ROOT/.deliver/scripts/$STAGE"
@@ -358,11 +370,13 @@ function init
 	echo "Setting up core preset" >&2
 	INIT_PRESETS=","
 	init_preset core
-	for PRESET_DIR in "${PRESETS[@]}"; do
-		local PRESET=`basename "$PRESET_DIR"`
-		echo "Setting up $PRESET preset" >&2
-		init_preset $PRESET
-	done
+	if [[ -v PRESETS ]]; then
+		for PRESET_DIR in "${PRESETS[@]}"; do
+			local PRESET=`basename "$PRESET_DIR"`
+			echo "Setting up $PRESET preset" >&2
+			init_preset $PRESET
+		done
+	fi
 	}
 
 function run_stage_scripts
@@ -387,14 +401,14 @@ function run_stage_scripts
 				export DELIVERY_PATH="$DELIVERY_PATH"
 				export VERSION="$VERSION"
 				export VERSION_SHA="$VERSION_SHA"
-				export PREVIOUS_VERSION_SHA="$PREVIOUS_VERSION_SHA"
+				export PREVIOUS_VERSION_SHA="${PREVIOUS_VERSION_SHA:-}"
 				export REMOTE_SERVER="$REMOTE_SERVER"
 				export REMOTE_PATH="$REMOTE_PATH"
 				export REMOTE="$REMOTE"
 				export LAST_STAGE_REACHED="$LAST_STAGE_REACHED"
 				export IS_ROLLBACK="$IS_ROLLBACK"
-				export FAILED_SCRIPT="$FAILED_SCRIPT"
-				export FAILED_SCRIPT_EXIT_STATUS="$FAILED_SCRIPT_EXIT_STATUS"
+				export FAILED_SCRIPT="${FAILED_SCRIPT:-}"
+				export FAILED_SCRIPT_EXIT_STATUS="${FAILED_SCRIPT_EXIT_STATUS:-}"
 				
 				function run_remote
 					{
@@ -402,7 +416,7 @@ function run_stage_scripts
 					if [[ "$REMOTE_SERVER" = "" ]]; then
 						bash -c "\$COMMAND"
 					else
-						"$GIT_SSH" "$REMOTE_SERVER" "\$COMMAND"
+						"${GIT_SSH:-}" "$REMOTE_SERVER" "\$COMMAND"
 					fi
 					}
 				
@@ -452,8 +466,10 @@ function ssh_init
 function remote_info
 	{
 	local REMOTE="$1"
-	local INIT="$2"
-	local INIT_URL="$3"
+	local INIT;
+	[[ $# -gt 1 ]] && INIT="$2"
+	local INIT_URL;
+	[[ $# -gt 2 ]] && INIT_URL="$3"
 
 	if echo "$REMOTE" | grep -vE '^[A-Za-z0-9\./_-]+$'; then
 		echo "Not a valid remote name : $REMOTE"
@@ -462,17 +478,21 @@ function remote_info
 
 	local REMOTE_INFO
 	REMOTE_INFO=`git remote -v | grep '^'"$REMOTE"'	' | grep '(push)'`
-	if [[ $? -gt 0 ]] && $INIT; then
-		if [[ "$INIT_URL" = "" ]]; then
-			echo "Remote $REMOTE not found." >&2
-			confirm_or_exit "Create it ?"
-			echo ""
-			read -p "URL for remote :" INIT_URL
-		fi
-		git remote add "$REMOTE" "$INIT_URL"
-		exit_if_error 8 "Error adding remote in local Git config"
-		if [[ ! $IN_INIT ]]; then
-			init_remote "$REMOTE" "$INIT_URL"
+	if [[ $? -gt 0 ]]; then
+		if [[ -v INIT ]]; then
+			if [[ ! -v INIT_URL ]]; then
+				echo "Remote $REMOTE not found." >&2
+				confirm_or_exit "Create it ?"
+				echo ""
+				read -p "URL for remote :" INIT_URL
+				fi
+			git remote add "$REMOTE" "$INIT_URL"
+			exit_if_error 8 "Error adding remote in local Git config"
+			if [[ ! $IN_INIT ]]; then
+				init_remote "$REMOTE" "$INIT_URL"
+			fi
+		else
+			exit_with_error 29 "Remote $REMOTE not found."
 		fi
 	fi
 
@@ -519,26 +539,27 @@ function run
 function run_remote
 	{
 	COMMAND="cd /tmp && { $* ; }"
-	if [[ "$REMOTE_SERVER" = "" ]]; then
-		if [[ "$LOG_TEMPFILE" != "" ]]; then
-			echo "running bash -c \"$COMMAND\"" >> "$LOG_TEMPFILE"
-		fi
-		bash -c "$COMMAND"
-	else
-		if [[ "$LOG_TEMPFILE" != "" ]]; then
+	if [[ -v REMOTE_SERVER ]] && [[ "$REMOTE_SERVER" != "" ]]; then
+		if [[ -v LOG_TEMPFILE ]]; then
 			echo "running "$GIT_SSH" \"$REMOTE_SERVER\" \"$COMMAND\"" >> "$LOG_TEMPFILE"
 		fi
 		"$GIT_SSH" "$REMOTE_SERVER" "$COMMAND"
+	else
+		if [[ -v LOG_TEMPFILE ]]; then
+			echo "running bash -c \"$COMMAND\"" >> "$LOG_TEMPFILE"
+		fi
+		bash -c "$COMMAND"
 	fi
 	}
 
 function init_remote
 	{
-	if [[ "$4" != "" ]]; then
+	if [[ $# -gt 3 ]]; then
 		exit_with_help
 	fi
 	IN_INIT=true
-	INIT_URL="$2"
+	INIT_URL=""
+	[[ $# -gt 1 ]] && INIT_URL="$2"
 	local REMOTE="$1"
 	remote_info "$REMOTE" true "$INIT_URL"
 	
@@ -602,7 +623,7 @@ function create_delivered_dir_if_needed
 
 function remote_gc
 	{
-	if [[ $2 != "" ]] || [[ $1 = "" ]]; then
+	if [[ $# -gt 1 ]] || [[ $# -lt 1 ]]; then
 		exit_with_help
 	fi
 	local REMOTE="$1"
@@ -661,8 +682,9 @@ function make_temp_file
 	{
 	local tempdir
 	local tempfile
-	tempdir="$TMPDIR"
-	if [[ "$tempdir" = "" ]]; then
+	if [[ -v TMPDIR ]] && [[ "$TMPDIR" != "" ]]; then
+		tempdir="$TMPDIR"
+	else
 		tempdir="/tmp"
 	fi
 	which mktemp &> /dev/null
@@ -704,15 +726,16 @@ function get_branch_for_version
 
 function deliver
 	{
-	if [[ $3 != "" ]] || [[ $1 = "" ]]; then
+	if [[ $# -gt 2 ]] || [[ $# -lt 1 ]]; then
 		exit_with_help
 	fi
 	local REMOTE="$1"
 
-	if [[ $IS_ROLLBACK == false ]] && [[ $2 = "" ]]; then
+	if [[ $IS_ROLLBACK == false ]] && [[ $# -lt 2 ]]; then
 		exit_with_help
 	fi
-	local VERSION="$2"
+	local VERSION
+	[[ $# -gt 1 ]] && VERSION="$2"
 
 	CURRENT_STAGE_SCRIPT=""
 	LAST_STAGE_REACHED=""
@@ -726,7 +749,17 @@ function deliver
 	echo "#" >> "$LOG_TEMPFILE"
 	echo "" >> "$LOG_TEMPFILE"
 
-	echo -e "Delivery of ref \"$VERSION\" to remote \"$REMOTE\"\n\n" >> "$LOG_TEMPFILE"
+	if [[ -v VERSION ]];  then
+		if [[ $IS_ROLLBACK == "false" ]]; then
+			echo -en "Delivery of ref \"$VERSION\" to" >> "$LOG_TEMPFILE"
+		else
+			echo -en "Rollback to \"$VERSION\" on" >> "$LOG_TEMPFILE"
+		fi
+	else
+		echo -en "Rollback to previous version on" >> "$LOG_TEMPFILE"
+	fi
+
+	echo -e " remote \"$REMOTE\"\n\n" >> "$LOG_TEMPFILE"
 
 	if [[ ! -d "$REPO_ROOT/.deliver" ]]; then
 		echo ".deliver not found."
@@ -763,7 +796,7 @@ function deliver
 	if [[ $IS_ROLLBACK == false  ]]; then
 		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
-		local TAG_TO_PUSH=""
+		local TAG_TO_PUSH
 		if [[ "$VERSION_SHA" = "" ]]; then
 			echo "Ref $VERSION not found." >&2
 			confirm_or_exit "Tag current HEAD ?"
@@ -792,19 +825,24 @@ function deliver
 	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' )`
 	DELIVERY_DATE=${DELIVERY_DATE:0:21}
 
+	local DELIVERED_BY_NAME=`git config --get user.name`
+	local DELIVERED_BY_EMAIL=`git config --get user.email`
+
 	trap delivery_sigint_handler SIGINT
 
 	if [[ $IS_ROLLBACK == true ]]; then
-		local ROLLBACK_TO_VERSION="$VERSION"
-		if [[ "$VERSION" = "" ]]; then
-				ROLLBACK_TO_VERSION="previous"
+		local ROLLBACK_TO_VERSION;
+		if [[ -v VERSION ]]; then
+			ROLLBACK_TO_VERSION="$VERSION"
+		else
+			ROLLBACK_TO_VERSION="previous"
 		fi
 		DELIVERY_PATH=`run_remote "cd \"$REMOTE_PATH/delivered/$ROLLBACK_TO_VERSION\" && pwd -P" 2>&1`
 		if [[ $? -gt 0 ]]; then
-			if [[ "$VERSION" = "" ]]; then
-				exit_with_error 25 "No previous version found; cannot rollback"
-			else
+			if [[ -v VERSION ]]; then
 				exit_with_error 25 "Delivery $VERSION not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
+			else
+				exit_with_error 25 "No previous version found; cannot rollback"
 			fi
 		fi
 		local DELIVERY_INFOS
@@ -875,8 +913,6 @@ function deliver
 		# Commit after the post-checkouts have run and might have changed a few things (added production database passwords for instance).
 		# This guarantees the integrity of our delivery from then on. The commit can also be signed to authenticate the delivery.
 
-		local DELIVERED_BY_NAME=`git config --get user.name`
-		local DELIVERED_BY_EMAIL=`git config --get user.email`
 		run_remote "cd \"$DELIVERY_PATH\" && GIT_COMMITTER_NAME=\"$DELIVERED_BY_NAME\" GIT_COMMITTER_EMAIL=\"$DELIVERED_BY_EMAIL\" git commit --author \"$DELIVERED_BY_NAME <$DELIVERED_BY_EMAIL>\" --allow-empty -a -m \"Git-deliver automated commit\""
 
 		run_remote "ls -ld \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w' && chgrp -R \`ls -gd \"$REMOTE_PATH/objects\" | awk '{print \$3}'\` \"$DELIVERY_PATH\" && chmod -R g+w \"$DELIVERY_PATH\""
@@ -924,17 +960,17 @@ function deliver
 		bash -c "$GEDITOR \"$LOG_TEMPFILE\""
 	fi
 
-	# TAG the delivered version here and on the origin remote
+	# TAG the delivered version
 	local TAG_NAME="delivered-$REMOTE-$DELIVERY_DATE"
 	echo "Tagging delivery commit"
 	git tag -F "$LOG_TEMPFILE" "$TAG_NAME" "$VERSION_SHA"  2>&1 | indent 1
 	run "git push \"$REMOTE\" refs/tags/\"$TAG_NAME\"" 2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
-	if [[ "$TAG_TO_PUSH" != "" ]]; then
+	if [[ -v TAG_TO_PUSH ]] && [[ "$TAG_TO_PUSH" != "" ]]; then
 		TAG_TO_PUSH_MSG=" and tag $TAG_TO_PUSH (git push origin $TAG_TO_PUSH ?)"
 	fi
 	echo_green "Delivery complete."
-	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)$TAG_TO_PUSH_MSG"
+	echo "You might want to publish tag $TAG_NAME (git push origin $TAG_NAME ?)${TAG_TO_PUSH_MSG:-}"
 	}
 
 function delivery_sigint_handler
@@ -968,7 +1004,7 @@ function rollback
 	DELIVERY_STAGE="rollback-pre-symlink"
 	run_stage_scripts "$DELIVERY_STAGE"
 	
-	if [[ $SYMLINK_SWITCH_STATUS != "" ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
+	if [[ -v SYMLINK_SWITCH_STATUS ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
 			local symlink_rollback
 			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
 				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then \
@@ -1013,6 +1049,7 @@ function validate_option
 	}
 
 FLAGS_batch=false
+FLAGS_shared="false"
 IS_ROLLBACK=false
 
 COMMAND=""

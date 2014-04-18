@@ -34,7 +34,7 @@ assertTrueEcho()
 initDeliver()
 	{
 	cd "$ROOT_DIR/test_repo"
-	"$ROOT_DIR"/deliver.sh --init --batch $* > /dev/null 2>&1 
+	"$ROOT_DIR"/deliver.sh --init --batch $* #> /dev/null 2>&1 
 	}
 
 initWithOrigin()
@@ -226,7 +226,7 @@ testRunScripts()
 	mkdir -p ".deliver/scripts/foo"
 	echo "test \"\$SSH_CONNECTION\" = \"\" && echo 'L:OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/01-bar.sh"
 	echo "test \"\$SSH_CONNECTION\" = \"\" || echo 'R:OK' ; exit 0" > "$ROOT_DIR/test_repo/.deliver/scripts/foo/02-bar.remote.sh"
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; GIT_SSH="ssh" REMOTE_SERVER="'$SSH_TEST_USER@$SSH_TEST_HOST'" REMOTE_PROTO="ssh" DELIVERY_STAGE="foo" run_stage_scripts' | bash 2>&1 | grep OK`
+	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; set +o nounset ; GIT_SSH="ssh" REMOTE_SERVER="'$SSH_TEST_USER@$SSH_TEST_HOST'" REMOTE_PROTO="ssh" DELIVERY_STAGE="foo" run_stage_scripts' | bash 2>&1 | grep OK`
 	echo "$A" | grep "L:OK" &> /dev/null
 	assertEquals 0 $?
 	echo "$A" | grep "R:OK" &> /dev/null
