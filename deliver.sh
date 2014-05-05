@@ -781,8 +781,14 @@ function deliver
 
 	check_git_version_and_ssh_connectivity "$REMOTE"
 
-	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l | tr -d ' '"` -lt "2" ]]; then
-		exit_with_error 1 "ERROR : Remote does not look like a bare git repo"
+	local remote_dir_list=`run_remote "cd \"$REMOTE_PATH\" && ls -1 2> /dev/null"`
+	if [[ "$remote_dir_list" = "" ]]; then
+		init_remote "$REMOTE"
+	else
+		local remote_dir_git_count=`echo "$remote_dir_list" | grep "^objects\|refs$" | wc -l | tr -d ' '`
+		if [[ "$remote_dir_git_count" -lt "2" ]]; then
+			exit_with_error 1 "ERROR : Remote does not look like a bare git repo"
+		fi
 	fi
 
 	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
