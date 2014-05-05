@@ -93,6 +93,7 @@ function confirm_or_exit
         [[ $2 != "" ]] && exit_if_batch=$2
 
         if [[ $FLAGS_batch == true ]]; then
+            echo "$msg" >&2
             if [[ $exit_if_batch == true ]]; then
                 exit 2
             else
