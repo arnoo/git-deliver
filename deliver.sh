@@ -120,8 +120,7 @@ function exit_if_error
 
 function exit_with_help
 	{
-	local code;
-	[[ $# -gt 0 ]] && code=$1
+	[[ $# -gt 0 ]] && local code=$1
 
 	echo "Usage : "
 	echo "  git deliver <REMOTE> <VERSION>"
