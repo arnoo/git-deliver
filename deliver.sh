@@ -331,7 +331,6 @@ function init_preset
 	fi
 	[ -d "$GIT_DELIVER_PATH"/presets/"$preset" ] || exit_with_error 10 "Preset not found : $preset"
 	[ -d "$GIT_DELIVER_PATH"/presets/"$preset"/dependencies ] && cp -ri "$GIT_DELIVER_PATH"/presets/"$preset"/dependencies "$REPO_ROOT"/.deliver/scripts/dependencies/"$preset"
-	local preset_script
 	for preset_stage_dir in "$GIT_DELIVER_PATH/presets/$preset"/*; do
 		[ -d "$preset_stage_dir" ] || continue
 		local preset_stage=`basename "$preset_stage_dir"`
@@ -357,8 +356,7 @@ function init_preset
 
 function init
 	{
-	local presets
-	[[ $# -gt 0 ]] && presets="$1"
+	[[ $# -gt 0 ]] && local presets="$1"
 
 	if [[ -n ${presets+defined} ]]; then
 		IFS=',' read -ra presets <<< "$presets"
@@ -472,18 +470,15 @@ function ssh_init
 function remote_info
 	{
 	local remote="$1"
-	local init;
-	[[ $# -gt 1 ]] && init="$2"
-	local init_url;
-	[[ $# -gt 2 ]] && init_url="$3"
+	[[ $# -gt 1 ]] && local init="$2"
+	[[ $# -gt 2 ]] && local init_url="$3"
 
 	if echo "$remote" | grep -vE '^[A-Za-z0-9\./_-]+$'; then
 		echo "Not a valid remote name : $remote"
 		exit_with_help 22
 	fi
 
-	local remote_info
-	REMOTE_INFO=`git remote -v | grep '^'"$remote"'	' | grep '(push)'`
+	git remote -v | grep '^'"$remote"'	' | grep '(push)' &> /dev/null
 	if [[ $? -gt 0 ]]; then
 		if [[ -n ${init+defined} ]]; then
 			if [[ ! -n ${init_url+defined} ]]; then
@@ -494,7 +489,7 @@ function remote_info
 			fi
 			git remote add "$remote" "$init_url"
 			exit_if_error 8 "Error adding remote in local Git config"
-			if [[ ! $IN_INIT ]]; then
+			if [[ ! -n ${IN_INIT+defined} ]] || [[ ! $IN_INIT ]]; then
 				init_remote "$remote" "$init_url"
 			fi
 		else
@@ -740,8 +735,7 @@ function deliver
 	if [[ $IS_ROLLBACK == false ]] && [[ $# -lt 2 ]]; then
 		exit_with_help
 	fi
-	local version
-	[[ $# -gt 1 ]] && version="$2"
+	[[ $# -gt 1 ]] && local version="$2"
 
 	CURRENT_STAGE_SCRIPT=""
 	LAST_STAGE_REACHED=""
@@ -805,18 +799,16 @@ function deliver
 		fi
 	fi
 
-	local version_sha
 	if [[ $IS_ROLLBACK == false  ]]; then
-		version_sha=`git rev-parse --revs-only $version 2> /dev/null`
+		local version_sha=`git rev-parse --revs-only $version 2> /dev/null`
 
-		local tag_to_push
 		if [[ "$version_sha" = "" ]]; then
 			echo "Ref $version not found." >&2
 			confirm_or_exit "Tag current HEAD ?"
 			version_sha=`git rev-parse HEAD`
 			echo "Tagging current HEAD" >&2
 			git tag $version
-			tag_to_push=$version
+			local tag_to_push=$version
 		fi
 	fi
 
@@ -824,7 +816,6 @@ function deliver
 	rstatus=`remote_status "$REMOTE" 1`
 
 	local rstatus_code=$?
-	local previous_version_sha
 	if [[ $rstatus_code -lt 3 ]]; then
 		echo "No version delivered yet on $REMOTE" >&2
 		if [[ $IS_ROLLBACK == true ]]; then
@@ -832,7 +823,7 @@ function deliver
 		fi
 	else
 		local version_line=`echo "$rstatus" | head -n +2 | tail -n 1`
-		previous_version_sha="${version_line:3:43}"
+		local previous_version_sha="${version_line:3:43}"
 		echo "Current version on $REMOTE:"
 		echo "$rstatus" >&2
 	fi
