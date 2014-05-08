@@ -132,7 +132,7 @@ function exit_with_help
 	echo "  git deliver --list-presets"
 	echo "  git deliver --status [REMOTE]"
 
-	if [[ -v code ]]; then
+	if [[ -n ${code+defined} ]]; then
 		exit $code
 	else
 		exit 1;
@@ -347,7 +347,7 @@ function init_preset
 	local DEPENDENCIES=""
 	local DESCRIPTION=""
 	source "$GIT_DELIVER_PATH/presets/$preset"/info
-	if [[ -v DEPENDENCIES ]] && [[ "$DEPENDENCIES" != "" ]]; then
+	if [[ -n ${DEPENDENCIES+defined} ]] && [[ "$DEPENDENCIES" != "" ]]; then
 		IFS=',' read -ra dependencies <<< "$DEPENDENCIES"
 		for dep in "${dependencies[@]}"; do
 			init_preset "$dep"
@@ -360,7 +360,7 @@ function init
 	local presets
 	[[ $# -gt 0 ]] && presets="$1"
 
-	if [[ -v presets ]]; then
+	if [[ -n ${presets+defined} ]]; then
 		IFS=',' read -ra presets <<< "$presets"
 		for preset_dir in "${presets[@]}"; do
 			local preset=`basename "$preset_dir"`
@@ -375,7 +375,7 @@ function init
 	echo "Setting up core preset" >&2
 	INIT_PRESETS=","
 	init_preset core
-	if [[ -v presets ]]; then
+	if [[ -n ${presets+defined} ]]; then
 		for preset_dir in "${presets[@]}"; do
 			local preset=`basename "$preset_dir"`
 			echo "Setting up $preset preset" >&2
@@ -485,8 +485,8 @@ function remote_info
 	local remote_info
 	REMOTE_INFO=`git remote -v | grep '^'"$remote"'	' | grep '(push)'`
 	if [[ $? -gt 0 ]]; then
-		if [[ -v init ]]; then
-			if [[ ! -v init_url ]]; then
+		if [[ -n ${init+defined} ]]; then
+			if [[ ! -n ${init_url+defined} ]]; then
 				echo "Remote $remote not found." >&2
 				confirm_or_exit "Create it ?"
 				echo ""
@@ -545,13 +545,13 @@ function run
 function run_remote
 	{
 	local command="cd /tmp && { $* ; }"
-	if [[ -v REMOTE_SERVER ]] && [[ "$REMOTE_SERVER" != "" ]]; then
-		if [[ -v LOG_TEMPFILE ]]; then
+	if [[ -n ${REMOTE_SERVER+defined} ]] && [[ "$REMOTE_SERVER" != "" ]]; then
+		if [[ -n ${LOG_TEMPFILE+defined} ]]; then
 			echo "running "$GIT_SSH" \"$REMOTE_SERVER\" \"$command\"" >> "$LOG_TEMPFILE"
 		fi
 		"$GIT_SSH" "$REMOTE_SERVER" "$command"
 	else
-		if [[ -v LOG_TEMPFILE ]]; then
+		if [[ -n ${LOG_TEMPFILE+defined} ]]; then
 			echo "running bash -c \"$command\"" >> "$LOG_TEMPFILE"
 		fi
 		bash -c "$command"
@@ -688,7 +688,7 @@ function make_temp_file
 	{
 	local tempdir
 	local tempfile
-	if [[ -v TMPDIR ]] && [[ "$TMPDIR" != "" ]]; then
+	if [[ -n ${TMPDIR+defined} ]] && [[ "$TMPDIR" != "" ]]; then
 		tempdir="$TMPDIR"
 	else
 		tempdir="/tmp"
@@ -755,7 +755,7 @@ function deliver
 	echo "#" >> "$LOG_TEMPFILE"
 	echo "" >> "$LOG_TEMPFILE"
 
-	if [[ -v version ]];  then
+	if [[ -n ${version+defined} ]];  then
 		if [[ $IS_ROLLBACK == "false" ]]; then
 			echo -en "Delivery of ref \"$version\" to" >> "$LOG_TEMPFILE"
 		else
@@ -852,14 +852,14 @@ function deliver
 
 	if [[ $IS_ROLLBACK == true ]]; then
 		local rollback_to_version;
-		if [[ -v version ]]; then
+		if [[ -n ${version+defined} ]]; then
 			rollback_to_version="$version"
 		else
 			rollback_to_version="previous"
 		fi
 		DELIVERY_PATH=`run_remote "cd \"$REMOTE_PATH/delivered/$rollback_to_version\" && pwd -P" 2>&1`
 		if [[ $? -gt 0 ]]; then
-			if [[ -v version ]]; then
+			if [[ -n ${version+defined} ]]; then
 				exit_with_error 25 "Delivery $version not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
 			else
 				exit_with_error 25 "No previous version found; cannot rollback"
@@ -987,7 +987,7 @@ function deliver
 	run "git push \"$REMOTE\" refs/tags/\"$tag_name\"" 2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	local tag_to_push_msg=""
-	if [[ -v tag_to_push ]] && [[ "$tag_to_push" != "" ]]; then
+	if [[ -n ${tag_to_push+defined} ]] && [[ "$tag_to_push" != "" ]]; then
 		tag_to_push_msg=" and tag $tag_to_push (git push origin $tag_to_push ?)"
 	fi
 	echo_green "Delivery complete."
@@ -1026,7 +1026,7 @@ function rollback
 	DELIVERY_STAGE="rollback-pre-symlink"
 	run_stage_scripts "$DELIVERY_STAGE"
 	
-	if [[ -v SYMLINK_SWITCH_STATUS ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
+	if [[ -n ${SYMLINK_SWITCH_STATUS+defined} ]] && [[ $SYMLINK_SWITCH_STATUS -lt 5 ]]; then
 			local symlink_rollback
 			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
 				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then \
