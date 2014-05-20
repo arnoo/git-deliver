@@ -400,11 +400,11 @@ function run_stage_scripts
 			{ $shell | indent 2 >&2; script_result=${PIPESTATUS[0]}; } <<-EOS
 				export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 				export REPO_ROOT="$REPO_ROOT"
-				export DELIVERY_DATE="$delivery_date"
+				export DELIVERY_DATE="$DELIVERY_DATE"
 				export DELIVERY_PATH="$DELIVERY_PATH"
-				export VERSION="$version"
-				export VERSION_SHA="$version_sha"
-				export PREVIOUS_VERSION_SHA="${previous_version_sha:-}"
+				export VERSION="$VERSION"
+				export VERSION_SHA="$VERSION_SHA"
+				export PREVIOUS_VERSION_SHA="${PREVIOUS_VERSION_SHA:-}"
 				export REMOTE_SERVER="$REMOTE_SERVER"
 				export REMOTE_PATH="$REMOTE_PATH"
 				export REMOTE="$REMOTE"
@@ -734,7 +734,7 @@ function deliver
 	if [[ $IS_ROLLBACK == false ]] && [[ $# -lt 2 ]]; then
 		exit_with_help
 	fi
-	[[ $# -gt 1 ]] && local version="$2"
+	[[ $# -gt 1 ]] && VERSION="$2"
 
 	CURRENT_STAGE_SCRIPT=""
 	LAST_STAGE_REACHED=""
@@ -748,11 +748,11 @@ function deliver
 	echo "#" >> "$LOG_TEMPFILE"
 	echo "" >> "$LOG_TEMPFILE"
 
-	if [[ -n ${version+defined} ]];  then
+	if [[ -n ${VERSION+defined} ]];  then
 		if [[ $IS_ROLLBACK == "false" ]]; then
-			echo -en "Delivery of ref \"$version\" to" >> "$LOG_TEMPFILE"
+			echo -en "Delivery of ref \"$VERSION\" to" >> "$LOG_TEMPFILE"
 		else
-			echo -en "Rollback to \"$version\" on" >> "$LOG_TEMPFILE"
+			echo -en "Rollback to \"$VERSION\" on" >> "$LOG_TEMPFILE"
 		fi
 	else
 		echo -en "Rollback to previous version on" >> "$LOG_TEMPFILE"
@@ -799,15 +799,15 @@ function deliver
 	fi
 
 	if [[ $IS_ROLLBACK == false  ]]; then
-		local version_sha=`git rev-parse --revs-only $version 2> /dev/null`
+		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
-		if [[ "$version_sha" = "" ]]; then
-			echo "Ref $version not found." >&2
+		if [[ "$VERSION_SHA" = "" ]]; then
+			echo "Ref $VERSION not found." >&2
 			confirm_or_exit "Tag current HEAD ?"
-			version_sha=`git rev-parse HEAD`
+			VERSION_SHA=`git rev-parse HEAD`
 			echo "Tagging current HEAD" >&2
-			git tag $version
-			local tag_to_push=$version
+			git tag $VERSION
+			local tag_to_push=$VERSION
 		fi
 	fi
 
@@ -822,18 +822,13 @@ function deliver
 		fi
 	else
 		local version_line=`echo "$rstatus" | head -n +2 | tail -n 1`
-		local previous_version_sha="${version_line:3:43}"
+		PREVIOUS_VERSION_SHA="${version_line:3:43}"
 		echo "Current version on $REMOTE:"
 		echo "$rstatus" >&2
 	fi
 
-<<<<<<< HEAD
 	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' )`
 	DELIVERY_DATE=${DELIVERY_DATE:0:21}
-=======
-	local delivery_date=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' )`
-	delivery_date=${delivery_date:0:21}
->>>>>>> Code cleanup : local variables
 
 	local delivered_by_name=`git config --get user.name`
 	local delivered_by_email=`git config --get user.email`
@@ -842,15 +837,15 @@ function deliver
 
 	if [[ $IS_ROLLBACK == true ]]; then
 		local rollback_to_version;
-		if [[ -n ${version+defined} ]]; then
-			rollback_to_version="$version"
+		if [[ -n ${VERSION+defined} ]]; then
+			rollback_to_version="$VERSION"
 		else
 			rollback_to_version="previous"
 		fi
 		DELIVERY_PATH=`run_remote "cd \"$REMOTE_PATH/delivered/$rollback_to_version\" && pwd -P" 2>&1`
 		if [[ $? -gt 0 ]]; then
-			if [[ -n ${version+defined} ]]; then
-				exit_with_error 25 "Delivery $version not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
+			if [[ -n ${VERSION+defined} ]]; then
+				exit_with_error 25 "Delivery $VERSION not found on remote. Use 'git deliver --status <REMOTE>' to list available previous deliveries."
 			else
 				exit_with_error 25 "No previous version found; cannot rollback"
 			fi
@@ -858,21 +853,21 @@ function deliver
 		local delivery_infos
 		delivery_infos=`run_remote "cd \"$DELIVERY_PATH\" && git log -n 1 --skip=1 --pretty=format:%H && echo "" && git show --pretty=format:'%aD by %aN <%aE>' _delivered | head -n 1" 2>&1`
 		exit_if_error 26 "Error getting information on version to rollback to."
-		version_sha=`echo "$delivery_infos" | head -n 1`
+		VERSION_SHA=`echo "$delivery_infos" | head -n 1`
 		local rollback_target_info=`echo "$delivery_infos" | tail -n 1`
 		DELIVERY_BASENAME=`basename "$DELIVERY_PATH"`
-		SYMLINK_MSG="Rolling back the 'current' symlink to the delivery $DELIVERY_BASENAME ($version_sha), delivered $rollback_target_info"
+		SYMLINK_MSG="Rolling back the 'current' symlink to the delivery $DELIVERY_BASENAME ($VERSION_SHA), delivered $rollback_target_info"
 	else
-		local human_version="${version_sha:0:6}"
-		if [[ $version != $version_sha ]]; then
-			human_version="$human_version"_"${version/\//_}"
+		local human_version="${VERSION_SHA:0:6}"
+		if [[ $VERSION != $VERSION_SHA ]]; then
+			human_version="$human_version"_"${VERSION/\//_}"
 		fi
-		DELIVERY_BASENAME="$delivery_date"_"$human_version"
+		DELIVERY_BASENAME="$DELIVERY_DATE"_"$human_version"
 		DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_BASENAME"
 
-		local branch=`get_branch_for_version $version`
+		local branch=`get_branch_for_version $VERSION`
 		if [[ "$branch" == "" ]]; then
-			exit_with_error 16 "No branch found for ref $version, commit must belong to a branch to be deliverable"
+			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a branch to be deliverable"
 		fi
 
 		DELIVERY_STAGE="pre-delivery"
@@ -885,7 +880,7 @@ function deliver
 			exit 14 ;
 		fi
 
-		local tags=$(git show-ref --tags -d | grep "^$version_sha" | cut -d\  -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
+		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d\  -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
 		if [[ "$tags" != "" ]]; then
 			run "git push \"$REMOTE\" tag $tags"
 			exit_if_error 13
@@ -907,7 +902,7 @@ function deliver
 			exit_with_error 15 "Error creating tracking branch on remote clone" ;
 		fi
 		
-		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $version" 2>&1 | indent 1
+		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit_with_error 6 "Error checking out remote clone"
 		fi
@@ -971,9 +966,9 @@ function deliver
 	fi
 
 	# TAG the delivered version
-	local tag_name="delivered-$REMOTE-$delivery_date"
+	local tag_name="delivered-$REMOTE-$DELIVERY_DATE"
 	echo "Tagging delivery commit"
-	git tag -F "$LOG_TEMPFILE" "$tag_name" "$version_sha"  2>&1 | indent 1
+	git tag -F "$LOG_TEMPFILE" "$tag_name" "$VERSION_SHA"  2>&1 | indent 1
 	run "git push \"$REMOTE\" refs/tags/\"$tag_name\"" 2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	local tag_to_push_msg=""
