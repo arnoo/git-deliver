@@ -581,7 +581,7 @@ testDeliverMasterSshBadSubmodule()
 	git checkout master
 	MASTER=`git rev-parse master`
 	git submodule add "$ROOT_DIR"/.git badsub
-	sed -ei 's/url\s*=.*$/url = \/sdfswds/' .gitmodules
+	sed -ie 's/url\s*=.*$/url = \/sdfswds/' .gitmodules
 	git commit -am "Submodule with bad URL"
 	
 	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
