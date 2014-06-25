@@ -150,10 +150,11 @@ function indent
 
 function remote_status
 	{
-	local remote="$1"
+	local remote
 	local short=0
 	[[ $# -gt 1 ]] && short="$2"
-	if [[ "$remote" = '' ]]; then
+	[[ $# -gt 1 ]] && remote="$1"
+	if [[ ! -n ${remote+defined} ]]; then
 		local first_remote=true
 		for R in `git remote`; do
 			if $first_remote; then
@@ -774,7 +775,7 @@ function deliver
 
 	check_git_version_and_ssh_connectivity "$REMOTE"
 
-	local remote_dir_list=`run_remote "cd \"$REMOTE_PATH\" && ls -1 2> /dev/null"`
+	local remote_dir_list=`run_remote "cd \"$REMOTE_PATH\" 2> /dev/null && ls -1 2> /dev/null"`
 	if [[ "$remote_dir_list" = "" ]]; then
 		init_remote "$REMOTE"
 	else
