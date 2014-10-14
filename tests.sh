@@ -883,6 +883,7 @@ testRollbackPreDeliverySsh()
 	echo "echo \"PRE_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-pre-symlink/00-info.sh"
 	echo "echo \"PRE_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-pre-symlink/00-info.sh"
 	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	assertEquals 3 $?
 	echo "$A"
 	echo "$A" | grep "Script returned with status 1" &> /dev/null
 	assertEquals 0 $?
@@ -909,6 +910,7 @@ testRollbackPostCheckoutSsh()
 	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
 	echo "echo \"POST_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
 	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	assertEquals 3 $?
 	echo "$A" | grep "Script returned with status 22" &> /dev/null
 	assertEquals 0 $?
 	echo "$A" | grep "POST_FAILED_SCRIPT:00-fail" &> /dev/null
@@ -936,6 +938,7 @@ testRollbackPostSymlinkNoPreviousSsh()
 	echo "echo \"POST_FAILED_SCRIPT:\$FAILED_SCRIPT\"" > "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
 	echo "echo \"POST_FAILED_SCRIPT_EXIT_STATUS:\$FAILED_SCRIPT_EXIT_STATUS\"" >> "$ROOT_DIR/test_repo/.deliver/scripts/rollback-post-symlink/00-info.sh"
 	A=`"$ROOT_DIR"/deliver.sh --batch origin master 2>&1`
+	assertEquals 3 $?
 	echo "$A"
 	echo "$A" | grep "Script returned with status 22" &> /dev/null
 	assertEquals 0 $?

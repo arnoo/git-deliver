@@ -409,6 +409,7 @@ function run_stage_scripts
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
 					FAILED_SCRIPT_EXIT_STATUS="$script_result"
 					rollback
+					exit 3
 				else
 					echo_red "A script failed during rollback, manual intervention is likely necessary"
 					echo_red "Delivery log : $LOG_TEMPFILE"
