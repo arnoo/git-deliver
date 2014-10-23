@@ -1,7 +1,10 @@
 #!/bin/bash
 
 #
-#   Copyright 2012 Arnaud Betremieux <arno@arnoo.net>
+#   Copyright 2012-2014 Arnaud Betremieux <arno@arnoo.net>
+#
+#   This file is a part of Git-deliver.
+#
 #   Adapted with authorization from Ross Patterson's SSH wrapper
 #   (http://ratterson.net/blog/re-using-and-multiplexing-ssh)
 #

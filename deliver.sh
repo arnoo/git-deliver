@@ -1,7 +1,9 @@
 #!/bin/bash
 
 #
-#   Copyright 2012 Arnaud Betremieux <arno@arnoo.net>
+#   Copyright 2012-2014 Arnaud Betremieux <arno@arnoo.net>
+#
+#   This file is a part of Git-deliver.
 #
 #   The program in this file is free software: you can redistribute it
 #   and/or modify it under the terms of the GNU General Public License
