@@ -199,7 +199,7 @@ function remote_status
 					fi
 				fi
 
-				local short_sha=\${dir_resolved:20:6}
+				local short_sha=\${dir_resolved:22:6}
 				local latest_sha
 				cd "$REMOTE_PATH/delivered/\$dir"
 				latest_sha=\`git --git-dir=.git log --pretty=format:%H -n 1 2>&1\`
@@ -780,7 +780,8 @@ function deliver
 		echo "$RSTATUS" >&2
 	fi
 
-	DELIVERY_DATE=`date +'%F_%H-%M-%S'`
+	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python && python2 -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' )`
+	DELIVERY_DATE=${DELIVERY_DATE:0:21}
 
 	trap delivery_sigint_handler SIGINT
 
