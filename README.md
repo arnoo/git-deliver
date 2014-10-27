@@ -96,7 +96,7 @@ Switches back to a previously delivered version on `<REMOTE>`. This is like a re
 
     git deliver --gc <REMOTE>
 
-"garbage collection": remove all previously delivered versions on `<REMOTE>`, except the last three ("current", "previous", "preprevious")
+"garbage collection": remove all previously delivered versions on `<REMOTE>`, except the last three ("current", "previous", "preprevious"), run `git gc` on the remote's main repository if needed
 
     git deliver --init [presets]
 

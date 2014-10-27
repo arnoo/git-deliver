@@ -641,6 +641,7 @@ function remote_gc
 								     }'\`
 		fi
 		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\"
+		git gc --auto
 		exit \$STATUS"
 	run_remote "$GC_SCRIPT"
 	local status=$?
