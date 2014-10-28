@@ -153,7 +153,7 @@ function remote_status
 	local remote
 	local short=0
 	[[ $# -gt 1 ]] && short="$2"
-	[[ $# -gt 1 ]] && remote="$1"
+	[[ $# -gt 0 ]] && remote="$1"
 	if [[ ! -n ${remote+defined} ]]; then
 		local first_remote=true
 		for R in `git remote`; do
