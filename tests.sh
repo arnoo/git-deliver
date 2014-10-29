@@ -296,7 +296,7 @@ testUnknownRemote()
 testUnknownRef()
 	{
 	initWithOrigin
-	local RESULT=`"$ROOT_DIR"/deliver.sh --batch origin non_existent_ref 2>&1`
+	local RESULT=`"$ROOT_DIR"/deliver.sh --batch origin non_existent_ref 2>&1 | tail -n1`
 	assertEquals "Ref non_existent_ref not found." "$RESULT"
 	}
 
