@@ -184,7 +184,7 @@ function remote_status
 				}
 
 			if [[ ! -d "$REMOTE_PATH"/delivered ]]; then
-				echo "Not a Git-deliver remote" | indent 1
+				echo "Not a Git-deliver remote" | indent $short
 				exit 1
 			fi
 
@@ -253,7 +253,7 @@ function remote_status
 			curinfo=\`version_info "current"\`
 			RETURN=\$?
 			if [[ \$RETURN -lt 3 ]]; then
-				echo "No version currently delivered" | indent 1
+				echo "No version currently delivered" | indent $short
 			else
 				echo "\$curinfo"
 			fi
