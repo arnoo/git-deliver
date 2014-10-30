@@ -1,6 +1,7 @@
 SAFETY_MARGIN=$(( 10 * 1024 * 1024 )) # in bytes
 
-FREE_KBYTES=`run_remote "df -k \"$REMOTE_PATH\"" | awk '/[0-9]%/{print $(NF-2)}'`
+FREE_KBYTES=`run_remote "df -k \"$REMOTE_PATH\" | awk '/[0-9]%/{print \\\$(NF-2)}'"`
+[[ $? -gt 0 ]] && exit 1
 FREE_BYTES=$(($FREE_KBYTES * 1024))
 
 NECESSARY_BYTES=$(( `git archive --format=tar $VERSION | wc -c` + $SAFETY_MARGIN ))
