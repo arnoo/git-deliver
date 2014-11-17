@@ -669,7 +669,7 @@ function make_temp_file
 function get_branch_for_version
 	{
 	# branches containing version
-	local eligible_branches=`git branch -a --contains $1 | tr -d '^ *' | tr -d '^ ' | sed 's/^remotes\///'`
+	local eligible_branches=`git branch -a --contains $1 | grep -v '(no branch)' | tr -d '^ *' | tr -d '^ ' | sed 's/^remotes\///'`
 
 	# if version is a branch, picks it
 	local branch=`echo "$eligible_branches" | grep "^$1$" | head -n 1`
