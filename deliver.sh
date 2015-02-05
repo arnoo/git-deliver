@@ -491,6 +491,8 @@ function remote_info
 		REMOTE_SERVER=""
 		if [[ "${REMOTE_URL:0:1}" = "/" ]]; then
 			REMOTE_PATH="$REMOTE_URL"
+		elif [[ "${REMOTE_URL:0:2}" = "~/" ]]; then
+			REMOTE_PATH="$HOME/${REMOTE_URL:1:-1}"
 		else
 			REMOTE_PATH="$REPO_ROOT/$REMOTE_URL"
 		fi
