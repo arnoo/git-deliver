@@ -52,7 +52,7 @@ function exit_with_error
 	{
 	local code=$1
 	local msg="$2"
-	echo_red "$msg" 
+	echo_red "$msg" >&2
 	exit $code
 	}
 
@@ -297,11 +297,11 @@ function check_preset
 		local DESCRIPTION="ERROR"
 		local INFO_PATH="$GIT_DELIVER_PATH/presets/$PRESET/info"
 		if [[ ! -f "$INFO_PATH" ]]; then
-			exit_with_error 21 "ERROR : Info file for preset $PRESET not found." >&2
+			exit_with_error 21 "ERROR : Info file for preset $PRESET not found."
 		fi
 		source "$INFO_PATH"
 		if [[ "$DESCRIPTION" = "ERROR" ]] || [[ "$DESCRIPTION" = "" ]]; then
-			exit_with_error 20 "ERROR : Missing description for preset $PRESET" >&2
+			exit_with_error 20 "ERROR : Missing description for preset $PRESET"
 		fi
 		local OLDIFS=$IFS
 		IFS=',' read -ra DEPENDENCIES <<< "$DEPENDENCIES"
@@ -309,7 +309,7 @@ function check_preset
 			check_preset "$DEP"
 		done
 	else
-		exit_with_error 19 "ERROR : could not find preset $PRESET" >&2
+		exit_with_error 19 "ERROR : could not find preset $PRESET"
 	fi
 	}
 
@@ -743,7 +743,7 @@ function deliver
 	check_git_version_and_ssh_connectivity "$REMOTE"
 
 	if [[ `run_remote "ls -1d \"$REMOTE_PATH/objects\" \"$REMOTE_PATH/refs\" 2> /dev/null | wc -l | tr -d ' '"` -lt "2" ]]; then
-		exit_with_error 1 "ERROR : Remote does not look like a bare git repo" >&2
+		exit_with_error 1 "ERROR : Remote does not look like a bare git repo"
 	fi
 
 	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
@@ -756,7 +756,7 @@ function deliver
 	if [[ -e "$REPO_ROOT"/.deliver/scripts/init-remote ]] && test -n "$(find "$REPO_ROOT/.deliver/scripts/init-remote" -maxdepth 1 -name '*.sh' -print)"; then
 		run_remote "test -d \"$REMOTE_PATH\"/delivered"
 		if [[ $? -gt 0 ]]; then
-			exit_with_error 22 "ERROR : Remote has not been init" >&2
+			exit_with_error 22 "ERROR : Remote has not been init"
 		fi
 	fi
 

@@ -123,7 +123,7 @@ testPath2Unix()
 
 testExitIfError()
 	{
-	A=`echo 'source deliver.sh --source; bash -c "exit 2"; exit_if_error 1 "test"' | bash`
+	A=`echo 'source deliver.sh --source; bash -c "exit 2"; exit_if_error 1 "test" 2>&1' | bash`
 	assertEquals 1 $?
 	echo "$A" | grep "test" &> /dev/null
 	assertEquals 0 $?
