@@ -52,7 +52,7 @@ function exit_with_error
 	{
 	local code=$1
 	local msg="$2"
-	echo_red "$msg"
+	echo_red "$msg" 
 	exit $code
 	}
 
@@ -86,15 +86,21 @@ GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function confirm_or_exit
 	{
-	if [[ $FLAGS_batch == true ]]; then
-		exit 2
+        local msg="$1"
+        local exit_if_batch=true
+        [[ $2 != "" ]] && exit_if_batch=$2
+
+        if [[ $FLAGS_batch == true ]]; then
+            if [[ $exit_if_batch == true ]]; then
+                exit 2
+            else
+                return
+            fi
+        fi
+	if [[ "$msg" = "" ]]; then
+	    msg="Continue ?"
 	fi
-	if [[ "$1" = "" ]]; then
-	    local MSG="Continue ?"
-	else
-	    local MSG="$1"
-	fi
-	read -p "$MSG (y/n) " -n 1 REPLY >&2
+	read -p "$msg (y/n) " -n 1 REPLY >&2
 	if [[ ! $REPLY = "Y" ]] && [[ ! $REPLY = "y" ]]; then
 		exit 1
 	fi
@@ -742,7 +748,7 @@ function deliver
 
 	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
 	if [[ $? -ne 0 ]]; then
-		confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." >&2
+		confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." false
 	fi
 
 	# If this projet has init-remote scripts, check that the remote has been init. Otherwise, we don't really care, as it's just a matter of creating the 'delivered' directory
