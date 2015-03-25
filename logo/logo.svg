@@ -11,8 +11,8 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg3004"
    version="1.1"
-   inkscape:version="0.48.4 r9939"
-   width="288.76218"
+   inkscape:version="0.91 r13725"
+   width="312.76218"
    height="180.2352"
    xml:space="preserve"
    sodipodi:docname="logo.svg"
@@ -21,11 +21,11 @@
    inkscape:export-ydpi="90"><metadata
      id="metadata3010"><rdf:RDF><cc:Work
          rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title /></cc:Work></rdf:RDF></metadata><defs
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
      id="defs3008"><clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipPath3020"><path
-         d="m 0,0 2183.73,0 0,912 L 0,912 0,0 z"
+         d="m 0,0 2183.73,0 0,912 L 0,912 0,0 Z"
          id="path3022"
          inkscape:connector-curvature="0" /></clipPath></defs><sodipodi:namedview
      pagecolor="#ffffff"
@@ -36,16 +36,16 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="561"
-     inkscape:window-height="430"
+     inkscape:window-width="1920"
+     inkscape:window-height="1030"
      id="namedview3006"
      showgrid="false"
      inkscape:zoom="1.5374562"
-     inkscape:cx="221.21438"
+     inkscape:cx="222.51523"
      inkscape:cy="91.966888"
-     inkscape:window-x="142"
-     inkscape:window-y="628"
-     inkscape:window-maximized="0"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
      inkscape:current-layer="g3012"
      fit-margin-top="20"
      fit-margin-left="20"
@@ -75,7 +75,7 @@
        style="fill:#f03c2e;fill-opacity:1;fill-rule:nonzero;stroke:none"
        d="m 209.11418,97.752847 -60.97895,-0.0019 c -3.51047,0.0019 -6.35833,-2.846326 -6.35926,-6.359261 l 5.3e-4,-12.662828 16.06275,-3.1e-4 c 1.23667,2.497393 3.79935,4.214789 6.77472,4.214483 2.99236,-0.0019 5.57029,-1.740457 6.79737,-4.260007 l 15.48088,3.16e-4 c 1.22741,2.518005 3.80496,4.261762 6.79833,4.259083 4.1806,6.06e-4 7.5672,-3.385985 7.56726,-7.567284 3.2e-4,-4.182141 -3.38629,-7.568742 -7.56934,-7.569354 -3.14515,9.28e-4 -5.84362,1.922119 -6.98426,4.655137 l -14.43798,2.37e-4 18.99602,-18.997279 c 0.76201,0.257377 1.57979,0.401661 2.42738,0.403491 4.17976,2.33e-4 7.56573,-3.385738 7.5688,-7.568808 -9.2e-4,-4.180317 -3.38904,-7.568429 -7.56728,-7.567284 -4.18336,0.0027 -7.56933,3.38874 -7.5688,7.568819 9.2e-4,1.03224 0.20833,2.020266 0.58453,2.919645 l -19.17295,19.17295 c -0.89855,-0.377051 -1.88289,-0.586309 -2.91974,-0.584468 -3.16538,-9.28e-4 -5.8705,1.941214 -7.00274,4.697502 l -15.83516,0.0019 -9.3e-4,-41.811347 c 8.6e-4,-3.51406 2.84873,-6.361921 6.36165,-6.361634 l 60.97866,0.0018 c 3.51142,-6.04e-4 6.35834,2.84633 6.36019,6.360187 l 5.8e-4,60.694883 c -9.3e-4,3.51293 -2.84962,6.361637 -6.36195,6.36195" /><text
        xml:space="preserve"
-       style="font-size:47.01673126px;font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#362701;fill-opacity:1;stroke:none;font-family:Adelle Basic;-inkscape-font-specification:Adelle Basic Bold Italic"
+       style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:47.01673126px;line-height:125%;font-family:'Adelle Basic';-inkscape-font-specification:'Adelle Basic Bold Italic';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#362701;fill-opacity:1;stroke:none"
        x="59.372074"
        y="10.650906"
        id="text3052"
@@ -85,5 +85,5 @@
          id="tspan3054"
          x="59.372074"
          y="10.650906"
-         style="font-style:normal;-inkscape-font-specification:Adelle Basic Bold">deliver</tspan></text>
+         style="font-style:normal;-inkscape-font-specification:'Adelle Basic Bold'">deliver</tspan></text>
 </g></svg>
