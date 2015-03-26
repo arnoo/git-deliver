@@ -89,21 +89,23 @@ GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 function confirm_or_exit
 	{
         local msg="$1"
+        local question=""
+        [[ $? -gt 1 ]] && question=$2
         local exit_if_batch=true
-        [[ $2 != "" ]] && exit_if_batch=$2
+        [[ $? -gt 2 ]] && exit_if_batch=$3
 
+        echo "$msg" >&2
         if [[ $FLAGS_batch == true ]]; then
-            echo "$msg" >&2
             if [[ $exit_if_batch == true ]]; then
                 exit 2
             else
                 return
             fi
         fi
-	if [[ "$msg" = "" ]]; then
-	    msg="Continue ?"
+	if [[ "$question" = "" ]]; then
+	    question="Continue ?"
 	fi
-	read -p "$msg (y/n) " -n 1 reply >&2
+	read -p "$question (y/n) " -n 1 reply >&2
 	if [[ ! $reply = "Y" ]] && [[ ! $reply = "y" ]]; then
             exit 1
 	fi
@@ -482,8 +484,7 @@ function remote_info
 	if [[ $? -gt 0 ]]; then
 		if [[ -n ${init+defined} ]]; then
 			if [[ ! -n ${init_url+defined} ]]; then
-				echo "Remote $remote not found." >&2
-				confirm_or_exit "Create it ?"
+				confirm_or_exit "Remote $remote not found." "Create it ?"
 				echo ""
 				read -p "URL for remote :" INIT_URL
 			fi
@@ -762,8 +763,7 @@ function deliver
 	echo -e " remote \"$REMOTE\"\n\n" >> "$LOG_TEMPFILE"
 
 	if [[ ! -d "$REPO_ROOT/.deliver" ]]; then
-		echo ".deliver not found."
-		confirm_or_exit "Run init ?"
+		confirm_or_exit ".deliver not found." "Run init ?"
 		init
 	fi
 
@@ -787,7 +787,7 @@ function deliver
 
 	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
 	if [[ $? -ne 0 ]]; then
-		confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." false
+                confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." "" false
 	fi
 
 	# If this projet has init-remote scripts, check that the remote has been init. Otherwise, we don't really care, as it's just a matter of creating the 'delivered' directory
@@ -803,8 +803,7 @@ function deliver
 		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
 		if [[ "$VERSION_SHA" = "" ]]; then
-			echo "Ref $VERSION not found." >&2
-			confirm_or_exit "Tag current HEAD ?"
+			confirm_or_exit "Ref $VERSION not found." "Tag current HEAD ?"
 			VERSION_SHA=`git rev-parse HEAD`
 			echo "Tagging current HEAD" >&2
 			git tag $VERSION
