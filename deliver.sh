@@ -787,7 +787,7 @@ function deliver
 
 	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
 	if [[ $? -ne 0 ]]; then
-                confirm_or_exit "Warning: remote has neither GNU mv nor python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." "" false
+                confirm_or_exit "Warning: remote has neither GNU mv nor Python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." "" false
 	fi
 
 	# If this projet has init-remote scripts, check that the remote has been init. Otherwise, we don't really care, as it's just a matter of creating the 'delivered' directory
