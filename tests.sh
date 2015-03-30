@@ -184,9 +184,7 @@ testRemoteInfo()
 	git remote add http http://user@host/path/a/b
 	git remote add space "/path/a b c"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info unix ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
-	if [[ "$OSTYPE" == "msys" ]]; then
-		assertEquals "local++++++`pwd`/path/a/b" "$A"
-	else
+	if [[ "$OSTYPE" != "msys" ]]; then
 		assertEquals "local++++++/path/a/b" "$A"
 	fi
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info relative ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
@@ -206,9 +204,7 @@ testRemoteInfo()
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info http ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "http+++user@host+++/path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info space ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
-	if [[ "$OSTYPE" == "msys" ]]; then
-		assertEquals "local++++++`pwd`/path/a b c" "$A"
-	else
+	if [[ "$OSTYPE" != "msys" ]]; then
 		assertEquals "local++++++/path/a b c" "$A"
 	fi
 	git remote rm unix
