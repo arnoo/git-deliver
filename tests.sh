@@ -183,9 +183,11 @@ testRemoteInfo()
 	git remote add scp_no_user host:/path/a/b
 	git remote add http http://user@host/path/a/b
 	git remote add space "/path/a b c"
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info unix ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+	git remote add tilde "~/path/a b"
+	git remote add tilde_user "~bob/path/a b"
 	if [[ "$OSTYPE" != "msys" ]]; then
-		assertEquals "local++++++/path/a/b" "$A"
+            A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info unix ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+            assertEquals "local++++++/path/a/b" "$A"
 	fi
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info relative ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "local++++++$ROOT_DIR/test_repo/../path/a/b" "$A"
@@ -203,10 +205,15 @@ testRemoteInfo()
 	assertEquals "ssh+++host+++/path/a/b" "$A"
 	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info http ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	assertEquals "http+++user@host+++/path/a/b" "$A"
-	A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info space ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
 	if [[ "$OSTYPE" != "msys" ]]; then
-		assertEquals "local++++++/path/a b c" "$A"
+            A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info space ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+            assertEquals "local++++++/path/a b c" "$A"
 	fi
+        A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info tilde ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+        assertEquals "local++++++$HOME/path/a b" "$A"
+        A=`echo 'source ../deliver.sh --source > /dev/null 2>&1 ; remote_info tilde_user ; echo "$REMOTE_PROTO+++$REMOTE_SERVER+++$REMOTE_PATH"' | bash`
+        HOMEBOB=`echo ~bob`
+        assertEquals "local++++++$HOMEBOB/path/a b" "$A"
 	git remote rm unix
 	git remote rm relative
 	git remote rm win
@@ -216,6 +223,8 @@ testRemoteInfo()
 	git remote rm scp_no_user
 	git remote rm http
 	git remote rm space
+	git remote rm tilde
+	git remote rm tilde_user
 	}
 
 testRunScripts()

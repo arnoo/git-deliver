@@ -517,18 +517,19 @@ function remote_info
 	else
 		REMOTE_PROTO='local'
 		REMOTE_SERVER=""
-		if [[ "${REMOTE_URL:0:1}" = "/" ]]; then
-			REMOTE_PATH="$REMOTE_URL"
-		elif [[ "${REMOTE_URL:0:2}" = "~/" ]]; then
-			REMOTE_PATH="$HOME/${REMOTE_URL:1:-1}"
-		else
-			REMOTE_PATH="$REPO_ROOT/$REMOTE_URL"
-		fi
+                REMOTE_PATH="$REMOTE_URL"
 	fi
 	REMOTE_PATH=`echo "$REMOTE_PATH" | sed 's#//#/#g'`
 	if [[ "$REMOTE_PROTO" == "ssh" ]]; then 
 		ssh_init $remote
 	fi
+        if [[ "${REMOTE_PATH:0:1}" = "~" ]]; then
+            local home_part=${REMOTE_PATH%%[ /]*}
+            REMOTE_PATH=`run_remote "echo $home_part"`${REMOTE_PATH:${#home_part}}
+        fi
+	if [[ "$REMOTE_PROTO" == "local" ]] && [[ "${REMOTE_PATH:0:1}" != "/" ]]; then 
+            REMOTE_PATH="$REPO_ROOT/$REMOTE_PATH"
+        fi
 	}
 
 function run
