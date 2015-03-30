@@ -774,7 +774,7 @@ testDeliverExistingRemoteNoInitSsh()
 	initDeliver
 	cd "$ROOT_DIR"/test_repo
 	git remote add new_remote $SSH_TEST_USER@$SSH_TEST_HOST:"$SSH_TEST_PATH"/test_new_remote_dir
-	git deliver --batch new_remote master
+	"$ROOT_DIR"/deliver.sh --batch new_remote master
 	A=`ssh $SSH_TEST_USER@$SSH_TEST_HOST ls -1d \"$SSH_TEST_PATH\"/test_new_remote_dir/delivered/current | wc -l`
 	assertEquals 0 $?
 	assertEquals 1 $A
