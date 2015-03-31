@@ -137,6 +137,10 @@ A delivery is initiated by running `git deliver <remote> <ref>`. Here's the time
 Stage scripts
 =============
 
+Stage scripts are Bash scripts that can be run at the various stages of a delivery.
+
+At a specific stage, git-deliver will run everything in `.deliver/scripts/<stage>` that has a name ending in `.sh`. Scripts with a name ending in `.remote.sh` will be executed entirely on the remote.
+
 Stage scripts can read a few environment variables to gather information about the delivery process.
 
 All stages have access to:
@@ -161,13 +165,16 @@ Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to
 
 Stage scripts can use the `run_remote` bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). `run_remote` also works for "local" remotes, the command will then be run as the user running git-deliver.
 
-Scripts with a name ending in .remote.sh will be executed entirely on the remote.
+Note that while you can of course call external programs from your stage scripts, you can use Bash heredocs to inline other script languages. Here's an example with Ruby :
+
+    #!/bin/bash
+    ruby <<EOS
+        print "Hello from Ruby, "+ENV['USER']+"\n"
+    EOS
 
 
 Status, Roadmap
 ===============
-
-Git-deliver is usable as-is, but is a work in progress. I consider it a working prototype. My main objective now is to turn it into a robust and reliable piece of software.
 
 See https://github.com/arnoo/git-deliver/issues?state=open for known bugs and planned enhancements/features.
 
