@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-#   Copyright 2012-2014 Arnaud Betremieux <arno@arnoo.net>
+#   Copyright 2012-2015 Arnaud Betremieux <arno@arnoo.net>
 #
 #   This file is a part of Git-deliver.
 #
