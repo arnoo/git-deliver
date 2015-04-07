@@ -1,3 +1,5 @@
+![Git-deliver logo](https://cloud.githubusercontent.com/assets/185428/7026802/380bbd3a-dd4c-11e4-8bcf-a6ee2cbe30de.png)
+
 Introduction
 ============
 
