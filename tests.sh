@@ -917,6 +917,19 @@ testSshGC()
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST "rm -rf \"$SSH_TEST_PATH\"/test_remote"
 	}
 
+testFailedInitSsh()
+	{
+	initWithSshOrigin
+	cd "$ROOT_DIR/test_repo"
+	echo "exit 1" > "$ROOT_DIR/test_repo/.deliver/scripts/init-remote/00-fail.sh"
+	A=`"$ROOT_DIR"/deliver.sh --init-remote origin 2>&1`
+	assertEquals 30 $?
+	echo "$A" | grep "Script returned with status 1" &> /dev/null
+	assertEquals 0 $?
+	echo "$A" | grep "Rolling back" &> /dev/null
+	assertEquals 1 $?
+        }
+
 testRollbackPreDeliverySsh()
 	{
 	initWithSshOrigin

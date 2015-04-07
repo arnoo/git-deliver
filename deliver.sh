@@ -403,15 +403,15 @@ function run_stage_scripts
 			{ $shell | indent 2 >&2; script_result=${PIPESTATUS[0]}; } <<-EOS
 				export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
 				export REPO_ROOT="$REPO_ROOT"
-				export DELIVERY_DATE="$DELIVERY_DATE"
-				export DELIVERY_PATH="$DELIVERY_PATH"
-				export VERSION="$VERSION"
-				export VERSION_SHA="$VERSION_SHA"
+				export DELIVERY_DATE="${DELIVERY_DATE:-}"
+				export DELIVERY_PATH="${DELIVERY_PATH:-}"
+				export VERSION="${VERSION:-}"
+				export VERSION_SHA="${VERSION_SHA:-}"
 				export PREVIOUS_VERSION_SHA="${PREVIOUS_VERSION_SHA:-}"
 				export REMOTE_SERVER="$REMOTE_SERVER"
 				export REMOTE_PATH="$REMOTE_PATH"
 				export REMOTE="$REMOTE"
-				export LAST_STAGE_REACHED="$LAST_STAGE_REACHED"
+				export LAST_STAGE_REACHED="${LAST_STAGE_REACHED:-}"
 				export IS_ROLLBACK="$IS_ROLLBACK"
 				export FAILED_SCRIPT="${FAILED_SCRIPT:-}"
 				export FAILED_SCRIPT_EXIT_STATUS="${FAILED_SCRIPT_EXIT_STATUS:-}"
@@ -432,12 +432,15 @@ function run_stage_scripts
 			EOS
 			if [[ $script_result -gt 0 ]]; then
 				echo_red "Script returned with status $script_result" | indent 1 >&2
-				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]]; then
+				if [[ "$DELIVERY_STAGE" != "rollback-pre-symlink" ]] && [[ "$DELIVERY_STAGE" != "rollback-post-symlink" ]] && [[ "$DELIVERY_STAGE" != "init-remote" ]]; then
 					LAST_STAGE_REACHED="$DELIVERY_STAGE"
 					FAILED_SCRIPT="$CURRENT_STAGE_SCRIPT"
 					FAILED_SCRIPT_EXIT_STATUS="$script_result"
 					rollback
 					exit 3
+				elif [[ "$DELIVERY_STAGE" == "init-remote" ]]; then
+					echo_red "A script failed during init-remote, manual intervention is likely necessary"
+					exit 30 
 				else
 					echo_red "A script failed during rollback, manual intervention is likely necessary"
 					echo_red "Delivery log : $LOG_TEMPFILE"
@@ -563,8 +566,8 @@ function init_remote
 	IN_INIT=true
 	INIT_URL=""
 	[[ $# -gt 1 ]] && INIT_URL="$2"
-	local remote="$1"
-	remote_info "$remote" true "$INIT_URL"
+	REMOTE="$1"
+	remote_info "$REMOTE" true "$INIT_URL"
 	
 	if [[ "$REMOTE_PROTO" != "ssh" ]] && [[ "$REMOTE_PROTO" != "local" ]]; then
 		exit_with_error 17 "Git-deliver can only work with ssh or 'local' remotes"
@@ -584,7 +587,7 @@ function init_remote
 			exit_with_error 10 "ERROR: Remote path points to a file"
 		else
 			if [[ `run_remote "ls -1 \"$REMOTE_PATH\" | wc -l | tr -d ' '"` != "0" ]]; then
-				git fetch "$remote" &> /dev/null
+				git fetch "$REMOTE" &> /dev/null
 				if [[ $? -gt 0 ]]; then
 					exit_with_error 9 "ERROR : Remote directory is not empty and does not look like a valid Git remote for this repo"
 				else
@@ -823,7 +826,7 @@ function deliver
 		echo "$rstatus" >&2
 	fi
 
-	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' )`
+	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' || date +'%F_%H-%M-%S' )`
 	DELIVERY_DATE=${DELIVERY_DATE:0:21}
 
 	local delivered_by_name=`git config --get user.name`
