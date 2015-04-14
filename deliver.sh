@@ -84,7 +84,19 @@ if [[ "$OSTYPE" == "msys" ]]; then
 	REPO_ROOT=`path2unix "$REPO_ROOT"`
 fi
 
-GIT_DELIVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PRG="$BASH_SOURCE"
+
+while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=`dirname "$PRG"`"/$link"
+    fi
+done
+
+GIT_DELIVER_PATH=$(dirname "$PRG")
 
 function confirm_or_exit
 	{
