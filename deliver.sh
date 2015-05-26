@@ -232,7 +232,11 @@ function remote_status
 					delivery_info="Unknown"
 					return=4
 				else
-					local previous_sha=\`git log --pretty=format:%H -n 1 --skip=1 2>&1\`
+                                        if [[ \`git log -n 1 --pretty=format:%B --skip=1\` = "git-deliver local-build commit" ]]; then
+                                            local previous_sha=\`git log --pretty=format:%H -n 1 --skip=2 2>&1\`
+                                        else
+                                            local previous_sha=\`git log --pretty=format:%H -n 1 --skip=1 2>&1\`
+                                        fi
 					local branch=\`git rev-parse --symbolic-full-name --abbrev-ref HEAD 2>&1\`
 					if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
 						local version=\$previous_sha
@@ -380,7 +384,7 @@ function init
     	    done
 	fi
 	mkdir -p "$REPO_ROOT/.deliver/scripts"
-	for stage in dependencies init-remote pre-delivery post-checkout pre-symlink post-symlink rollback-pre-symlink rollback-post-symlink; do
+	for stage in dependencies init-remote local-build pre-delivery post-checkout pre-symlink post-symlink rollback-pre-symlink rollback-post-symlink; do
 		mkdir -p "$REPO_ROOT/.deliver/scripts/$stage"
 		echo -e "Put your $stage Bash scripts in this folder with a .sh extension.\n\nSee https://github.com/arnoo/git-deliver for help." >> "$REPO_ROOT/.deliver/scripts/$stage/README"
 	done
@@ -518,7 +522,10 @@ function remote_info
 		REMOTE_PROTO=`echo "$REMOTE_URL" | cut -d: -f 1`
 		REMOTE_PROTO=`echo "${REMOTE_PROTO}" | tr '[A-Z]' '[a-z]'`
 		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
-		REMOTE_PATH="/"`echo "$REMOTE_URL" | cut -d/ -f 4-`
+                REMOTE_PATH=`echo "$REMOTE_URL" | cut -d/ -f 4-`
+                if [[ "${REMOTE_PATH:0:1}" != "~" ]]; then
+                    REMOTE_PATH="/$REMOTE_PATH"
+                fi
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
 		if [[ "$OSTYPE" == "msys" ]] && [[ "${REMOTE_URL:1:1}" == ":" ]]; then
 			REMOTE_PROTO='local'
@@ -628,13 +635,13 @@ function init_remote
 
 function create_delivered_dir_if_needed
 	{
-	run_remote "if [[ ! -d \"$REMOTE_PATH\"/delivered ]]; then \
+	run_remote "if [[ ! -d \"$REMOTE_PATH\"/delivered ]]; then
 					mkdir \"$REMOTE_PATH\"/delivered || exit 1
-					ls -ld \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w'
-					if [[ $? = 0 ]]; then
+					ls -ld \"$REMOTE_PATH/objects\" | cut -c 6 | grep 'w' ;
+					if [[ \$? = 0 ]]; then
 						chgrp \`ls -gd \"$REMOTE_PATH/objects\" | awk '{print \$3}'\` \"$REMOTE_PATH/delivered\" && \
-						chmod g+w \"$REMOTE_PATH/delivered\"
-					fi
+						chmod g+w \"$REMOTE_PATH/delivered\" ;
+					fi ;
 				fi"
 	exit_if_error 11 "Error creating 'delivered' directory in remote root"
 	}
@@ -651,44 +658,43 @@ function remote_gc
 	fi
 	LOG_TEMPFILE=`make_temp_file`
 	local gc_script="
-		CURVER=\`{ cd \"$REMOTE_PATH/delivered/current\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
-		PREVER=\`{ cd \"$REMOTE_PATH/delivered/previous\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
-		PREPREVER=\`{ cd \"$REMOTE_PATH/delivered/preprevious\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
-		DELETED=0
-		FREED_BYTES=0
-		STATUS=0
-		for rep in \"$REMOTE_PATH/delivered/\"*; do
+		CURVER=\`{ cd \"$REMOTE_PATH/delivered/current\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\` ;
+		PREVER=\`{ cd \"$REMOTE_PATH/delivered/previous\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`;
+		PREPREVER=\`{ cd \"$REMOTE_PATH/delivered/preprevious\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`;
+		DELETED=0 ;
+		FREED_BYTES=0 ;
+		STATUS=0 ;
+		for rep in \"$REMOTE_PATH/delivered/\"* ; do
 			if [ ! -L \"\$rep\" ]; then
-				rep=\`{ cd \"\$rep\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
+                            rep=\`{ cd \"\$rep\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\` ;
 			    if [ \"\$rep\" != \"\$CURVER\" ] &&
-			 	   [ \"\$rep\" != \"\$PREVER\" ] &&
-			   	   [ \"\$rep\" != \"\$PREPREVER\" ]; then
-					echo \"Removing \$rep\"
+                               [ \"\$rep\" != \"\$PREVER\" ] &&
+                               [ \"\$rep\" != \"\$PREPREVER\" ]; then
+                                    echo \"Removing \$rep\" ;
 				    if ( du --version 2>/dev/null | grep -q GNU\  ) ; then
-						FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\`
+						FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\` ;
 					else
-						FREED_BYTES_NEW=\`du -s \"\$rep\" | awk '{printf \"%d\", \$1/512}'\`
-					fi
-
+						FREED_BYTES_NEW=\`du -s \"\$rep\" | awk '{printf \"%d\", \$1/512}'\` ;
+					fi ;
 					rm -rf \"\$rep\" && \
 					DELETED=\$((\$DELETED + 1)) && \
 			   		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW)) || \
-					STATUS=27
-				fi
-			fi
-		done
+					STATUS=27 ;
+				fi ;
+			fi ;
+		done ;
 		if [[ \$FREED_BYTES = 0 ]]; then
-			HUMAN_FREED_BYTES=\"0 B\"
+			HUMAN_FREED_BYTES=\"0 B\" ;
 		else
 			HUMAN_FREED_BYTES=\`echo \$FREED_BYTES | awk '{x = \$0;
 								     split(\"B KB MB GB TB PB\", type);
 								     for(i=5;y < 1;i--)
 									 y = x / (2^(10*i));
 								     print y \" \" type[i+2];
-								     }'\`
-		fi
-		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\"
-		git gc --auto
+								     }'\` ;
+		fi ;
+		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\" ;
+		cd \"$REMOTE_PATH\"/delivered && git gc --auto ;
 		exit \$STATUS"
 	run_remote "$gc_script"
 	local status=$?
@@ -886,6 +892,25 @@ function deliver
 			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a branch to be deliverable"
 		fi
 
+                DELIVERY_STAGE="local-build"
+                LBVERSION="$VERSION"
+                if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"; then
+                    local lbclone="$REPO_ROOT/.deliver/tmp/lbclone"
+                    rm -rf "$lbclone"
+                    mkdir -p "$lbclone"
+                    exit_if_error 31 "Cannot create local-build clone directory"
+                    cp -rl "$REPO_ROOT"/.git "$REPO_ROOT"/* "$lbclone/"
+                    exit_if_error 32 "Cannot create local-build clone"
+                    cd "$lbclone" 
+                    git checkout "$VERSION"
+                    exit_if_error 33 "Cannot checkout in local-build clone"
+                    run_stage_scripts
+                    cd "$lbclone"
+                    run "git commit -am \"git-deliver local-build commit\"" 2>&1 | indent 1
+                    [[ $? -eq 0 ]] && LBVERSION=`git log --pretty=format:%H -n 1`
+                    cd "$REPO_ROOT"
+                fi
+
 		DELIVERY_STAGE="pre-delivery"
 		run_stage_scripts
 
@@ -913,12 +938,17 @@ function deliver
 		fi
 
 		echo "Checking out files..." | indent 1
-		run_remote "cd \"$DELIVERY_PATH\" && { test -e .git/refs/heads/"$delivery_branch" || git checkout -b $delivery_branch origin/$delivery_branch ; }" 2>&1 | indent 1
+		run_remote "cd \"$DELIVERY_PATH\" && git branch _delivered $VERSION_SHA" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit_with_error 15 "Error creating tracking branch on remote clone" ;
 		fi
+
+                if [[ "$LBVERSION" != "$VERSION" ]]; then
+                    echo "Pushing local build files to delivery clone"
+                    run "cd \"$lbclone\" && git push \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1 | indent 1
+                fi
 		
-		run_remote "cd \"$DELIVERY_PATH\" && git checkout -b '_delivered' $VERSION" 2>&1 | indent 1
+		run_remote "cd \"$DELIVERY_PATH\" && git checkout _delivered" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit_with_error 6 "Error checking out remote clone"
 		fi
