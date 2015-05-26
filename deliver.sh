@@ -23,31 +23,31 @@ set -o nounset
 
 USECOLOR=true;
 if [[ -t 1 ]]; then
-  if [[ ! "$OSTYPE" == "msys" ]]; then
-          nb=`tput colors 2>&1`
-          if [[ -n "$nb" ]] && [[ $nb -lt 8 ]]; then
-                  USECOLOR=false;
-          fi
-  fi
+	if [[ ! "$OSTYPE" == "msys" ]]; then
+		nb=`tput colors 2>&1`
+		if [[ -n "$nb" ]] && [[ $nb -lt 8 ]]; then
+			USECOLOR=false;
+		fi
+	fi
 else
-  USECOLOR=false;
+	USECOLOR=false;
 fi
 
 
 function echo_green
 	{
 	local msg="$1"
-    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\E[32m"; else tput setaf 2; fi }
+	[[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\E[32m"; else tput setaf 2; fi }
 	echo "$msg"
-    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\033[0m"; else tput sgr0; fi }
+	[[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\033[0m"; else tput sgr0; fi }
 	}
 
 function echo_red
 	{
 	local msg="$1"
-    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\E[31m"; else tput setaf 1; fi }
+	[[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\E[31m"; else tput setaf 1; fi }
 	echo "$msg"
-    [[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\033[0m"; else tput sgr0; fi }
+	[[ $USECOLOR == true ]] && { if [[ $OSTYPE == "msys" ]]; then echo -ne "\033[0m"; else tput sgr0; fi }
 	}
 
 function exit_with_error
@@ -87,39 +87,39 @@ fi
 PRG="$BASH_SOURCE"
 
 while [ -h "$PRG" ] ; do
-    ls=`ls -ld "$PRG"`
-    link=`expr "$ls" : '.*-> \(.*\)$'`
-    if expr "$link" : '/.*' > /dev/null; then
-        PRG="$link"
-    else
-        PRG=`dirname "$PRG"`"/$link"
-    fi
+	ls=`ls -ld "$PRG"`
+	link=`expr "$ls" : '.*-> \(.*\)$'`
+	if expr "$link" : '/.*' > /dev/null; then
+		PRG="$link"
+	else
+		PRG=`dirname "$PRG"`"/$link"
+	fi
 done
 
 GIT_DELIVER_PATH=$(dirname "$PRG")
 
 function confirm_or_exit
 	{
-        local msg="$1"
-        local question=""
-        [[ $? -gt 1 ]] && question=$2
-        local exit_if_batch=true
-        [[ $? -gt 2 ]] && exit_if_batch=$3
+	local msg="$1"
+	local question=""
+	[[ $? -gt 1 ]] && question=$2
+	local exit_if_batch=true
+	[[ $? -gt 2 ]] && exit_if_batch=$3
 
-        echo "$msg" >&2
-        if [[ $FLAGS_batch == true ]]; then
-            if [[ $exit_if_batch == true ]]; then
-                exit 2
-            else
-                return
-            fi
-        fi
+	echo "$msg" >&2
+	if [[ $FLAGS_batch == true ]]; then
+		if [[ $exit_if_batch == true ]]; then
+			exit 2
+		else
+			return
+		fi
+	fi
 	if [[ "$question" = "" ]]; then
-	    question="Continue ?"
+		question="Continue ?"
 	fi
 	read -p "$question (y/n) " -n 1 reply >&2
 	if [[ ! $reply = "Y" ]] && [[ ! $reply = "y" ]]; then
-            exit 1
+		exit 1
 	fi
 	}
 
@@ -137,13 +137,13 @@ function exit_with_help
 	[[ $# -gt 0 ]] && local code=$1
 
 	echo "Usage : "
-	echo "  git deliver <REMOTE> <VERSION>"
-	echo "  git deliver --rollback <REMOTE> [DELIVERY]"
-	echo "  git deliver --gc <REMOTE>"
-	echo "  git deliver --init [PRESETS]"
-	echo "  git deliver --init-remote [--shared=...] <REMOTE_NAME> <REMOTE_URL>"
-	echo "  git deliver --list-presets"
-	echo "  git deliver --status [REMOTE]"
+	echo "	git deliver <REMOTE> <VERSION>"
+	echo "	git deliver --rollback <REMOTE> [DELIVERY]"
+	echo "	git deliver --gc <REMOTE>"
+	echo "	git deliver --init [PRESETS]"
+	echo "	git deliver --init-remote [--shared=...] <REMOTE_NAME> <REMOTE_URL>"
+	echo "	git deliver --list-presets"
+	echo "	git deliver --status [REMOTE]"
 
 	if [[ -n ${code+defined} ]]; then
 		exit $code
@@ -157,7 +157,7 @@ function indent
 	local level=$1
 	local prefix=""
 	for (( i=0; $i < $level; i=$i+1 )); do
-		prefix="$prefix   "
+		prefix="$prefix	 "
 	done
 	sed -e "s/^/$prefix/"
 	}
@@ -232,11 +232,11 @@ function remote_status
 					delivery_info="Unknown"
 					return=4
 				else
-                                        if [[ \`git log -n 1 --pretty=format:%B --skip=1\` = "git-deliver local-build commit" ]]; then
-                                            local previous_sha=\`git log --pretty=format:%H -n 1 --skip=2 2>&1\`
-                                        else
-                                            local previous_sha=\`git log --pretty=format:%H -n 1 --skip=1 2>&1\`
-                                        fi
+										if [[ \`git log -n 1 --pretty=format:%B --skip=1\` = "git-deliver local-build commit" ]]; then
+											local previous_sha=\`git log --pretty=format:%H -n 1 --skip=2 2>&1\`
+										else
+											local previous_sha=\`git log --pretty=format:%H -n 1 --skip=1 2>&1\`
+										fi
 					local branch=\`git rev-parse --symbolic-full-name --abbrev-ref HEAD 2>&1\`
 					if [[ "\$branch" = "_delivered" ]] && [[ \${previous_sha:0:6} = \$short_sha ]]; then
 						local version=\$previous_sha
@@ -248,7 +248,7 @@ function remote_status
 						return=4
 					fi
 
-					local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//g' | grep -v '^delivered-' | tr "\\n" ","  | sed -e 's/,/, /g' -e 's/, $//g'\`
+					local tags=\`git show-ref --tags -d | grep ^\$version | sed -e 's,.* refs/tags/,,' -e 's/\^{}//g' | grep -v '^delivered-' | tr "\\n" ","	| sed -e 's/,/, /g' -e 's/, $//g'\`
 
 					if [[ "\$tags" = "" ]]; then
 						echo "\$version" | indent 1
@@ -286,7 +286,7 @@ function remote_status
 				for rep in "$REMOTE_PATH/delivered/"*; do
 					if [ ! -L "\$rep" ]; then
 						rep=\`{ cd "\$rep" && pwd -P && cd - > /dev/null ; } 2> /dev/null\`
-						if   [ "\$rep" != "\$curver" ] &&
+						if	 [ "\$rep" != "\$curver" ] &&
 							 [ "\$rep" != "\$prever" ] &&
 							 [ "\$rep" != "\$preprever" ]; then
 							version_info "\$rep"
@@ -381,7 +381,7 @@ function init
 		for preset_dir in "${presets[@]}"; do
 			local preset=`basename "$preset_dir"`
 			check_preset $preset
-    	    done
+			done
 	fi
 	mkdir -p "$REPO_ROOT/.deliver/scripts"
 	for stage in dependencies init-remote local-build pre-delivery post-checkout pre-symlink post-symlink rollback-pre-symlink rollback-post-symlink; do
@@ -522,10 +522,10 @@ function remote_info
 		REMOTE_PROTO=`echo "$REMOTE_URL" | cut -d: -f 1`
 		REMOTE_PROTO=`echo "${REMOTE_PROTO}" | tr '[A-Z]' '[a-z]'`
 		REMOTE_SERVER=`echo "$REMOTE_URL" | cut -d/ -f 3`
-                REMOTE_PATH=`echo "$REMOTE_URL" | cut -d/ -f 4-`
-                if [[ "${REMOTE_PATH:0:1}" != "~" ]]; then
-                    REMOTE_PATH="/$REMOTE_PATH"
-                fi
+				REMOTE_PATH=`echo "$REMOTE_URL" | cut -d/ -f 4-`
+				if [[ "${REMOTE_PATH:0:1}" != "~" ]]; then
+					REMOTE_PATH="/$REMOTE_PATH"
+				fi
 	elif echo "$REMOTE_URL" | grep ':' > /dev/null; then
 		if [[ "$OSTYPE" == "msys" ]] && [[ "${REMOTE_URL:1:1}" == ":" ]]; then
 			REMOTE_PROTO='local'
@@ -539,19 +539,19 @@ function remote_info
 	else
 		REMOTE_PROTO='local'
 		REMOTE_SERVER=""
-                REMOTE_PATH="$REMOTE_URL"
+				REMOTE_PATH="$REMOTE_URL"
 	fi
 	REMOTE_PATH=`echo "$REMOTE_PATH" | sed 's#//#/#g'`
 	if [[ "$REMOTE_PROTO" == "ssh" ]]; then 
 		ssh_init $remote
 	fi
-        if [[ "${REMOTE_PATH:0:1}" = "~" ]]; then
-            local home_part=${REMOTE_PATH%%[ /]*}
-            REMOTE_PATH=`run_remote "echo $home_part"`${REMOTE_PATH:${#home_part}}
-        fi
+		if [[ "${REMOTE_PATH:0:1}" = "~" ]]; then
+			local home_part=${REMOTE_PATH%%[ /]*}
+			REMOTE_PATH=`run_remote "echo $home_part"`${REMOTE_PATH:${#home_part}}
+		fi
 	if [[ "$REMOTE_PROTO" == "local" ]] && [[ "${REMOTE_PATH:0:1}" != "/" ]]; then 
-            REMOTE_PATH="$REPO_ROOT/$REMOTE_PATH"
-        fi
+			REMOTE_PATH="$REPO_ROOT/$REMOTE_PATH"
+		fi
 	}
 
 function run
@@ -620,8 +620,8 @@ function init_remote
 	fi
 	if $NEED_INIT; then
 		run_remote "cd \"$REMOTE_PATH\" && \
-			    git init --shared=$FLAGS_shared --bare \"$REMOTE_PATH\" && \
-			    git config --bool receive.autogc false"
+				git init --shared=$FLAGS_shared --bare \"$REMOTE_PATH\" && \
+				git config --bool receive.autogc false"
 		exit_if_error 10 "Error initializing repository on remote"
 	fi
 
@@ -666,19 +666,19 @@ function remote_gc
 		STATUS=0 ;
 		for rep in \"$REMOTE_PATH/delivered/\"* ; do
 			if [ ! -L \"\$rep\" ]; then
-                            rep=\`{ cd \"\$rep\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\` ;
-			    if [ \"\$rep\" != \"\$CURVER\" ] &&
-                               [ \"\$rep\" != \"\$PREVER\" ] &&
-                               [ \"\$rep\" != \"\$PREPREVER\" ]; then
-                                    echo \"Removing \$rep\" ;
-				    if ( du --version 2>/dev/null | grep -q GNU\  ) ; then
+							rep=\`{ cd \"\$rep\" && pwd -P && cd - > /dev/null ; } 2> /dev/null\` ;
+				if [ \"\$rep\" != \"\$CURVER\" ] &&
+								 [ \"\$rep\" != \"\$PREVER\" ] &&
+								 [ \"\$rep\" != \"\$PREPREVER\" ]; then
+									echo \"Removing \$rep\" ;
+					if ( du --version 2>/dev/null | grep -q GNU\  ) ; then
 						FREED_BYTES_NEW=\`du -sb \"\$rep\" | cut -f1\` ;
 					else
 						FREED_BYTES_NEW=\`du -s \"\$rep\" | awk '{printf \"%d\", \$1/512}'\` ;
 					fi ;
 					rm -rf \"\$rep\" && \
 					DELETED=\$((\$DELETED + 1)) && \
-			   		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW)) || \
+				 		FREED_BYTES=\$((\$FREED_BYTES + \$FREED_BYTES_NEW)) || \
 					STATUS=27 ;
 				fi ;
 			fi ;
@@ -687,11 +687,11 @@ function remote_gc
 			HUMAN_FREED_BYTES=\"0 B\" ;
 		else
 			HUMAN_FREED_BYTES=\`echo \$FREED_BYTES | awk '{x = \$0;
-								     split(\"B KB MB GB TB PB\", type);
-								     for(i=5;y < 1;i--)
+									 split(\"B KB MB GB TB PB\", type);
+									 for(i=5;y < 1;i--)
 									 y = x / (2^(10*i));
-								     print y \" \" type[i+2];
-								     }'\` ;
+									 print y \" \" type[i+2];
+									 }'\` ;
 		fi ;
 		echo \"\$DELETED version(s) removed, \$HUMAN_FREED_BYTES freed\" ;
 		cd \"$REMOTE_PATH\"/delivered && git gc --auto ;
@@ -772,7 +772,7 @@ function deliver
 	echo "#" >> "$LOG_TEMPFILE"
 	echo "" >> "$LOG_TEMPFILE"
 
-	if [[ -n ${VERSION+defined} ]];  then
+	if [[ -n ${VERSION+defined} ]];	then
 		if [[ $IS_ROLLBACK == "false" ]]; then
 			echo -en "Delivery of ref \"$VERSION\" to" >> "$LOG_TEMPFILE"
 		else
@@ -816,7 +816,7 @@ function deliver
 		fi
 	fi
 
-	if [[ $IS_ROLLBACK == false  ]]; then
+	if [[ $IS_ROLLBACK == false	]]; then
 		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
 
 		if [[ "$VERSION_SHA" = "" ]]; then
@@ -844,7 +844,7 @@ function deliver
 		echo "$rstatus" >&2
 	fi
 
-	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' || date +'%F_%H-%M-%S' )`
+	DELIVERY_DATE=`( date --version 2>/dev/null | grep -q GNU\  && date +'%F_%H-%M-%S%N' ) || ( which gdate &>/dev/null && gdate +'%F_%H-%M-%S%N' ) || ( which python &> /dev/null && python -c 'import datetime; print datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S%f")' ) || ( date +'%F_%H-%M-%S' )`
 	DELIVERY_DATE=${DELIVERY_DATE:0:21}
 
 	local delivered_by_name=`git config --get user.name`
@@ -852,7 +852,7 @@ function deliver
 
 	run_remote "mv --version 2>/dev/null | grep -q GNU\  || which python &> /dev/null"
 	if [[ $? -ne 0 ]]; then
-                confirm_or_exit "Warning: remote has neither GNU mv nor Python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." "" false
+				confirm_or_exit "Warning: remote has neither GNU mv nor Python installed. Delivery will not be atomic : for a very short time, the 'current' symlink will not exist." "" false
 	fi
 
 	trap delivery_sigint_handler SIGINT
@@ -892,24 +892,24 @@ function deliver
 			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a branch to be deliverable"
 		fi
 
-                DELIVERY_STAGE="local-build"
-                LBVERSION="$VERSION"
-                if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"; then
-                    local lbclone="$REPO_ROOT/.deliver/tmp/lbclone"
-                    rm -rf "$lbclone"
-                    mkdir -p "$lbclone"
-                    exit_if_error 31 "Cannot create local-build clone directory"
-                    cp -rl "$REPO_ROOT"/.git "$REPO_ROOT"/* "$lbclone/"
-                    exit_if_error 32 "Cannot create local-build clone"
-                    cd "$lbclone" 
-                    git checkout "$VERSION"
-                    exit_if_error 33 "Cannot checkout in local-build clone"
-                    run_stage_scripts
-                    cd "$lbclone"
-                    run "git commit -am \"git-deliver local-build commit\"" 2>&1 | indent 1
-                    [[ $? -eq 0 ]] && LBVERSION=`git log --pretty=format:%H -n 1`
-                    cd "$REPO_ROOT"
-                fi
+				DELIVERY_STAGE="local-build"
+				LBVERSION="$VERSION"
+				if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"; then
+					local lbclone="$REPO_ROOT/.deliver/tmp/lbclone"
+					rm -rf "$lbclone"
+					mkdir -p "$lbclone"
+					exit_if_error 31 "Cannot create local-build clone directory"
+					cp -rl "$REPO_ROOT"/.git "$REPO_ROOT"/* "$lbclone/"
+					exit_if_error 32 "Cannot create local-build clone"
+					cd "$lbclone" 
+					git checkout "$VERSION"
+					exit_if_error 33 "Cannot checkout in local-build clone"
+					run_stage_scripts
+					cd "$lbclone"
+					run "git commit -am \"git-deliver local-build commit\"" 2>&1 | indent 1
+					[[ $? -eq 0 ]] && LBVERSION=`git log --pretty=format:%H -n 1`
+					cd "$REPO_ROOT"
+				fi
 
 		DELIVERY_STAGE="pre-delivery"
 		run_stage_scripts
@@ -921,7 +921,7 @@ function deliver
 			exit 14 ;
 		fi
 
-		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d\  -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
+		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d" " -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
 		if [[ "$tags" != "" ]]; then
 			run "git push \"$REMOTE\" tag $tags"
 			exit_if_error 13
@@ -943,10 +943,10 @@ function deliver
 			exit_with_error 15 "Error creating tracking branch on remote clone" ;
 		fi
 
-                if [[ "$LBVERSION" != "$VERSION" ]]; then
-                    echo "Pushing local build files to delivery clone"
-                    run "cd \"$lbclone\" && git push \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1 | indent 1
-                fi
+				if [[ "$LBVERSION" != "$VERSION" ]]; then
+					echo "Pushing local build files to delivery clone"
+					run "cd \"$lbclone\" && git push \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1 | indent 1
+				fi
 		
 		run_remote "cd \"$DELIVERY_PATH\" && git checkout _delivered" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
@@ -978,10 +978,10 @@ function deliver
 
 	echo "$SYMLINK_MSG"
 
-	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && { rm -f \"$REMOTE_PATH/delivered/prepreprevious\"; mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/prepreprevious\"  || exit 5 ; } ; \
-		    test -L \"$REMOTE_PATH/delivered/previous\" && { mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" || exit 4 ; } ; \
-		    test -L \"$REMOTE_PATH/delivered/current\" && { cp -d \"$REMOTE_PATH/delivered/current\"  \"$REMOTE_PATH/delivered/previous\" || exit 3 ; } ; \
-		    cd \"$REMOTE_PATH\"/delivered ; \
+	run_remote "test -L \"$REMOTE_PATH/delivered/preprevious\" && { rm -f \"$REMOTE_PATH/delivered/prepreprevious\"; mv \"$REMOTE_PATH/delivered/preprevious\"	\"$REMOTE_PATH/delivered/prepreprevious\"	|| exit 5 ; } ; \
+			test -L \"$REMOTE_PATH/delivered/previous\" && { mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/preprevious\" || exit 4 ; } ; \
+			test -L \"$REMOTE_PATH/delivered/current\" && { cp -d \"$REMOTE_PATH/delivered/current\"	\"$REMOTE_PATH/delivered/previous\" || exit 3 ; } ; \
+			cd \"$REMOTE_PATH\"/delivered ; \
 			if ( mv --version 2>/dev/null | grep -q GNU\  ) ; then \
 				{ ln -sfn \"$DELIVERY_BASENAME\" \"new\" || exit 2 ; } && { mv -Tf \"$REMOTE_PATH/delivered/new\" \"$REMOTE_PATH/delivered/current\" || exit 1 ; } ; \
 			elif ( which python &> /dev/null ) ; then \
@@ -1014,7 +1014,7 @@ function deliver
 	# TAG the delivered version
 	local tag_name="delivered-$REMOTE-$DELIVERY_DATE"
 	echo "Tagging delivery commit"
-	git tag -F "$LOG_TEMPFILE" "$tag_name" "$VERSION_SHA"  2>&1 | indent 1
+	git tag -F "$LOG_TEMPFILE" "$tag_name" "$VERSION_SHA"	2>&1 | indent 1
 	run "git push \"$REMOTE\" refs/tags/\"$tag_name\"" 2>&1 | indent 1
 	rm -f "$LOG_TEMPFILE"
 	local tag_to_push_msg=""
@@ -1061,21 +1061,21 @@ function rollback
 			local symlink_rollback
 			if [[ $SYMLINK_SWITCH_STATUS = 0 ]]; then
 				symlink_rollback="if test -L \"$REMOTE_PATH/delivered/previous\"; then \
-								  	  if ( mv --version 2>/dev/null | grep -q GNU\  ) ; then \
-										  mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; \
-									  elif ( which python &> /dev/null ) ; then \
-										  python -c 'import os; os.rename(\"$REMOTE_PATH/delivered/previous\",\"$REMOTE_PATH/delivered/current\");'; \
-									  else \
-										  rm -f  \"$REMOTE_PATH/delivered/current\" && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" ; \
-									  fi ; \
-								   else rm -f \"$REMOTE_PATH/delivered/current\"; fi"
+											if ( mv --version 2>/dev/null | grep -q GNU\  ) ; then \
+											mv -Tf \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\"; \
+										elif ( which python &> /dev/null ) ; then \
+											python -c 'import os; os.rename(\"$REMOTE_PATH/delivered/previous\",\"$REMOTE_PATH/delivered/current\");'; \
+										else \
+											rm -f	\"$REMOTE_PATH/delivered/current\" && mv \"$REMOTE_PATH/delivered/previous\" \"$REMOTE_PATH/delivered/current\" ; \
+										fi ; \
+									 else rm -f \"$REMOTE_PATH/delivered/current\"; fi"
 			elif [[ $SYMLINK_SWITCH_STATUS = 1 ]]; then
 				symlink_rollback="rm -f \"$REMOTE_PATH/delivered/new\""
 			fi
 			if [[ $SYMLINK_SWITCH_STATUS -lt 3 ]]; then
-				symlink_rollback="$symlink_rollback ; rm -f \"$REMOTE_PATH/delivered/previous\"; test -L \"$REMOTE_PATH/delivered/preprevious\" && mv \"$REMOTE_PATH/delivered/preprevious\"  \"$REMOTE_PATH/delivered/previous\""
+				symlink_rollback="$symlink_rollback ; rm -f \"$REMOTE_PATH/delivered/previous\"; test -L \"$REMOTE_PATH/delivered/preprevious\" && mv \"$REMOTE_PATH/delivered/preprevious\"	\"$REMOTE_PATH/delivered/previous\""
 			fi
-			symlink_rollback="$symlink_rollback ; test -L \"$REMOTE_PATH/delivered/prepreprevious\" && mv \"$REMOTE_PATH/delivered/prepreprevious\"  \"$REMOTE_PATH/delivered/preprevious\""
+			symlink_rollback="$symlink_rollback ; test -L \"$REMOTE_PATH/delivered/prepreprevious\" && mv \"$REMOTE_PATH/delivered/prepreprevious\"	\"$REMOTE_PATH/delivered/preprevious\""
 
 			run_remote "$symlink_rollback"
 	fi
@@ -1110,9 +1110,9 @@ FN=""
 
 optspec=":h-:"
 while getopts "$optspec" optchar; do
-    case "${optchar}" in
-        -)
-            case "${OPTARG}" in
+	case "${optchar}" in
+		-)
+			case "${OPTARG}" in
 				help)
 					exit_with_help
 					;;
@@ -1177,11 +1177,11 @@ while getopts "$optspec" optchar; do
 					fi
 					exit_with_help
 					;;
-            esac;;
-        h)
+			esac;;
+		h)
 			exit_with_help
-            ;;
-    esac
+			;;
+	esac
 done
 
 shift "$((OPTIND - 1))"
