@@ -896,16 +896,19 @@ function deliver
 				LBVERSION="$VERSION"
 				if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"; then
 					local lbclone="$REPO_ROOT/.deliver/tmp/lbclone"
-					rm -rf "$lbclone"
-					mkdir -p "$lbclone"
-					exit_if_error 31 "Cannot create local-build clone directory"
-					cp -rl "$REPO_ROOT"/.git "$REPO_ROOT"/* "$lbclone/"
+                                        if [[ -d "$lbclone/.git" ]]; then
+                                            run "cd \"$lbclone\" && git pull \"$REPO_ROOT\"; cd -" 2>&1 | indent 1
+                                        else
+                                            run "git clone --recursive \"$REPO_ROOT\" \"$lbclone\"" 2>&1 | indent 1
+                                        fi
 					exit_if_error 32 "Cannot create local-build clone"
 					cd "$lbclone" 
-					git checkout "$VERSION"
+					run "git checkout \"$VERSION\"" 2>&1 | indent 1
 					exit_if_error 33 "Cannot checkout in local-build clone"
-					run_stage_scripts
+                                        run "cd \"$lbclone\" && git submodule update --init --recursive; cd -" 2>&1 | indent 1
+					exit_if_error 34 "Cannot update submodules in local-build clone"
 					cd "$lbclone"
+					run_stage_scripts
 					run "git commit -am \"git-deliver local-build commit\"" 2>&1 | indent 1
 					[[ $? -eq 0 ]] && LBVERSION=`git log --pretty=format:%H -n 1`
 					cd "$REPO_ROOT"
@@ -945,7 +948,7 @@ function deliver
 
 				if [[ "$LBVERSION" != "$VERSION" ]]; then
 					echo "Pushing local build files to delivery clone"
-					run "cd \"$lbclone\" && git push \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1 | indent 1
+					run "cd \"$lbclone\" && git push \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1
 				fi
 		
 		run_remote "cd \"$DELIVERY_PATH\" && git checkout _delivered" 2>&1 | indent 1
