@@ -102,9 +102,9 @@ function confirm_or_exit
 	{
 	local msg="$1"
 	local question=""
-	[[ $? -gt 1 ]] && question=$2
+	[[ $# -gt 1 ]] && question=$2
 	local exit_if_batch=true
-	[[ $? -gt 2 ]] && exit_if_batch=$3
+	[[ $# -gt 2 ]] && exit_if_batch=$3
 
 	echo "$msg" >&2
 	if [[ $FLAGS_batch == true ]]; then
