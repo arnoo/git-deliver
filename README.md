@@ -157,7 +157,8 @@ All stages have access to:
     $REMOTE_PATH           path to the bare remote repository we are delivering to
     $REMOTE                name of the Git remote we are delivering to
     $DELIVERY_PATH         path where the version will be delivered on the remote ($REMOTE_PATH/delivered/$VERSION_$DELIVERY_DATE)
-	$IS_ROLLBACK		   boolean, true if this delivery is a rollback to a previously installed version
+    $IS_ROLLBACK           boolean, true if this delivery is a rollback to a previously installed version
+    $DELIVER_GIT_SSH       ssh command used by git-deliver to talk to the remote server
 
 Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to:
 
