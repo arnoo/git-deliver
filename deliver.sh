@@ -899,7 +899,7 @@ function deliver
 				if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"; then
 					local lbclone="$REPO_ROOT/.deliver/tmp/lbclone"
                                         if [[ -d "$lbclone/.git" ]]; then
-                                            run "cd \"$lbclone\" && git pull \"$REPO_ROOT\"; cd -" 2>&1 | indent 1
+                                            run "cd \"$lbclone\" && git fetch origin && git reset --hard origin/$branch; cd -" 2>&1 | indent 1
                                         else
                                             run "git clone --recursive \"$REPO_ROOT\" \"$lbclone\"" 2>&1 | indent 1
                                         fi
