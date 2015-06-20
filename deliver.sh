@@ -431,7 +431,7 @@ function run_stage_scripts
 				export IS_ROLLBACK="$IS_ROLLBACK"
 				export FAILED_SCRIPT="${FAILED_SCRIPT:-}"
 				export FAILED_SCRIPT_EXIT_STATUS="${FAILED_SCRIPT_EXIT_STATUS:-}"
-				export DELIVER_GIT_SSH="${GIT_SSH}"
+				export DELIVER_GIT_SSH="${GIT_SSH:-}"
 				unset GIT_SSH
 				
 				function run_remote
