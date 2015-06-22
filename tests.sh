@@ -543,6 +543,20 @@ testDeliverNotFastForwardSsh()
 	assertEquals 0 $?
 	}
 
+testDeliverNotFastForwardForcedSsh()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin &> /dev/null
+	"$ROOT_DIR"/deliver.sh --batch origin master &> /dev/null
+	git reset master^
+	echo "asdsdf" >> a
+	git commit -am "new master"
+	A=`"$ROOT_DIR"/deliver.sh --batch --force origin master 2>&1`
+	assertEquals 0 $?
+	echo "$A" | grep "forced update"
+	assertEquals 0 $?
+	}
+
 testBasicDeliverMasterSsh()
 	{
 	initWithSshOrigin

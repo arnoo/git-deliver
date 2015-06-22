@@ -921,14 +921,15 @@ function deliver
 
 		echo "Pushing necessary commits to remote"
 		local delivery_branch=`echo $branch | cut -d"/" -f2`
-		run "git push \"$REMOTE\" $branch:$delivery_branch" 2>&1 | indent 1
+		[[ $FLAGS_force == true ]] && local force="--force" || local force=""
+		run "git push $force \"$REMOTE\" $branch:$delivery_branch" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit 14 ;
 		fi
 
 		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d" " -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
 		if [[ "$tags" != "" ]]; then
-			run "git push \"$REMOTE\" tag $tags"
+			run "git push $force \"$REMOTE\" tag $tags"
 			exit_if_error 13
 		fi
 
@@ -950,7 +951,7 @@ function deliver
 
 				if [[ "$LBVERSION" != "$VERSION" ]]; then
 					echo "Pushing local build files to delivery clone"
-					run "cd \"$lbclone\" && git push \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1
+					run "cd \"$lbclone\" && git push $force \"$REMOTE_SERVER\":\"$DELIVERY_PATH\" $LBVERSION:_delivered ; cd \"$REPO_ROOT\"" 2>&1
 				fi
 		
 		run_remote "cd \"$DELIVERY_PATH\" && git checkout _delivered" 2>&1 | indent 1
@@ -1107,6 +1108,7 @@ function validate_option
 	}
 
 FLAGS_batch=false
+FLAGS_force=false
 FLAGS_shared="false"
 IS_ROLLBACK=false
 
@@ -1126,6 +1128,9 @@ while getopts "$optspec" optchar; do
 					;;
 				color)
 					USECOLOR=true
+					;;
+				force)
+					FLAGS_force=true
 					;;
 				nocolor)
 					USECOLOR=false
