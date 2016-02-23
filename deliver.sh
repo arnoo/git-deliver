@@ -927,7 +927,7 @@ function deliver
 			exit 14 ;
 		fi
 
-		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | cut -d" " -f2 | sed -e 's,refs/tags/,,g' | grep -v ^delivered-)
+		local tags=$(git show-ref --tags -d | grep "^$VERSION_SHA" | sed -e 's,.* refs/tags/,,' -e 's/\^{}//g' | grep -v '^delivered-' | tr "\\n" " ")
 		if [[ "$tags" != "" ]]; then
 			run "git push $force \"$REMOTE\" tag $tags"
 			exit_if_error 13
