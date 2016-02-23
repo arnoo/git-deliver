@@ -843,6 +843,34 @@ testBasicDeliverStatusSsh()
 	assertEquals `git rev-parse master` "${STATUS:3:40}"
 	echo "$STATUS" | grep \(testtag\) > /dev/null
 	assertEquals 0 $?
+	git tag -d testtag
+	}
+
+testBasicDeliverAnnotatedTagStatusSsh()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	git tag -a testtag -m "Annotated tag"
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
+	STATUS=`"$ROOT_DIR"/deliver.sh --status origin | head -n +2 | tail -n 1`
+	assertEquals `git rev-parse master` "${STATUS:3:40}"
+	echo "$STATUS" | grep \(testtag\) > /dev/null
+	assertEquals 0 $?
+	git tag -d testtag
+	}
+
+testBasicDeliverMultipleTagsStatusSsh()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	git tag testtag1
+	git tag testtag2
+	"$ROOT_DIR"/deliver.sh --batch origin master 2>&1 > /dev/null
+	STATUS=`"$ROOT_DIR"/deliver.sh --status origin | head -n +2 | tail -n 1`
+	assertEquals `git rev-parse master` "${STATUS:3:40}"
+	echo "$STATUS" | grep "(testtag1, testtag2)" > /dev/null
+	assertEquals 0 $?
+	git tag -d testtag1 testtag2
 	}
 
 testStatusNonSshRemote()
