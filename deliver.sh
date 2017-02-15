@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #
 #   Copyright 2012-2015 Arnaud Betremieux <arno@arnoo.net>
 #
@@ -417,21 +416,21 @@ function run_stage_scripts
 			fi
 			local script_result
 			{ $shell | indent 2 >&2; script_result=${PIPESTATUS[0]}; } <<-EOS
-				export GIT_DELIVER_PATH="$GIT_DELIVER_PATH"
-				export REPO_ROOT="$REPO_ROOT"
-				export DELIVERY_DATE="${DELIVERY_DATE:-}"
-				export DELIVERY_PATH="${DELIVERY_PATH:-}"
-				export VERSION="${VERSION:-}"
-				export VERSION_SHA="${VERSION_SHA:-}"
-				export PREVIOUS_VERSION_SHA="${PREVIOUS_VERSION_SHA:-}"
-				export REMOTE_SERVER="$REMOTE_SERVER"
-				export REMOTE_PATH="$REMOTE_PATH"
-				export REMOTE="$REMOTE"
-				export LAST_STAGE_REACHED="${LAST_STAGE_REACHED:-}"
-				export IS_ROLLBACK="$IS_ROLLBACK"
-				export FAILED_SCRIPT="${FAILED_SCRIPT:-}"
-				export FAILED_SCRIPT_EXIT_STATUS="${FAILED_SCRIPT_EXIT_STATUS:-}"
-				export DELIVER_GIT_SSH="${GIT_SSH:-}"
+				export GIT_DELIVER_PATH='$GIT_DELIVER_PATH'
+				export REPO_ROOT='$REPO_ROOT'
+				export DELIVERY_DATE='${DELIVERY_DATE:-}'
+				export DELIVERY_PATH='${DELIVERY_PATH:-}'
+				export VERSION='${VERSION:-}'
+				export VERSION_SHA='${VERSION_SHA:-}'
+				export PREVIOUS_VERSION_SHA='${PREVIOUS_VERSION_SHA:-}'
+				export REMOTE_SERVER='$REMOTE_SERVER'
+				export REMOTE_PATH='$REMOTE_PATH'
+				export REMOTE='$REMOTE'
+				export LAST_STAGE_REACHED='${LAST_STAGE_REACHED:-}'
+				export IS_ROLLBACK='$IS_ROLLBACK'
+				export FAILED_SCRIPT='${FAILED_SCRIPT:-}'
+				export FAILED_SCRIPT_EXIT_STATUS='${FAILED_SCRIPT_EXIT_STATUS:-}'
+				export DELIVER_GIT_SSH='${GIT_SSH:-}'
 				unset GIT_SSH
 				
 				function run_remote
@@ -726,20 +725,20 @@ function make_temp_file
 function get_branch_for_version
 	{
 	# branches containing version
-	local eligible_branches=`git branch -a --contains $1 | grep -v '(no branch)' | tr -d '^ *' | tr -d '^ ' | sed 's/^remotes\///'`
+	local eligible_branches=`git branch --contains "$1" | grep -v '(no branch)' | tr -d '^ *' | tr -d '^ '`
 
 	# if version is a branch, picks it
-	local branch=`echo "$eligible_branches" | grep "^$1$" | head -n 1`
+	local branch=`echo "$eligible_branches" | grep -Fx "$1" | head -n 1`
 
 	# else, tries currently checked-out branch if eligible
 	local current_branch=`git rev-parse --symbolic-full-name --abbrev-ref HEAD`
 	if [[ "$branch" == "" ]]; then
-		branch=`echo "$eligible_branches" | grep "^$current_branch$" | head -n 1`
+		branch=`echo "$eligible_branches" | grep -Fx "$current_branch" | head -n 1`
 	fi
 
 	# else, tries master if eligible
 	if [[ "$branch" == "" ]]; then
-		branch=`echo "$eligible_branches" | grep "^master$" | head -n 1`
+		branch=`echo "$eligible_branches" | grep -Fx "master" | head -n 1`
 	fi
 
 	# else, picks first eligible branch
@@ -819,14 +818,14 @@ function deliver
 	fi
 
 	if [[ $IS_ROLLBACK == false	]]; then
-		VERSION_SHA=`git rev-parse --revs-only $VERSION 2> /dev/null`
+		VERSION_SHA=`git rev-parse --revs-only "$VERSION" 2> /dev/null`
 
 		if [[ "$VERSION_SHA" = "" ]]; then
 			confirm_or_exit "Ref $VERSION not found." "Tag current HEAD ?"
 			VERSION_SHA=`git rev-parse HEAD`
 			echo "Tagging current HEAD" >&2
-			git tag $VERSION
-			local tag_to_push=$VERSION
+			git tag "$VERSION"
+			local tag_to_push="$VERSION"
 		fi
 	fi
 
@@ -883,13 +882,13 @@ function deliver
 		SYMLINK_MSG="Rolling back the 'current' symlink to the delivery $DELIVERY_BASENAME ($VERSION_SHA), delivered $rollback_target_info"
 	else
 		local human_version="${VERSION_SHA:0:6}"
-		if [[ $VERSION != $VERSION_SHA ]]; then
+		if [[ "$VERSION" != "$VERSION_SHA" ]]; then
 			human_version="$human_version"_"${VERSION/\//_}"
 		fi
 		DELIVERY_BASENAME="$DELIVERY_DATE"_"$human_version"
 		DELIVERY_PATH="$REMOTE_PATH/delivered/$DELIVERY_BASENAME"
 
-		local branch=`get_branch_for_version $VERSION`
+		local branch=`get_branch_for_version "$VERSION"`
 		if [[ "$branch" == "" ]]; then
 			exit_with_error 16 "No branch found for ref $VERSION, commit must belong to a branch to be deliverable"
 		fi
@@ -899,7 +898,7 @@ function deliver
 				if test -n "$(find "$REPO_ROOT/.deliver/scripts/$DELIVERY_STAGE" -maxdepth 1 -name '*.sh' -print 2> /dev/null)"; then
 					local lbclone="$REPO_ROOT/.deliver/tmp/lbclone"
                                         if [[ -d "$lbclone/.git" ]]; then
-                                            run "cd \"$lbclone\" && git fetch origin && git reset --hard origin/$branch; cd -" 2>&1 | indent 1
+                                            run "cd \"$lbclone\" && git fetch origin && git reset --hard 'origin/$branch'; cd -" 2>&1 | indent 1
                                         else
                                             run "git clone --recursive \"$REPO_ROOT\" \"$lbclone\"" 2>&1 | indent 1
                                         fi
@@ -920,9 +919,8 @@ function deliver
 		run_stage_scripts
 
 		echo "Pushing necessary commits to remote"
-		local delivery_branch=`echo $branch | cut -d"/" -f2`
 		[[ $FLAGS_force == true ]] && local force="--force" || local force=""
-		run "git push $force \"$REMOTE\" $branch:$delivery_branch" 2>&1 | indent 1
+		run "git push $force '$REMOTE' '$branch'" 2>&1 | indent 1
 		if [[ ${PIPESTATUS[0]} -gt 0 ]]; then
 			exit 14 ;
 		fi

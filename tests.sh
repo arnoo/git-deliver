@@ -111,6 +111,7 @@ tearDown()
 	rm -rf "$ROOT_DIR/test_remote"
 	ssh $SSH_TEST_USER@$SSH_TEST_HOST rm -rf "$SSH_TEST_PATH"/test_remote
 	cd "$ROOT_DIR"
+	echo ""
 	}
 
 testPath2Unix()
@@ -710,6 +711,43 @@ testBasicDeliverNonMasterBranch()
 	else
 		echo "Test won't be run (msys)"
 	fi
+	}
+
+testBasicDeliverNonMasterBranchWithSpecialChars()
+	{
+	if [[ "$OSTYPE" != "msys" ]]; then
+		initWithOrigin
+		branchname='(@unholy-branch.name/from$hell'
+		git checkout -b "$branchname" master
+		"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+		"$ROOT_DIR"/deliver.sh --batch origin "$branchname" 2>&1 > /dev/null
+		cd "$ROOT_DIR"/test_remote
+		assertEquals 0 $?
+		assertTrueEcho "[ -d delivered ]"
+		assertTrueEcho "[ -L delivered/current ]"
+		assertTrueEcho "[ -d delivered/`readlink "$ROOT_DIR"/test_remote/delivered/current` ]"
+		cd "$ROOT_DIR"/test_repo
+		assertEquals `git rev-parse "$branchname"` `git --git-dir="$ROOT_DIR"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H`;
+	else
+		echo "Test won't be run (msys)"
+	fi
+	}
+
+testBasicDeliverNonMasterBranchSshWithSpecialChars()
+	{
+	initWithSshOrigin
+	"$ROOT_DIR"/deliver.sh --init-remote --batch origin > /dev/null
+	branchname='(@unholy-branch.name/from$hell'
+	git checkout -b "$branchname" master
+	"$ROOT_DIR"/deliver.sh --batch origin "$branchname" 2>&1 > /dev/null
+
+	ssh $SSH_TEST_USER@$SSH_TEST_HOST "cd \"$SSH_TEST_PATH\"/test_remote && test -d delivered && test -L delivered/current && test -d delivered/\`readlink \"$SSH_TEST_PATH\"/test_remote/delivered/current\`"
+	assertEquals 0 $?
+
+	SSH_SHA1=`ssh $SSH_TEST_USER@$SSH_TEST_HOST "git --git-dir=\"$SSH_TEST_PATH\"/test_remote/delivered/current/.git log -n 1 --skip=1 --pretty=format:%H"`
+
+	cd "$ROOT_DIR"/test_repo
+	assertEquals `git rev-parse "$branchname"` $SSH_SHA1;
 	}
 
 testBasicDeliverNonMasterBranchSsh()
