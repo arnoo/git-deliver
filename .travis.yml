@@ -2,3 +2,7 @@ language: bash
 
 script:
     - bash tests.sh
+
+os:
+    - linux
+    - osx
