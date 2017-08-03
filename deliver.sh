@@ -440,7 +440,7 @@ function run_stage_scripts
 					if [[ "$REMOTE_SERVER" = "" ]]; then
 						bash -c "\$command"
 					else
-						"${GIT_SSH:-}" "$REMOTE_SERVER" "\$command"
+						"${GIT_SSH:-}" "$REMOTE_SERVER" bash -c "\$command"
 					fi
 					}
 				
