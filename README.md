@@ -182,9 +182,3 @@ Status, Roadmap
 See https://github.com/arnoo/git-deliver/issues?state=open for known bugs and planned enhancements/features.
 
 Code contributions are welcome, particularly in the form of stage script presets.
-
-
-Help fund the project
-=====================
-
-You can donate Bitcoins to fund future developments. Send them to 1MtSVmn4uZ98iEFjHLkHSbqxwmbyvEoqAJ
